@@ -1,0 +1,7 @@
+function People() {
+    return (
+    <p className="text-xl pt-4">People Page</p>
+    )
+}
+
+export default People

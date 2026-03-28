@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* https://tailwindcss.com/docs/theme */
+@theme {
+  --color-ui-bg: #141f3d;
+}

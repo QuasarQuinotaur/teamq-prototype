@@ -1,6 +1,6 @@
 function About() {
     return (
-    <p>About page</p>
+    <p className="text-xl pt-4">About page</p>
     )
 }
 
