@@ -11,10 +11,10 @@ function Navbar() {
 
             <div className="justify-self-center flex gap-6">
                 <Link to="/people">
-                    <span className='p-5'>People</span>
+                    <span className='p-5 font-bold hover:text-slate-500 transition duration-400'>People</span>
                 </Link>
                 <Link to="/about">
-                    <span className='p-5'>About</span>
+                    <span className='p-5 font-bold hover:text-slate-500 transition duration-400'>About</span>
                 </Link>
             </div>
 
