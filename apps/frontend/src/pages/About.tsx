@@ -1,6 +1,8 @@
 function About() {
     return (
-    <p className="text-xl pt-4">About page</p>
+    <div className="text-xl pt-4 min-w-full justify-center px-100">
+        <h1>About</h1>
+    </div>
     )
 }
 
