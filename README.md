@@ -74,3 +74,5 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 6.  **Switch back to dev:** `git checkout dev`
 7.  **Merge your feature into dev:** `git merge feature/YOUR-FEATURE-NAME`
 8.  **Push the updated dev branch:** `git push origin dev`
+
+Ben Reinherz
