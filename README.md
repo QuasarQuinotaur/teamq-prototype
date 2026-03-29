@@ -1,7 +1,7 @@
 # Project Setup and Contribution Guide
 
 Welcome to the repository! Follow these instructions to get your local environment running and to understand our branching strategy.
-Theron Boozer
+Theron Boozer, Norah Anderson
 ---
 
 ## Getting Started
