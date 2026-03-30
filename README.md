@@ -1,7 +1,6 @@
 # Project Setup and Contribution Guide
 
 Welcome to the repository! Follow these instructions to get your local environment running and to understand our branching strategy.
-Theron Boozer, Norah Anderson
 ---
 
 ## Getting Started
@@ -75,4 +74,12 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 7.  **Merge your feature into dev:** `git merge feature/YOUR-FEATURE-NAME`
 8.  **Push the updated dev branch:** `git push origin dev`
 
-Ben Reinherz
+## Credits
+Ben Reinherz - Assistant Lead SWE Frontend
+Daniel Gomes - Assistant Lead SWE Backend
+Norah Anderson - Full-time SWE Frontend
+Ali Tariq - Full-time SWE Backend
+Ben Santana - Lead Software Engineer
+Theron Boozer - SCRUM Master
+Kylie Welcher - Project Manager
+Abyshek Sukumar - Product Owner 
