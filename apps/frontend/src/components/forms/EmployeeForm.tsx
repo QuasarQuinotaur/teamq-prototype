@@ -10,8 +10,8 @@ import {
     // FieldDescription,
 } from "@/components/ui/field.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import JobPosition from "@/components/forms/input/JobPosition.tsx";
-import Date from "@/components/forms/input/Date.tsx";
+import JobPositionInput from "@/components/forms/input/JobPositionInput.tsx";
+import DateSelectInput from "@/components/forms/input/DateSelectInput.tsx";
 
 type Employee = {
     firstName: string,
@@ -73,9 +73,9 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                     {/*<FieldDescription>Example description</FieldDescription>*/}
                     <FieldGroup>
                         <Field>
-                            <FieldLabel htmlFor={"employee-form-first-name"}>First Name</FieldLabel>
+                            <FieldLabel htmlFor={"employee-add-form-first-name"}>First Name</FieldLabel>
                             <Input
-                                id={"employee-form-first-name"}
+                                id={"employee-add-form-first-name"}
                                 placeholder={"First Name"}
                                 value={firstName}
                                 onChange={(e) =>
@@ -83,9 +83,9 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"employee-form-last-name"}>Last Name</FieldLabel>
+                            <FieldLabel htmlFor={"employee-add-form-last-name"}>Last Name</FieldLabel>
                             <Input
-                                id={"employee-form-last-name"}
+                                id={"employee-add-form-last-name"}
                                 placeholder={"Last Name"}
                                 value={lastName}
                                 onChange={(e) =>
@@ -93,17 +93,19 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"employee-form-dob"}>Date of Birth</FieldLabel>
-                            <Date
-                                dateOfBirth={dateOfBirth}
-                                setDateOfBirth={setDateOfBirth}
+                            <FieldLabel htmlFor={"employee-add-form-dob"}>Date of Birth</FieldLabel>
+                            <DateSelectInput
+                                id={"employee-add-form-dob"}
+                                date={dateOfBirth}
+                                setDate={setDateOfBirth}
                                 dateString={dateOfBirthString}
                                 setDateString={setDateOfBirthString}
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"employee-form-job-position"}>Job Position</FieldLabel>
-                            <JobPosition
+                            <FieldLabel htmlFor={"employee-add-form-job-position"}>Job Position</FieldLabel>
+                            <JobPositionInput
+                                id={"employee-add-form-job-position"}
                                 jobPosition={jobPosition}
                                 setJobPosition={setJobPosition}
                             />

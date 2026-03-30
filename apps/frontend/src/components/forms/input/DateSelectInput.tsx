@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CalendarIcon } from "lucide-react";
+import {type ComponentProps, useState} from "react"
+import { CalendarIcon } from "lucide-react"
 
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -32,26 +32,27 @@ function isValidDate(date: Date | undefined) {
     return !isNaN(date.getTime())
 }
 
-type DateOfBirthProps = {
-    dateOfBirth: Date | undefined;
-    setDateOfBirth: (dateOfBirth: Date | undefined) => void;
+type DateProps = {
+    date: Date | undefined;
+    setDate: (date: Date | undefined) => void;
     dateString: string;
     setDateString: (dateString: string) => void;
-}
-function Date({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOfBirthProps) {
+} & ComponentProps<typeof InputGroupInput>
+function DateSelectInput(
+    { date, setDate, dateString, setDateString, ...props }: DateProps
+) {
     const [dateOpen, setDateOpen] = useState(false)
 
     return (
         <InputGroup>
             <InputGroupInput
-                id={"employee-form-dob"}
                 value={dateString}
                 placeholder="Date of Birth"
                 onChange={(e) => {
                     const date = new Date(e.target.value)
                     setDateString(e.target.value)
                     if (isValidDate(date)) {
-                        setDateOfBirth(date)
+                        setDate(date)
                     }
                 }}
                 onKeyDown={(e) => {
@@ -60,6 +61,7 @@ function Date({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOf
                         setDateOpen(true)
                     }
                 }}
+                {...props}
             />
             <InputGroupAddon align="inline-end">
                 <Popover open={dateOpen} onOpenChange={setDateOpen}>
@@ -75,11 +77,11 @@ function Date({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOf
                     <PopoverContent className="w-auto overflow-hidden p-0" align="start">
                         <Calendar
                             mode="single"
-                            selected={dateOfBirth}
-                            defaultMonth={dateOfBirth}
+                            selected={date}
+                            defaultMonth={date}
                             // captionLayout="dropdown"
                             onSelect={(date) => {
-                                setDateOfBirth(date)
+                                setDate(date)
                                 setDateString(formatDate(date))
                                 setDateOpen(false)
                             }}
@@ -91,4 +93,4 @@ function Date({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOf
     )
 }
 
-export default Date
+export default DateSelectInput
