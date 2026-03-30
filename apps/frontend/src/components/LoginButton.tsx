@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 function LoginButton({ animate }: { animate: boolean }) {
   const fadeClass = animate
@@ -11,7 +12,7 @@ function LoginButton({ animate }: { animate: boolean }) {
       style={animate ? { animationDelay: '400ms' } : undefined}
     >
       <Button variant="outline" size="sm">
-        Log in
+        <Link to="/documents">Log in</Link>
       </Button>
     </div>
   );
