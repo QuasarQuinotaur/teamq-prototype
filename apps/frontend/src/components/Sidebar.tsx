@@ -18,13 +18,13 @@ import { RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, RobotIcon, BookOpenI
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "hanover",
+    email: "test@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "Hanover Insurance",
       logo: (
         <RowsIcon
         />

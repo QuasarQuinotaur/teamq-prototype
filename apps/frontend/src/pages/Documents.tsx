@@ -10,7 +10,7 @@
 
 // export default Documents
 
-import { AppSidebar } from "@/components/ui/app-sidebar"
+import { AppSidebar } from "@/components/Sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
