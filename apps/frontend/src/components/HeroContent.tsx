@@ -1,9 +1,15 @@
 import { Button } from '@/components/ui/button';
+// import ConfettiButto from '@/components/Confetti'
+import type { ConfettiHandle } from './Confetti';
+import { useRef } from 'react';
+import Confetti from './Confetti';
 
 function HeroContent({ animate }: { animate: boolean }) {
-  const fadeBase = animate
-    ? 'opacity-0 animate-[hero-fade-in_0.7s_ease-out_forwards]'
-    : '';
+    const fadeBase = animate
+     ? 'opacity-0 animate-[hero-fade-in_0.7s_ease-out_forwards]'
+     : '';
+
+    const confettiRef = useRef<ConfettiHandle>(null);
 
   return (
     <div className="relative z-10 flex h-full items-center pl-16 select-none">
@@ -24,7 +30,8 @@ function HeroContent({ animate }: { animate: boolean }) {
           className={fadeBase}
           style={animate ? { animationDelay: '320ms' } : undefined}
         >
-          <Button size="lg">Get a Quote</Button>
+          <Confetti ref={confettiRef}/>
+          <Button size="lg" onClick={() => confettiRef.current?.fire()}>Get a Quote</Button>
         </div>
       </div>
     </div>
