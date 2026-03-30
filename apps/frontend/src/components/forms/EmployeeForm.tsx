@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { CalendarIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button.tsx"
 import {
@@ -7,29 +6,12 @@ import {
     FieldLabel,
     FieldGroup,
     FieldSet,
-    FieldLegend,
-    FieldDescription,
+    // FieldLegend,
+    // FieldDescription,
 } from "@/components/ui/field.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import {
-    InputGroup,
-    InputGroupAddon, InputGroupButton,
-    InputGroupInput,
-} from "@/components/ui/input-group"
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
+import JobPosition from "@/components/forms/input/JobPosition.tsx";
+import DateOfBirth from "@/components/forms/input/DateOfBirth.tsx";
 
 type Employee = {
     firstName: string,
@@ -54,32 +36,12 @@ export default function EmployeeForm() {
     </div>
 }
 
-function formatDate(date: Date | undefined) {
-    if (!date) {
-        return ""
-    }
-
-    return date.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    })
-}
-
-function isValidDate(date: Date | undefined) {
-    if (!date) {
-        return false
-    }
-    return !isNaN(date.getTime())
-}
-
 type AddEmployeeFormProps = {
     addEmployee: (newEmployee: Employee) => void
 }
 function AddEmployeeForm(props: AddEmployeeFormProps) {
     const [firstName, setFirstName] = useState("")
     const [lastName, setLastName] = useState("")
-    const [dateOpen, setDateOpen] = useState(false)
     const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
     const [dateString, setDateString] = useState<string>("")
     const [jobPosition, setJobPosition] = useState("")
@@ -98,7 +60,7 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
             reset()
         }} onSubmit={(e) => {
             e.preventDefault()
-            if (firstName.trim() && lastName.trim() && dateOfBirth != null && jobPosition.trim()) {
+            if (firstName.trim() && lastName.trim() && dateOfBirth != null && jobPosition) {
                 props.addEmployee({
                     firstName, lastName, dateOfBirth, jobPosition
                 })
@@ -132,73 +94,19 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor={"employee-form-dob"}>Date of Birth</FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id={"employee-form-dob"}
-                                    value={dateString}
-                                    placeholder="Date of Birth"
-                                    onChange={(e) => {
-                                        console.log(dateString)
-                                        const date = new Date(e.target.value)
-                                        setDateString(e.target.value)
-                                        if (isValidDate(date)) {
-                                            setDateOfBirth(date)
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "ArrowDown") {
-                                            e.preventDefault()
-                                            setDateOpen(true)
-                                        }
-                                    }}
-                                />
-                                <InputGroupAddon align="inline-end">
-                                    <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                                        <PopoverTrigger asChild>
-                                            <InputGroupButton
-                                                id={"employee-form-dob-picker"}
-                                                variant="ghost"
-                                                aria-label="Select date"
-                                            >
-                                                <CalendarIcon /><span className="sr-only">Select date</span>
-                                            </InputGroupButton>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={dateOfBirth}
-                                                defaultMonth={dateOfBirth}
-                                                // captionLayout="dropdown"
-                                                onSelect={(date) => {
-                                                    setDateOfBirth(date)
-                                                    setDateString(formatDate(date))
-                                                    setDateOpen(false)
-                                                }}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </InputGroupAddon>
-                            </InputGroup>
+                            <DateOfBirth
+                                dateOfBirth={dateOfBirth}
+                                setDateOfBirth={setDateOfBirth}
+                                dateString={dateString}
+                                setDateString={setDateString}
+                            />
                         </Field>
-                        <Field aria-hidden={false}>
+                        <Field>
                             <FieldLabel htmlFor={"employee-form-job-position"}>Job Position</FieldLabel>
-                            <Select value={jobPosition} onValueChange={setJobPosition}>
-                                <SelectTrigger
-                                    id={"employee-form-job-position"}
-                                >
-                                    <SelectValue placeholder="Choose job position" />
-                                </SelectTrigger>
-                                <SelectContent position={"popper"}>
-                                    <SelectGroup>
-                                        <SelectItem value="underwriter">
-                                            Underwriter
-                                        </SelectItem>
-                                        <SelectItem value="business-analyst">
-                                            Business Analyst
-                                        </SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                            <JobPosition
+                                jobPosition={jobPosition}
+                                setJobPosition={setJobPosition}
+                            />
                         </Field>
                     </FieldGroup>
                 </FieldSet>
