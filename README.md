@@ -71,8 +71,9 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 5.  **Merge dev into your branch:** `git merge dev`
     * *Note: This is where you resolve any merge conflicts locally on your feature branch. Test your code one last time here to ensure the merge didn't break anything.*
 6.  **Switch back to dev:** `git checkout dev`
-7.  **Merge your feature into dev:** `git merge feature/YOUR-FEATURE-NAME`
-8.  **Push the updated dev branch:** `git push origin dev`
+7.  **Merge your feature into dev:** `git merge --squash feature/YOUR-FEATURE-NAME`
+8.  **Commit your merge** `git commit -m "merge: YOUR-FEATURE-NAME"`
+9.  **Push the updated dev branch:** `git push origin dev`
 
 ## Credits
 Ben Reinherz - Assistant Lead SWE Frontend
