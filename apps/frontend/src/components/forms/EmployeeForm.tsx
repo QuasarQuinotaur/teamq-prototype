@@ -107,8 +107,8 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
         }}>
             <FieldGroup>
                 <FieldSet>
-                    <FieldLegend>Add employee form</FieldLegend>
-                    <FieldDescription>Example description</FieldDescription>
+                    {/*<FieldLegend>Add employee form</FieldLegend>*/}
+                    {/*<FieldDescription>Example description</FieldDescription>*/}
                     <FieldGroup>
                         <Field>
                             <FieldLabel htmlFor={"employee-form-first-name"}>First Name</FieldLabel>
