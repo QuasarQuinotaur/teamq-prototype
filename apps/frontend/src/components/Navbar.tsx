@@ -30,7 +30,7 @@ function Navbar() {
             {/* left side of navbar */}
             <div className="justify-self-start text-xl font-bold tracking-tight">
                 <Brand />
-            </div>
+            </div> 
 
             {/* middle of navbar */}
             <div className="justify-self-center flex gap-1">
