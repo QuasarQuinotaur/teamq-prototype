@@ -38,7 +38,7 @@ type DateOfBirthProps = {
     dateString: string;
     setDateString: (dateString: string) => void;
 }
-function DateOfBirth({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOfBirthProps) {
+function Date({ dateOfBirth, setDateOfBirth, dateString, setDateString }: DateOfBirthProps) {
     const [dateOpen, setDateOpen] = useState(false)
 
     return (
@@ -91,4 +91,4 @@ function DateOfBirth({ dateOfBirth, setDateOfBirth, dateString, setDateString }:
     )
 }
 
-export default DateOfBirth
+export default Date

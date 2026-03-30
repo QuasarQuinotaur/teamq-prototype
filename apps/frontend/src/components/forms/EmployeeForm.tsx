@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import JobPosition from "@/components/forms/input/JobPosition.tsx";
-import DateOfBirth from "@/components/forms/input/DateOfBirth.tsx";
+import Date from "@/components/forms/input/Date.tsx";
 
 type Employee = {
     firstName: string,
@@ -43,14 +43,14 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
     const [firstName, setFirstName] = useState("")
     const [lastName, setLastName] = useState("")
     const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
-    const [dateString, setDateString] = useState<string>("")
+    const [dateOfBirthString, setDateOfBirthString] = useState<string>("")
     const [jobPosition, setJobPosition] = useState("")
 
     function reset() {
         setFirstName("")
         setLastName("")
         setDateOfBirth(undefined)
-        setDateString("")
+        setDateOfBirthString("")
         setJobPosition("")
     }
 
@@ -94,11 +94,11 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor={"employee-form-dob"}>Date of Birth</FieldLabel>
-                            <DateOfBirth
+                            <Date
                                 dateOfBirth={dateOfBirth}
                                 setDateOfBirth={setDateOfBirth}
-                                dateString={dateString}
-                                setDateString={setDateString}
+                                dateString={dateOfBirthString}
+                                setDateString={setDateOfBirthString}
                             />
                         </Field>
                         <Field>
