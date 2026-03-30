@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CalendarIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button.tsx"
 import {
     Field,
@@ -9,6 +11,11 @@ import {
     FieldDescription,
 } from "@/components/ui/field.tsx"
 import { Input } from "@/components/ui/input.tsx"
+import {
+    InputGroup,
+    InputGroupAddon, InputGroupButton,
+    InputGroupInput,
+} from "@/components/ui/input-group"
 import {
     Select,
     SelectContent,
@@ -47,6 +54,25 @@ export default function EmployeeForm() {
     </div>
 }
 
+function formatDate(date: Date | undefined) {
+    if (!date) {
+        return ""
+    }
+
+    return date.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+    })
+}
+
+function isValidDate(date: Date | undefined) {
+    if (!date) {
+        return false
+    }
+    return !isNaN(date.getTime())
+}
+
 type AddEmployeeFormProps = {
     addEmployee: (newEmployee: Employee) => void
 }
@@ -55,12 +81,14 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
     const [lastName, setLastName] = useState("")
     const [dateOpen, setDateOpen] = useState(false)
     const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
+    const [dateString, setDateString] = useState<string>("")
     const [jobPosition, setJobPosition] = useState("")
 
     function reset() {
         setFirstName("")
         setLastName("")
         setDateOfBirth(undefined)
+        setDateString("")
         setJobPosition("")
     }
 
@@ -70,7 +98,7 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
             reset()
         }} onSubmit={(e) => {
             e.preventDefault()
-            if (dateOfBirth != null) {
+            if (firstName.trim() && lastName.trim() && dateOfBirth != null && jobPosition.trim()) {
                 props.addEmployee({
                     firstName, lastName, dateOfBirth, jobPosition
                 })
@@ -90,7 +118,6 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                                 value={firstName}
                                 onChange={(e) =>
                                     setFirstName(e.target.value)}
-                                required
                             />
                         </Field>
                         <Field>
@@ -101,40 +128,64 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                                 value={lastName}
                                 onChange={(e) =>
                                     setLastName(e.target.value)}
-                                required
                             />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor={"employee-form-dob"}>Date of Birth</FieldLabel>
-                            <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                                <PopoverTrigger asChild id={"employee-form-dob"}>
-                                    <Button
-                                        variant="outline"
-                                        id="date"
-                                        className="justify-start font-normal"
-                                    >
-                                        {dateOfBirth ? dateOfBirth.toLocaleDateString() : "Select date"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={dateOfBirth}
-                                        defaultMonth={dateOfBirth}
-                                        captionLayout="dropdown"
-                                        onSelect={(date) => {
+                            <InputGroup>
+                                <InputGroupInput
+                                    id={"employee-form-dob"}
+                                    value={dateString}
+                                    placeholder="Date of Birth"
+                                    onChange={(e) => {
+                                        console.log(dateString)
+                                        const date = new Date(e.target.value)
+                                        setDateString(e.target.value)
+                                        if (isValidDate(date)) {
                                             setDateOfBirth(date)
-                                            setDateOpen(false)
-                                        }}
-                                        required
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "ArrowDown") {
+                                            e.preventDefault()
+                                            setDateOpen(true)
+                                        }
+                                    }}
+                                />
+                                <InputGroupAddon align="inline-end">
+                                    <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                                        <PopoverTrigger asChild>
+                                            <InputGroupButton
+                                                id={"employee-form-dob-picker"}
+                                                variant="ghost"
+                                                aria-label="Select date"
+                                            >
+                                                <CalendarIcon /><span className="sr-only">Select date</span>
+                                            </InputGroupButton>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={dateOfBirth}
+                                                defaultMonth={dateOfBirth}
+                                                // captionLayout="dropdown"
+                                                onSelect={(date) => {
+                                                    setDateOfBirth(date)
+                                                    setDateString(formatDate(date))
+                                                    setDateOpen(false)
+                                                }}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </InputGroupAddon>
+                            </InputGroup>
                         </Field>
                         <Field aria-hidden={false}>
                             <FieldLabel htmlFor={"employee-form-job-position"}>Job Position</FieldLabel>
-                            <Select value={jobPosition} onValueChange={setJobPosition} required>
-                                <SelectTrigger id={"employee-form-job-position"}>
+                            <Select value={jobPosition} onValueChange={setJobPosition}>
+                                <SelectTrigger
+                                    id={"employee-form-job-position"}
+                                >
                                     <SelectValue placeholder="Choose job position" />
                                 </SelectTrigger>
                                 <SelectContent position={"popper"}>
