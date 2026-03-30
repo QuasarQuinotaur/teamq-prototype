@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/select.tsx"
 
 type JobPositionProps = {
-    id: string;
     jobPosition: string;
     setJobPosition: (jobPosition: string) => void;
 } & ComponentProps<typeof SelectTrigger>
