@@ -77,10 +77,17 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 
 ## Credits
 Ben Reinherz - Assistant Lead SWE Frontend
+
 Daniel Gomes - Assistant Lead SWE Backend
+
 Norah Anderson - Full-time SWE Frontend
+
 Ali Tariq - Full-time SWE Backend
+
 Ben Santana - Lead Software Engineer
+
 Theron Boozer - SCRUM Master
+
 Kylie Welcher - Project Manager
+
 Abyshek Sukumar - Product Owner 
