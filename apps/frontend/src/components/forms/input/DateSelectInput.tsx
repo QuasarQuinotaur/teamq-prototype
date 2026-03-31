@@ -47,7 +47,6 @@ function DateSelectInput(
         <InputGroup>
             <InputGroupInput
                 value={dateString}
-                placeholder="Date of Birth"
                 onChange={(e) => {
                     const date = new Date(e.target.value)
                     setDateString(e.target.value)
