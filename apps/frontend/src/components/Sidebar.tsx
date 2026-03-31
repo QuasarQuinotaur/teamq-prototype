@@ -3,9 +3,8 @@
 import * as React from "react"
 
 import { NavMain } from "@/components/ui/nav-main"
-import { NavProjects } from "@/components/ui/nav-projects"
+import { NavTools } from "@/components/ui/nav-tools"
 import { NavUser } from "@/components/ui/nav-user"
-import { TeamSwitcher } from "@/components/ui/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +12,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
+import { RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, BookOpenIcon, BellIcon, ChartPieIcon } from "@phosphor-icons/react"
 
 // This is sample data.
 const data = {
@@ -50,7 +49,7 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Easy Access",
       url: "#",
       icon: (
         <TerminalIcon
@@ -59,43 +58,17 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "Recent",
           url: "#",
         },
         {
           title: "Starred",
           url: "#",
         },
-        {
-          title: "Settings",
-          url: "#",
-        },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: (
-        <RobotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
+      title: "Workflow Content",
       url: "#",
       icon: (
         <BookOpenIcon
@@ -103,61 +76,45 @@ const data = {
       ),
       items: [
         {
-          title: "Introduction",
+          title: "Category 1",
           url: "#",
         },
         {
-          title: "Get Started",
+          title: "Category 2",
           url: "#",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
+          title: "Category 3",
           url: "#",
         },
       ],
     },
     {
-      title: "Settings",
+      title: "Reference Content",
       url: "#",
       icon: (
-        <GearIcon
+        <BookOpenIcon
         />
       ),
       items: [
         {
-          title: "General",
+          title: "Category 1",
           url: "#",
         },
         {
-          title: "Team",
+          title: "Category 2",
           url: "#",
         },
         {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
+          title: "Category 3",
           url: "#",
         },
       ],
     },
   ],
-  projects: [
+  tools: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: (
-        <CropIcon
-        />
-      ),
-    },
-    {
-      name: "Sales & Marketing",
+      name: "Dashboard",
       url: "#",
       icon: (
         <ChartPieIcon
@@ -165,10 +122,10 @@ const data = {
       ),
     },
     {
-      name: "Travel",
+      name: "Notifications",
       url: "#",
       icon: (
-        <MapTrifoldIcon
+        <BellIcon
         />
       ),
     },
@@ -179,11 +136,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+       TO-DO: put logo here
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavTools tools={data.tools} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

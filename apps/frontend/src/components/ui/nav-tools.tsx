@@ -16,12 +16,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { DotsThreeOutlineIcon, FolderIcon, ShareFatIcon, TrashIcon } from "@phosphor-icons/react"
+import { DotsThreeOutlineIcon } from "@phosphor-icons/react"
 
-export function NavProjects({
-  projects,
+export function NavTools({
+  tools,
 }: {
-  projects: {
+  tools: {
     name: string
     url: string
     icon: React.ReactNode
@@ -31,9 +31,9 @@ export function NavProjects({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarGroupLabel>Tools</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
+        {tools.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <a href={item.url}>
@@ -52,25 +52,6 @@ export function NavProjects({
                   <span className="sr-only">More</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-48 rounded-lg"
-                side={isMobile ? "bottom" : "right"}
-                align={isMobile ? "end" : "start"}
-              >
-                <DropdownMenuItem>
-                  <FolderIcon className="text-muted-foreground" />
-                  <span>View Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <ShareFatIcon className="text-muted-foreground" />
-                  <span>Share Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <TrashIcon className="text-muted-foreground" />
-                  <span>Delete Project</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
