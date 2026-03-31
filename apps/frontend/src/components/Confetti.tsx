@@ -1,4 +1,4 @@
-import React, { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import ReactConfetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
