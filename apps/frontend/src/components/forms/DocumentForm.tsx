@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/field.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import JobPositionInput from "@/components/forms/input/JobPositionInput.tsx";
+import DateSelectInput from "@/components/forms/input/DateSelectInput.tsx";
+import ContentTypeInput from "@/components/forms/input/ContentTypeInput.tsx";
+import DocumentStatusInput from "@/components/forms/input/DocumentStatusInput.tsx";
 
 type Document = {
     name: string,
@@ -94,7 +97,7 @@ function AddDocumentForm(props: AddDocumentFormProps) {
                     {/*<FieldDescription>Example description</FieldDescription>*/}
                     <FieldGroup>
                         <Field>
-                            <FieldLabel htmlFor={"document-add-form-name"}>First Name</FieldLabel>
+                            <FieldLabel htmlFor={"document-add-form-name"}>Document Name</FieldLabel>
                             <Input
                                 id={"document-add-form-name"}
                                 placeholder={"Name"}
@@ -104,18 +107,18 @@ function AddDocumentForm(props: AddDocumentFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"document-add-form-link"}>First Name</FieldLabel>
+                            <FieldLabel htmlFor={"document-add-form-link"}>Document Link</FieldLabel>
                             <Input
-                                id={"employee-add-form-link"}
-                                placeholder={"Link"}
+                                id={"document-add-form-link"}
+                                placeholder={"https://..."}
                                 value={link}
                                 onChange={(e) =>
                                     setLink(e.target.value)}
-                                type={"link"}
+                                type={"url"}
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"document-add-form-owner"}>First Name</FieldLabel>
+                            <FieldLabel htmlFor={"document-add-form-owner"}>Owner</FieldLabel>
                             <Input
                                 id={"document-add-form-owner"}
                                 placeholder={"Owner"}
@@ -125,7 +128,7 @@ function AddDocumentForm(props: AddDocumentFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel>Job Position</FieldLabel>
+                            <FieldLabel htmlFor={"document-add-form-job-position"}>Job Position</FieldLabel>
                             <JobPositionInput
                                 id={"document-add-form-job-position"}
                                 jobPosition={jobPosition}
@@ -133,12 +136,41 @@ function AddDocumentForm(props: AddDocumentFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor={"employee-form-dob"}>Date of Birth</FieldLabel>
-                            <DateOfBirth
-                                dateOfBirth={dateOfBirth}
-                                setDateOfBirth={setDateOfBirth}
-                                dateString={dateString}
-                                setDateString={setDateString}
+                            <FieldLabel htmlFor={"document-add-form-last-modified"}>Last Modified Date</FieldLabel>
+                            <DateSelectInput
+                                id={"document-add-form-last-modified"}
+                                placeholder={"Last Modified Date"}
+                                date={lastModifiedDate}
+                                setDate={setLastModifiedDate}
+                                dateString={lastModifiedDateString}
+                                setDateString={setLastModifiedDateString}
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"document-add-form-expiration"}>Expiration Date</FieldLabel>
+                            <DateSelectInput
+                                id={"document-add-form-expiration"}
+                                placeholder={"Expiration Date"}
+                                date={expirationDate}
+                                setDate={setExpirationDate}
+                                dateString={expirationDateString}
+                                setDateString={setExpirationDateString}
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"document-add-form-content-type"}>Content Type</FieldLabel>
+                            <ContentTypeInput
+                                id={"document-add-form-content-type"}
+                                contentType={contentType}
+                                setContentType={setContentType}
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"document-add-form-status"}>Document Status</FieldLabel>
+                            <DocumentStatusInput
+                                id={"document-add-form-status"}
+                                status={status}
+                                setStatus={setStatus}
                             />
                         </Field>
                     </FieldGroup>
