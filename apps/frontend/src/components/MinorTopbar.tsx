@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
-import IconSelector from "@/components/ui/custom/icon-selector.tsx";
+import ButtonSelector from "@/components/ui/custom/button-selector.tsx";
 
 function FilterButton() {
     return (
@@ -61,8 +61,8 @@ function SortButton() {
 
 function ViewSelectorButton() {
     return (
-        <IconSelector
-            defaultKey={"List"}
+        <ButtonSelector
+            defaultOption={"List"}
             options={{
                 List: {
                     buttonElement: <ListBulletsIcon/>

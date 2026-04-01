@@ -5,25 +5,24 @@ import { Button } from "@/components/ui/button.tsx";
 type OptionDefinition = {
     buttonElement: ReactNode;
 }
-type IconSelectorProps<T extends Record<string, OptionDefinition>> = {
-    defaultKey: keyof T,
+type ButtonSelectorProps<T extends Record<string, OptionDefinition>> = {
+    defaultOption: keyof T,
     options: T
 }
-export default function IconSelector<T extends Record<string, OptionDefinition>>(
-    { defaultKey, options }: IconSelectorProps<T>
+export default function ButtonSelector<T extends Record<string, OptionDefinition>>(
+    { defaultOption, options }: ButtonSelectorProps<T>
 ) {
-    const [selectedOption, setSelectedOption] = useState(defaultKey)
+    const [selectedOption, setSelectedOption] = useState(defaultOption)
 
     return (
         <Item variant={"outline"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
-            {(Object.entries(options))
-                .map(([optionType, definition]) => (
+            {Object.entries(options).map(([option, definition]) => (
                 <Button
-                    id={optionType}
-                    variant={optionType == selectedOption ? "default" : "ghost"}
+                    id={option}
+                    variant={option == selectedOption ? "default" : "ghost"}
                     onClick={() => {
-                        if (optionType != selectedOption) {
-                            setSelectedOption(optionType)
+                        if (option != selectedOption) {
+                            setSelectedOption(option)
                         }
                     }}
                 >
