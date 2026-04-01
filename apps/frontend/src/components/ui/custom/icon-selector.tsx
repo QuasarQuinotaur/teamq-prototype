@@ -3,7 +3,7 @@ import { Item } from "@/components/ui/item.tsx";
 import { Button } from "@/components/ui/button.tsx";
 
 type OptionDefinition = {
-    iconElement: ReactNode;
+    buttonElement: ReactNode;
 }
 type IconSelectorProps<T extends Record<string, OptionDefinition>> = {
     defaultKey: keyof T,
@@ -27,7 +27,7 @@ export default function IconSelector<T extends Record<string, OptionDefinition>>
                         }
                     }}
                 >
-                    {definition.iconElement}
+                    {definition.buttonElement}
                 </Button>
             ))}
         </Item>

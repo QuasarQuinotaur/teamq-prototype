@@ -65,10 +65,10 @@ function ViewSelectorButton() {
             defaultKey={"List"}
             options={{
                 List: {
-                    iconElement: <ListBulletsIcon/>
+                    buttonElement: <ListBulletsIcon/>
                 },
                 Grid: {
-                    iconElement: <GridFourIcon/>
+                    buttonElement: <GridFourIcon/>
                 }
             }}
         />
