@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -24,8 +22,8 @@ import {
     PopoverTrigger
 } from "@/components/ui/popover.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Item } from "@/components/ui/item.tsx";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
+import IconSelector from "@/components/ui/custom/icon-selector.tsx";
 
 function FilterButton() {
     return (
@@ -61,35 +59,19 @@ function SortButton() {
     )
 }
 
-const viewTypes = {
-    List: {
-        icon: <ListBulletsIcon/>
-    },
-    Grid: {
-        icon: <GridFourIcon/>
-    }
-}
-type ViewType = keyof typeof viewTypes
 function ViewSelectorButton() {
-    // Would pass in props.setViewType() to toggle on page
-    const [selectedViewType, setSelectedViewType] = useState<ViewType>("List")
-
     return (
-        <Item variant={"outline"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
-            {Object.entries(viewTypes).map(([viewType, iconType]) => (
-                <Button
-                    id={viewType}
-                    variant={viewType == selectedViewType ? "default" : "ghost"}
-                    onClick={() => {
-                        if (viewType != selectedViewType) {
-                            setSelectedViewType(viewType as ViewType)
-                        }
-                    }}
-                >
-                    {iconType.icon}
-                </Button>
-            ))}
-        </Item>
+        <IconSelector
+            defaultKey={"List"}
+            options={{
+                List: {
+                    iconElement: <ListBulletsIcon/>
+                },
+                Grid: {
+                    iconElement: <GridFourIcon/>
+                }
+            }}
+        />
     )
 }
 
@@ -119,7 +101,7 @@ export default function MinorTopbar() {
             <div className="flex-1"/>
             {/*Right Bar*/}
             <NavigationMenuList>
-                <ButtonGroup className={"gap-1"}>
+                <ButtonGroup className={"gap-1 overflow-hidden"}>
                     {/*Todo: Overflow Handling?*/}
                     {[
                         <FilterButton/>,
