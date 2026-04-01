@@ -24,7 +24,8 @@ import {
     PopoverTrigger
 } from "@/components/ui/popover.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import {Item} from "@/components/ui/item.tsx";
+import { Item } from "@/components/ui/item.tsx";
+import { ButtonGroup } from "@/components/ui/button-group.tsx";
 
 function FilterButton() {
     return (
@@ -74,7 +75,7 @@ function ViewSelectorButton() {
     const [selectedViewType, setSelectedViewType] = useState<ViewType>("List")
 
     return (
-        <Item variant={"outline"} className={"gap-0.5 py-0 px-0"}>
+        <Item variant={"outline"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
             {Object.entries(viewTypes).map(([viewType, iconType]) => (
                 <Button
                     id={viewType}
@@ -96,7 +97,7 @@ export default function MinorTopbar() {
     return (
         <NavigationMenu className={"max-w-full"}>
             {/*Left Bar*/}
-            <NavigationMenuList className={"flex w-full"}>
+            <NavigationMenuList>
                 <Separator
                     orientation="vertical"
                     className="mr-2 data-[orientation=vertical]"/>
@@ -117,16 +118,21 @@ export default function MinorTopbar() {
             </NavigationMenuList>
             <div className="flex-1"/>
             {/*Right Bar*/}
-            <NavigationMenuList className={"gap-1"}>
-                <NavigationMenuItem>
-                    <FilterButton/>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                    <SortButton/>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                    <ViewSelectorButton/>
-                </NavigationMenuItem>
+            <NavigationMenuList>
+                <ButtonGroup className={"gap-1"}>
+                    {/*Todo: Overflow Handling?*/}
+                    {[
+                        <FilterButton/>,
+                        <SortButton/>,
+                        <ViewSelectorButton/>
+                    ].map((item) => {
+                        return (
+                            <NavigationMenuItem>
+                                {item}
+                            </NavigationMenuItem>
+                        )
+                    })}
+                </ButtonGroup>
             </NavigationMenuList>
         </NavigationMenu>
     )
