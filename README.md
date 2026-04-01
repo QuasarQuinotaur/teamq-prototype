@@ -32,6 +32,10 @@ pnpm dev
 you can then access the dev site by going to [localhost:5173](http://localhost:5173)
 
 ---
+### 5. If you are running the supabase server, there are two files you need to create.
+        1: Create one .env file in packages/db/ and paste DATABASE_URL=[url] and replace "url" with the proper database url.
+        2: Create one .env file in apps/backend and paste SUPABASE_URL=[url] SUPABASE_SECRET_KEY=[key] replace url and key with the supabase url and the secret key.
+
 
 ## Branching Strategy
 
