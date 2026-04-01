@@ -7,15 +7,19 @@ import { uploadBuffer } from "./lib/supabase.ts";
 const app = express();
 const port = 3001;
 
+// Middleware
 app.use(express.json());
 app.use(morgan("dev"));
 
+
 const upload = multer();
+
 
 app.get("/", (_req, res) => {
     res.sendStatus(200);
 });
 
+// Upload route
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
@@ -28,10 +32,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const data = await uploadBuffer(
             file.buffer,
             file.originalname,
-            file.mimetype,
+            file.mimetype
         );
 
-        res.json({ success: true, path: data.path });
+        res.json({
+            success: true,
+            path: data.path,
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({
@@ -40,6 +47,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
+// Start server
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
