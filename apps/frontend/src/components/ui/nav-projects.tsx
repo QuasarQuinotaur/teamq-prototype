@@ -16,12 +16,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { DotsThreeOutlineIcon } from "@phosphor-icons/react"
+import { DotsThreeOutlineIcon, FolderIcon, ShareIcon, TrashIcon } from "@phosphor-icons/react"
 
-export function NavTools({
-  tools,
+export function NavProjects({
+  projects,
 }: {
-  tools: {
+  projects: {
     name: string
     url: string
     icon: React.ReactNode
@@ -31,9 +31,9 @@ export function NavTools({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Tools</SidebarGroupLabel>
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
-        {tools.map((item) => (
+        {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <a href={item.url}>
@@ -52,12 +52,32 @@ export function NavTools({
                   <span className="sr-only">More</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-48"
+                side={isMobile ? "bottom" : "right"}
+                align={isMobile ? "end" : "start"}
+              >
+                <DropdownMenuItem>
+                  <FolderIcon className="text-muted-foreground" />
+                  <span>View Project</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <ShareIcon className="text-muted-foreground" />
+                  <span>Share Project</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <TrashIcon className="text-muted-foreground" />
+                  <span>Delete Project</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <DotsThreeOutlineIcon className="text-sidebar-foreground/70" />
+          <SidebarMenuButton>
+            <DotsThreeOutlineIcon
+            />
             <span>More</span>
           </SidebarMenuButton>
         </SidebarMenuItem>

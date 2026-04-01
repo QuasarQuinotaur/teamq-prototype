@@ -3,53 +3,29 @@
 import * as React from "react"
 
 import { NavMain } from "@/components/ui/nav-main"
-import { NavTools } from "@/components/ui/nav-tools"
+import { NavProjects } from "@/components/ui/nav-projects"
+import { NavSecondary } from "@/components/ui/nav-secondary"
 import { NavUser } from "@/components/ui/nav-user"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, BookOpenIcon, BellIcon, ChartPieIcon } from "@phosphor-icons/react"
+import { TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, LifebuoyIcon, PaperPlaneTiltIcon, CropIcon, ChartPieIcon, MapTrifoldIcon, CommandIcon } from "@phosphor-icons/react"
 
-// This is sample data.
 const data = {
   user: {
-    name: "hanover",
-    email: "test@example.com",
+    name: "shadcn",
+    email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
-    {
-      name: "Hanover Insurance",
-      logo: (
-        <RowsIcon
-        />
-      ),
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: (
-        <WaveformIcon
-        />
-      ),
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: (
-        <CommandIcon
-        />
-      ),
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
-      title: "Easy Access",
+      title: "Playground",
       url: "#",
       icon: (
         <TerminalIcon
@@ -58,17 +34,43 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Recent",
+          title: "History",
           url: "#",
         },
         {
           title: "Starred",
           url: "#",
         },
+        {
+          title: "Settings",
+          url: "#",
+        },
       ],
     },
     {
-      title: "Workflow Content",
+      title: "Models",
+      url: "#",
+      icon: (
+        <RobotIcon
+        />
+      ),
+      items: [
+        {
+          title: "Genesis",
+          url: "#",
+        },
+        {
+          title: "Explorer",
+          url: "#",
+        },
+        {
+          title: "Quantum",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Documentation",
       url: "#",
       icon: (
         <BookOpenIcon
@@ -76,45 +78,79 @@ const data = {
       ),
       items: [
         {
-          title: "Category 1",
+          title: "Introduction",
           url: "#",
         },
         {
-          title: "Category 2",
+          title: "Get Started",
           url: "#",
         },
         {
-          title: "Category 3",
+          title: "Tutorials",
+          url: "#",
+        },
+        {
+          title: "Changelog",
           url: "#",
         },
       ],
     },
     {
-      title: "Reference Content",
+      title: "Settings",
       url: "#",
       icon: (
-        <BookOpenIcon
+        <GearIcon
         />
       ),
       items: [
         {
-          title: "Category 1",
+          title: "General",
           url: "#",
         },
         {
-          title: "Category 2",
+          title: "Team",
           url: "#",
         },
         {
-          title: "Category 3",
+          title: "Billing",
+          url: "#",
+        },
+        {
+          title: "Limits",
           url: "#",
         },
       ],
     },
   ],
-  tools: [
+  navSecondary: [
     {
-      name: "Dashboard",
+      title: "Support",
+      url: "#",
+      icon: (
+        <LifebuoyIcon
+        />
+      ),
+    },
+    {
+      title: "Feedback",
+      url: "#",
+      icon: (
+        <PaperPlaneTiltIcon
+        />
+      ),
+    },
+  ],
+  projects: [
+    {
+      name: "Design Engineering",
+      url: "#",
+      icon: (
+        <CropIcon
+        />
+      ),
+    },
+    {
+      name: "Sales & Marketing",
       url: "#",
       icon: (
         <ChartPieIcon
@@ -122,10 +158,10 @@ const data = {
       ),
     },
     {
-      name: "Notifications",
+      name: "Travel",
       url: "#",
       icon: (
-        <BellIcon
+        <MapTrifoldIcon
         />
       ),
     },
@@ -134,18 +170,32 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar variant="inset" {...props}>
       <SidebarHeader>
-       TO-DO: put logo here
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="#">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <CommandIcon className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Acme Inc</span>
+                  <span className="truncate text-xs">Enterprise</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavTools tools={data.tools} />
+        <NavProjects projects={data.projects} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }
