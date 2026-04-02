@@ -27,7 +27,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#", //should be the url to the Dashboard page
+      url: "/documents/dashboard",
       icon: (
         <ChartBarIcon/>
       ),
@@ -35,35 +35,35 @@ const data = {
     },
     {
       title: "Recent",
-      url: "#", // not sure, needs sort the documents by most recently accessed
+      url: "/dashboard/recent", // not sure, needs sort the documents by most recently accessed
       icon: (
         <ClockIcon/>
       ),
     },
     {
       title: "Bookmarked",
-      url: "#", // not sure, needs only display the documents bookmarked by the user
+      url: "/dashboard/bookmarked", // not sure, needs only display the documents bookmarked by the user
       icon: (
         <StarIcon/>
       ),
     },
     {
       title: "Workflow",
-      url: "#",
+      url: "/dashboard/workflow",
       icon: (
         <PenIcon/>
       ),
     },
     {
       title: "Reference",
-      url: "#",
+      url: "/documents/reference",
       icon: (
           <BookOpenIcon />
       ),
     },
     {
       title: "Tools",
-      url: "#",
+      url: "/documents/tools",
       icon: (
           <WrenchIcon/>
       ),
