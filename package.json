@@ -12,6 +12,7 @@
 		"turbo": "^2.8.21"
 	},
 	"dependencies": {
+		"@prisma/adapter-pg": "^7.6.0",
 		"add": "^2.0.6",
 		"express": "^5.2.1"
 	}
