@@ -15,6 +15,7 @@ import {
     ArrowsDownUpIcon,
     ListBulletsIcon,
     GridFourIcon,
+    PlusIcon,
 } from "@phosphor-icons/react";
 import {
     Popover,
@@ -24,6 +25,22 @@ import {
 import { Button } from "@/components/ui/button.tsx";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import ButtonSelector from "@/components/ui/custom/button-selector.tsx";
+import DocumentForm from "@/components/forms/DocumentForm.tsx";
+
+function AddDocumentButton() {
+    return (
+        <Popover>
+            <PopoverTrigger>
+                <Button variant={"outline"}>
+                    <PlusIcon/>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className={"w-max"}>
+                <DocumentForm/>
+            </PopoverContent>
+        </Popover>
+    )
+}
 
 function FilterButton() {
     return (
@@ -104,6 +121,7 @@ export default function MinorTopbar() {
                 <ButtonGroup className={"gap-1 overflow-hidden"}>
                     {/*Todo: Overflow Handling?*/}
                     {[
+                        <AddDocumentButton/>,
                         <FilterButton/>,
                         <SortButton/>,
                         <ViewSelectorButton/>
