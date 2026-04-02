@@ -1,4 +1,5 @@
 import CardImage from "../components/cardImage.tsx";
+import PaginationControl from "@/components/paginationControl.tsx";
 
 
 
@@ -62,6 +63,9 @@ function Tools() {
                     action="view"
                     link="https://github.com"
                 />
+            </div>
+            <div>
+                <PaginationControl docNum={8}/>
             </div>
         </>
     )

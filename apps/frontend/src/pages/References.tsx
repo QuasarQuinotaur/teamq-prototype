@@ -1,8 +1,10 @@
 import CardImage from "../components/cardImage.tsx";
-
+import PaginationControl from "../components/paginationControl"
 
 
 function References() {
+
+
     return (
         <>
             <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -55,6 +57,9 @@ function References() {
                     action="view"
                     link="https://github.com"
                 />
+            </div>
+            <div>
+                <PaginationControl docNum={7}/>
             </div>
         </>
     )

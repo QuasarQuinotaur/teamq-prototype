@@ -8,14 +8,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import {useState} from "react"
 
 function CardImage(props: { title: string; description: string; badge: string; action: string; link: string}) {
-    const [title, setTitle] = useState(props.title)
-    const [description, setDescription] = useState(props.description)
-    const [badge, setBadge] = useState(props.badge)
-    const [action, setAction] = useState(props.action)
-    const [link, setLink] = useState(props.link)
+    const title: string = props.title
+    const description: string = props.description
+    const badge: string = props.badge
+    const action: string = props.action
+    const link: string = props.link
 
     let linkDomain = props.link.replace('https://', '').replace('http://', '');
     const split = linkDomain.split('/');
