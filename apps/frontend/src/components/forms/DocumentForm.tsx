@@ -41,7 +41,7 @@ export default function DocumentForm() {
     }
 
     return <div className='m-5 p-0'>
-        <h2>Add Document</h2>
+        <h2>Add Document Form</h2>
         <br/>
         <AddDocumentForm addDocument={addDocument}/>
     </div>

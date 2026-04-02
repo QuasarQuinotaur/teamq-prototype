@@ -35,21 +35,21 @@ const data = {
     },
     {
       title: "Recent",
-      url: "/dashboard/recent", // not sure, needs sort the documents by most recently accessed
+      url: "/documents/recent", // not sure, needs sort the documents by most recently accessed
       icon: (
         <ClockIcon/>
       ),
     },
     {
       title: "Bookmarked",
-      url: "/dashboard/bookmarked", // not sure, needs only display the documents bookmarked by the user
+      url: "/documents/bookmarked", // not sure, needs only display the documents bookmarked by the user
       icon: (
         <StarIcon/>
       ),
     },
     {
       title: "Workflow",
-      url: "/dashboard/workflow",
+      url: "/documents/workflow",
       icon: (
         <PenIcon/>
       ),

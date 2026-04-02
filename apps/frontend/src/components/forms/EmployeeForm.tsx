@@ -30,7 +30,7 @@ export default function EmployeeForm() {
     }
 
     return <div className='px-100 pt-20'>
-        <h1>Employee Form</h1>
+        <h1>Add Employee Form</h1>
         <br/>
         <AddEmployeeForm addEmployee={addEmployee}/>
     </div>
