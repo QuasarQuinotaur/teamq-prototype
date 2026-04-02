@@ -14,7 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon } from "@phosphor-icons/react"
+import {ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon, PersonIcon} from "@phosphor-icons/react"
 import {Button} from "@/components/ui/button.tsx";
 import { ButtonWithIcon} from "@/components/ui/inbox-button.tsx";
 
@@ -68,6 +68,13 @@ const data = {
           <WrenchIcon/>
       ),
     },
+    {
+      title: "Employees",
+      url: "/dashboard/employees",
+      icon: (
+          <PersonIcon/>
+      )
+    }
   ],
   // navSecondary: [
   //   {
