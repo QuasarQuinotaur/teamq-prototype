@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import LoginButton from './LoginButton';
 import HeroContent from './HeroContent';
+// import ConfettiButton from './ConfettiButton';
 const BeamsCanvas = React.lazy(() => import('./ui/Beams'));
 
 const BEAMS_CONFIG = {
@@ -38,7 +39,8 @@ function Hero() {
         className="relative h-screen"
         style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)' }}
       >
-        <LoginButton animate={false} />
+        <LoginButton animate />
+        
         <HeroContent animate={false} />
       </div>
     );
@@ -53,7 +55,6 @@ function Hero() {
         </Suspense>
       </div>
 
-      {/* Login button — top right */}
       <LoginButton animate />
 
       {/* Content overlay */}
