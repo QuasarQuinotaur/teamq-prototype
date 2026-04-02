@@ -3,9 +3,8 @@
 import * as React from "react"
 
 import { NavMain } from "@/components/ui/nav-main"
-import { NavProjects } from "@/components/ui/nav-projects"
-import { NavSecondary } from "@/components/ui/nav-secondary"
-import { NavUser } from "@/components/ui/nav-user"
+//import { NavSecondary } from "@/components/ui/nav-secondary"
+//import { NavUser } from "@/components/ui/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -15,186 +14,136 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, LifebuoyIcon, PaperPlaneTiltIcon, CropIcon, ChartPieIcon, MapTrifoldIcon, CommandIcon } from "@phosphor-icons/react"
+import { ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon } from "@phosphor-icons/react"
+import {Button} from "@/components/ui/button.tsx";
+import { ButtonWithIcon} from "@/components/ui/inbox-button.tsx";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+  // user: {
+  //   name: "shadcn",
+  //   email: "m@example.com",
+  //   avatar: "/avatars/shadcn.jpg",
+  // },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: "Dashboard",
+      url: "#", //should be the url to the Dashboard page
       icon: (
-        <TerminalIcon
-        />
+        <ChartBarIcon/>
       ),
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
     },
     {
-      title: "Models",
-      url: "#",
+      title: "Recent",
+      url: "#", // not sure, needs sort the documents by most recently accessed
       icon: (
-        <RobotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: (
-        <BookOpenIcon
-        />
-      ),
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <GearIcon
-        />
-      ),
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: (
-        <LifebuoyIcon
-        />
+        <ClockIcon/>
       ),
     },
     {
-      title: "Feedback",
+      title: "Bookmarked",
+      url: "#", // not sure, needs only display the documents bookmarked by the user
+      icon: (
+        <StarIcon/>
+      ),
+    },
+    {
+      title: "Workflow",
       url: "#",
       icon: (
-        <PaperPlaneTiltIcon
-        />
+        <PenIcon/>
+      ),
+    },
+    {
+      title: "Reference",
+      url: "#",
+      icon: (
+          <BookOpenIcon />
+      ),
+    },
+    {
+      title: "Tools",
+      url: "#",
+      icon: (
+          <WrenchIcon/>
       ),
     },
   ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: (
-        <CropIcon
-        />
-      ),
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: (
-        <ChartPieIcon
-        />
-      ),
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: (
-        <MapTrifoldIcon
-        />
-      ),
-    },
-  ],
+  // navSecondary: [
+  //   {
+  //     title: "Support",
+  //     url: "#",
+  //     icon: (
+  //       <LifebuoyIcon
+  //       />
+  //     ),
+  //   },
+  //   {
+  //     title: "Feedback",
+  //     url: "#",
+  //     icon: (
+  //       <PaperPlaneTiltIcon
+  //       />
+  //     ),
+  //   },
+  // ],
+  // projects: [
+  //   {
+  //     name: "Design Engineering",
+  //     url: "#",
+  //     icon: (
+  //       <CropIcon
+  //       />
+  //     ),
+  //   },
+  //   {
+  //     name: "Sales & Marketing",
+  //     url: "#",
+  //     icon: (
+  //       <ChartPieIcon
+  //       />
+  //     ),
+  //   },
+  //   {
+  //     name: "Travel",
+  //     url: "#",
+  //     icon: (
+  //       <MapTrifoldIcon
+  //       />
+  //     ),
+  //   },
+  // ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <CommandIcon className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/*<SidebarMenu>*/}
+        {/*  <SidebarMenuItem>*/}
+        {/*    <SidebarMenuButton size="lg" asChild>*/}
+        {/*      <a href="#">*/}
+        {/*        <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">*/}
+        {/*          <CommandIcon className="size-4" />*/}
+        {/*        </div>*/}
+        {/*        <div className="grid flex-1 text-left text-sm leading-tight">*/}
+        {/*          <span className="truncate font-medium">Acme Inc</span>*/}
+        {/*          <span className="truncate text-xs">Enterprise</span>*/}
+        {/*        </div>*/}
+        {/*      </a>*/}
+        {/*    </SidebarMenuButton>*/}
+        {/*  </SidebarMenuItem>*/}
+        {/*</SidebarMenu>*/}
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/*<NavProjects projects={data.projects} />*/}
+        {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
+        {/* NOTE: nav-secondary.tsx is commented out bc it's not needed but could be implemented in the future if we want another section on the sidebar
+        nav-projects.tsx was deleted bc it is not useful for our sidebar, but it can be redownloaded from shadcn sidebar-08 */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <ButtonWithIcon/>
       </SidebarFooter>
     </Sidebar>
   )
