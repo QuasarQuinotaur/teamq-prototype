@@ -70,7 +70,7 @@ const data = {
     },
     {
       title: "Employees",
-      url: "/dashboard/employees",
+      url: "/documents/employees",
       icon: (
           <PersonIcon/>
       )

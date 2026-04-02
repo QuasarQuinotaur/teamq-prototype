@@ -96,6 +96,7 @@ function AddEmployeeForm(props: AddEmployeeFormProps) {
                             <FieldLabel htmlFor={"employee-add-form-dob"}>Date of Birth</FieldLabel>
                             <DateSelectInput
                                 id={"employee-add-form-dob"}
+                                placeholder={"Date of Birth"}
                                 date={dateOfBirth}
                                 setDate={setDateOfBirth}
                                 dateString={dateOfBirthString}

@@ -93,7 +93,7 @@ function AddDocumentForm(props: AddDocumentFormProps) {
             }
         }}>
             <ScrollArea className={"h-78 w-90 pr-4"}>
-                <FieldGroup>
+                <FieldGroup className={"p-1"}>
                     <FieldSet>
                         <FieldGroup>
                             <Field>
