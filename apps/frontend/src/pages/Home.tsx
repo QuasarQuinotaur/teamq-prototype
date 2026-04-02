@@ -1,6 +1,5 @@
 import Hero from '../components/Hero';
 import EmployeeForm from "@/components/forms/EmployeeForm.tsx";
-import DocumentForm from "@/components/forms/DocumentForm.tsx";
 
 function Home() {
     return (
@@ -13,7 +12,6 @@ function Home() {
             <p className='pt-5 pb-20'>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ratione quo natus omnis deserunt commodi perferendis nobis officiis minus quia modi dolorem, alias excepturi aliquam reiciendis soluta blanditiis. Sit, minus quo!</p>
         </div>
         <EmployeeForm/>
-        <DocumentForm/>
     </div>
     )
 }
