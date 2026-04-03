@@ -19,3 +19,5 @@ dist/
 
 # Prisma-specific
 /packages/db/schema.sql
+
+/generated/prisma
