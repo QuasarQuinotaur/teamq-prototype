@@ -1,3 +1,4 @@
+import MinorTopbar from "@/components/MinorTopbar.tsx";
 import CardImage from "../components/cardImage.tsx";
 import PaginationControl from "@/components/paginationControl.tsx";
 
@@ -6,6 +7,7 @@ import PaginationControl from "@/components/paginationControl.tsx";
 function Tools() {
     return (
         <>
+            <MinorTopbar />
             <div className="grid auto-rows-min gap-4 md:grid-cols-3">
                 <CardImage
                     title="Desktop Management Tool"

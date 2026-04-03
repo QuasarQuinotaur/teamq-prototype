@@ -14,12 +14,12 @@ function HeroContent({ animate }: { animate: boolean }) {
   return (
     <div className="relative z-10 flex h-full items-center pl-16 select-none">
       <div className="max-w-xl space-y-6">
-        <h1
-          className={`text-6xl select-none font-bold tracking-tight text-white lg:text-7xl ${fadeBase}`}
+        <img
+          src="/CombinationMark.png"
+          alt="Hanover Insurance"
+          className={`h-32 w-auto brightness-0 invert select-none ${fadeBase}`}
           style={animate ? { animationDelay: '0ms' } : undefined}
-        >
-          Hanover Insurance
-        </h1>
+        />
         <p
           className={`text-lg text-gray-500 ${fadeBase}`}
           style={animate ? { animationDelay: '160ms' } : undefined}

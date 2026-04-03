@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import ButtonSelector from "@/components/ui/custom/button-selector.tsx";
 import DocumentForm from "@/components/forms/DocumentForm.tsx";
+import { SidebarTrigger } from "./ui/sidebar";
 
 function AddDocumentButton() {
     return (
@@ -94,8 +95,11 @@ function ViewSelectorButton() {
 
 export default function MinorTopbar() {
     return (
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4 w-full">
         <NavigationMenu className={"max-w-full"}>
             {/*Left Bar*/}
+            <SidebarTrigger className="-ml-1" />
             <NavigationMenuList>
                 <Separator
                     orientation="vertical"
@@ -135,5 +139,7 @@ export default function MinorTopbar() {
                 </ButtonGroup>
             </NavigationMenuList>
         </NavigationMenu>
+        </div>
+        </header>
     )
 }

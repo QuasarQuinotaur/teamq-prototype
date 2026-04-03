@@ -1,24 +1,4 @@
-// import { AppSidebar } from "@/components/ui/app-sidebar"
-
-// function Documents() {
-//     return (
-//     <div className="text-xl pt-30 min-w-full justify-center px-100">
-//         <h1>Documents</h1>
-//     </div>
-//     )
-// }
-
-// export default Documents
-
 import { AppSidebar } from "@/components/Sidebar"
-// import {
-//   Breadcrumb,
-//   BreadcrumbItem,
-//   BreadcrumbLink,
-//   BreadcrumbList,
-//   BreadcrumbPage,
-//   BreadcrumbSeparator,
-// } from "@/components/ui/breadcrumb"
 import {
   SidebarInset,
   SidebarProvider,
@@ -26,35 +6,20 @@ import {
 } from "@/components/ui/sidebar"
 import MinorTopbar from "@/components/MinorTopbar.tsx";
 import { Outlet } from "react-router-dom";
+import Navbar from "@/components/Navbar";
 
 export default function Documents() {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <MinorTopbar/>
-            {/*<Breadcrumb>*/}
-            {/*  <BreadcrumbList>*/}
-            {/*    <BreadcrumbItem className="hidden md:block">*/}
-            {/*      <BreadcrumbLink href="#">*/}
-            {/*        Build Your Application*/}
-            {/*      </BreadcrumbLink>*/}
-            {/*    </BreadcrumbItem>*/}
-            {/*    <BreadcrumbSeparator className="hidden md:block" />*/}
-            {/*    <BreadcrumbItem>*/}
-            {/*      <BreadcrumbPage>Data Fetching</BreadcrumbPage>*/}
-            {/*    </BreadcrumbItem>*/}
-            {/*  </BreadcrumbList>*/}
-            {/*</Breadcrumb>*/}
+    <div className="flex flex-col h-screen">
+      <Navbar/>
+      <SidebarProvider className="flex-1 min-h-0">
+        <AppSidebar />
+        <SidebarInset className="flex flex-col overflow-hidden">
+          <div className="flex flex-col flex-1 rounded-xl bg-muted/50 min-h-0 overflow-auto">
+            <Outlet />
           </div>
-        </header>
-        <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-          <Outlet />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   )
 }
