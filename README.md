@@ -1,7 +1,6 @@
 # Project Setup and Contribution Guide
 
 Welcome to the repository! Follow these instructions to get your local environment running and to understand our branching strategy.
-
 ---
 
 ## Getting Started
@@ -33,6 +32,10 @@ pnpm dev
 you can then access the dev site by going to [localhost:5173](http://localhost:5173)
 
 ---
+### 5. If you are running the supabase server, there are two files you need to create.
+        1: Create one .env file in packages/db/ and paste DATABASE_URL=[url] and replace "url" with the proper database url.
+        2: Create one .env file in apps/backend and paste SUPABASE_URL=[url] SUPABASE_SECRET_KEY=[key] replace url and key with the supabase url and the secret key.
+
 
 ## Branching Strategy
 
@@ -72,5 +75,23 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 5.  **Merge dev into your branch:** `git merge dev`
     * *Note: This is where you resolve any merge conflicts locally on your feature branch. Test your code one last time here to ensure the merge didn't break anything.*
 6.  **Switch back to dev:** `git checkout dev`
-7.  **Merge your feature into dev:** `git merge feature/YOUR-FEATURE-NAME`
-8.  **Push the updated dev branch:** `git push origin dev`
+7.  **Merge your feature into dev:** `git merge --squash feature/YOUR-FEATURE-NAME`
+8.  **Commit your merge** `git commit -m "merge: YOUR-FEATURE-NAME"`
+9.  **Push the updated dev branch:** `git push origin dev`
+
+## Credits
+Ben Reinherz - Assistant Lead SWE Frontend
+
+Daniel Gomes - Assistant Lead SWE Backend
+
+Norah Anderson - Full-time SWE Frontend
+
+Ali Tariq - Full-time SWE Backend
+
+Ben Santana - Lead Software Engineer
+
+Theron Boozer - SCRUM Master
+
+Kylie Welcher - Project Manager
+
+Abyshek Sukumar - Product Owner 
