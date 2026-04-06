@@ -1,5 +1,5 @@
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import PaginationControl from "@/components/paginationControl.tsx";
+import PaginationControl from "@/components/Pagination";
 import {
     CardGrid,
     type CardEntry

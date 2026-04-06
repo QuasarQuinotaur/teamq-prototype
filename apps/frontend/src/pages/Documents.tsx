@@ -1,8 +1,10 @@
-import { AppSidebar } from "@/components/Sidebar"
+import { AppSidebar } from "@/components/sidebar/Sidebar.tsx"
 import {
   SidebarInset,
   SidebarProvider,
-} from "@/components/ui/sidebar"
+  SidebarTrigger,
+} from "@/elements/sidebar-elements.tsx"
+import MinorTopbar from "@/components/MinorTopbar.tsx";
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import type { EmployeeWithContents } from "db";

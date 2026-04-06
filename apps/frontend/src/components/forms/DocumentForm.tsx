@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button.tsx"
+import { Button } from "@/elements/buttons/button.tsx"
 import {
     Field,
     FieldLabel,
@@ -8,13 +8,13 @@ import {
     FieldSet,
     // FieldLegend,
     // FieldDescription,
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import JobPositionInput from "@/components/forms/input/JobPositionInput.tsx";
-import DateSelectInput from "@/components/forms/input/DateSelectInput.tsx";
-import ContentTypeInput from "@/components/forms/input/ContentTypeInput.tsx";
-import DocumentStatusInput from "@/components/forms/input/DocumentStatusInput.tsx";
-import {ScrollArea} from "@/components/ui/scroll-area.tsx";
+} from "@/components/Field.tsx"
+import { Input } from "@/elements/input.tsx"
+import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import DateSelectInput from "@/components/input/DateSelectInput.tsx";
+import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
+import DocumentStatusInput from "@/components/input/DocumentStatusInput.tsx";
+import {ScrollArea} from "@/elements/scroll-area.tsx";
 
 type Document = {
     name: string,

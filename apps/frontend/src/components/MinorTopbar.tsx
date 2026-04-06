@@ -3,12 +3,12 @@ import {
     NavigationMenuItem,
     NavigationMenuList,
 } from "@/components/ui/navigation-menu"
-import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/elements/separator.tsx"
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupInput
-} from "@/components/ui/input-group.tsx";
+} from "@/elements/input-group.tsx";
 import {
     MagnifyingGlassIcon,
     FunnelSimpleIcon,
@@ -21,12 +21,12 @@ import {
     Popover,
     PopoverContent,
     PopoverTrigger
-} from "@/components/ui/popover.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { ButtonGroup } from "@/components/ui/button-group.tsx";
-import ButtonSelector from "@/components/ui/custom/button-selector.tsx";
+} from "@/elements/buttons/popover.tsx";
+import { Button } from "@/elements/buttons/button.tsx";
+import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
+import ButtonSelector from "@/elements/buttons/button-selector.tsx";
 import DocumentForm from "@/components/forms/DocumentForm.tsx";
-import { SidebarTrigger } from "./ui/sidebar";
+import { SidebarTrigger } from "../elements/sidebar-elements.tsx";
 
 function AddDocumentButton() {
     return (

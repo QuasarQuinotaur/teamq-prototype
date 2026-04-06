@@ -1,5 +1,5 @@
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import PaginationControl from "../components/paginationControl"
+import Pagination from "../components/Pagination.tsx"
 import {
     CardGrid,
     type CardEntry
@@ -22,7 +22,7 @@ function References() {
                 defaultBadge={"Reference"}
             />
             <div>
-                <PaginationControl docNum={7}/>
+                <Pagination docNum={7}/>
             </div>
         </>
     )

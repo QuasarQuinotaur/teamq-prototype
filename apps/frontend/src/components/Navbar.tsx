@@ -14,9 +14,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+} from "@/components/DropdownMenu"
+import { Avatar, AvatarFallback } from "@/elements/avatar"
 import type { EmployeeWithContents } from 'db';
+
+// const components: { title: string; href: string; description: string }[] = [
+//   // {
+//   //   title: "Documents",
+//   //   href: "/documents",
+//   //   description: "All your documents.",
+//   // },
+//   // {
+//   //   title: "About",
+//   //   href: "/about",
+//   //   description: "More information about our firm.",
+//   // },
+// ]
 
 function Navbar({employee}: {employee: EmployeeWithContents}) {
     return (
