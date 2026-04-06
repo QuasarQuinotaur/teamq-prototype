@@ -1,71 +1,54 @@
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import CardImage from "../components/cardImage.tsx";
 import PaginationControl from "@/components/paginationControl.tsx";
-
-
+import {
+    CardGrid,
+    type CardEntry
+} from "@/components/CardGrid.tsx";
 
 function Tools() {
+    // TODO get from backend
+    const entries: CardEntry[] = [
+        {
+            title: "Desktop Management Tool",
+            link: "https://github.com"
+        },
+        {
+            title: "Error Lookup Tool",
+            link: "https://github.com"
+        },
+        {
+            title: "Workaround Tool",
+            link: "https://github.com"
+        },
+        {
+            title: "IPS",
+            link: "https://github.com"
+        },
+        {
+            title: "RiskMeter Online",
+            link: "https://github.com"
+        },
+        {
+            title: "Property View",
+            link: "https://github.com"
+        },
+        {
+            title: "Underwriting Workstation",
+            link: "https://github.com"
+        },
+        {
+            title: "Kentucky Tax and Tax Exemption Job Aid",
+            link: "https://github.com"
+        },
+    ]
+
     return (
         <>
             <MinorTopbar />
-            <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                <CardImage
-                    title="Desktop Management Tool"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="Error Lookup Tool"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="Workaround Tool"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="IPS"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="RiskMeter Online"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="Property View"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="Underwriting Workstation"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-                <CardImage
-                    title="Kentucky Tax and Tax Exemption Job Aid"
-                    description=""
-                    badge="Tool"
-                    action="view"
-                    link="https://github.com"
-                />
-            </div>
+            <CardGrid
+                entries={entries}
+                defaultBadge={"Tool"}
+            />
             <div>
                 <PaginationControl docNum={8}/>
             </div>
