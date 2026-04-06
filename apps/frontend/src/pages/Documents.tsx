@@ -6,7 +6,26 @@ import {
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 
+// id          Int       @id @default(autoincrement())
+//   firstName   String
+//   lastName    String
+//   dateOfBirth DateTime
+//   jobPosition String
+//   contents    Content[]
+
+//   createdRequests  ServiceRequest[] @relation("CreatedRequests")
+//   assignedRequests ServiceRequest[] @relation("AssignedRequests")
+
 export default function Documents() {
+
+  const user = {
+    id: 0,
+    firstName: "Theron",
+    lastName: "Boozer",
+    jobPosition: "Underwriter",
+    contents: []
+  }
+
   return (
     <div className="flex flex-col h-screen">
       <Navbar/>
