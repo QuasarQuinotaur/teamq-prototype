@@ -12,7 +12,7 @@ function LoginButton({ animate }: { animate: boolean }) {
       style={animate ? { animationDelay: '400ms' } : undefined}
     >
       <Button variant="outline" size="sm">
-        <Link to="/documents">Log in</Link>
+        <Link to="/documents/dashboard">Log in</Link>
       </Button>
     </div>
   );
