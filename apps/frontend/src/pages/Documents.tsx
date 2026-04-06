@@ -22,7 +22,7 @@ export default function Documents() {
         link: "https://google.com",
         ownerName: "",
         jobPosition: "",
-        contentType: "",
+        contentType: "workflow",
         status: "",
         dateAdded: new Date("1-2-20"),
         dateUpdated: new Date("1-2-20"),
@@ -35,7 +35,20 @@ export default function Documents() {
         link: "https://google.com",
         ownerName: "",
         jobPosition: "",
-        contentType: "",
+        contentType: "reference",
+        status: "",
+        dateAdded: new Date("1-2-20"),
+        dateUpdated: new Date("1-2-20"),
+        expirationDate: new Date("1-2-20"),
+        ownerId: 1
+      },
+      {
+        id: 0,
+        title: "World",
+        link: "https://google.com",
+        ownerName: "",
+        jobPosition: "",
+        contentType: "tool",
         status: "",
         dateAdded: new Date("1-2-20"),
         dateUpdated: new Date("1-2-20"),
@@ -52,7 +65,7 @@ export default function Documents() {
         <AppSidebar />
         <SidebarInset className="flex flex-col overflow-hidden">
           <div className="flex flex-col flex-1 rounded-xl bg-muted/50 min-h-0 overflow-auto">
-            <Outlet />
+            <Outlet context={employee} />
           </div>
         </SidebarInset>
       </SidebarProvider>

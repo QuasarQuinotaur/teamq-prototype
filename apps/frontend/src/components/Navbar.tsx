@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import type { EmployeeWithContents } from '@/pages/Documents';
+import type { EmployeeWithContents } from 'db';
 
 function Navbar({employee}: {employee: EmployeeWithContents}) {
     return (

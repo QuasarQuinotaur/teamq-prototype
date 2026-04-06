@@ -1,9 +1,31 @@
-import MinorTopbar from "@/components/MinorTopbar";
+import MinorTopbar from "@/components/MinorTopbar.tsx";
+import PaginationControl from "@/components/paginationControl.tsx";
+import {
+    CardGrid,
+    type CardEntry
+} from "@/components/CardGrid.tsx";
+import { useOutletContext } from "react-router-dom";
+import type { EmployeeWithContents } from "db";
 
-export default function Workflow() {
+function Workflow() {
+    const employee: EmployeeWithContents = useOutletContext()
+    const entries = employee.contents.filter((x) => x.contentType==="workflow").map((entry) => {
+        return { title: entry.title, link: entry.link }
+    });
+
     return (
         <>
-        <MinorTopbar />
+            <MinorTopbar />
+            <CardGrid
+                entries={entries}
+                defaultBadge={"World"}
+            />
+            <div>
+                <PaginationControl docNum={8}/>
+            </div>
         </>
     )
 }
+
+
+export default Workflow;
