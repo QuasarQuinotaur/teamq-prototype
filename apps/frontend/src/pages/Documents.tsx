@@ -5,30 +5,53 @@ import {
 } from "@/components/ui/sidebar"
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { Prisma } from "db";
 
-// id          Int       @id @default(autoincrement())
-//   firstName   String
-//   lastName    String
-//   dateOfBirth DateTime
-//   jobPosition String
-//   contents    Content[]
-
-//   createdRequests  ServiceRequest[] @relation("CreatedRequests")
-//   assignedRequests ServiceRequest[] @relation("AssignedRequests")
+export type EmployeeWithContents = Prisma.EmployeeGetPayload<{
+  include: { contents: true }
+}>;
 
 export default function Documents() {
 
-  const user = {
+  const employee: EmployeeWithContents = {
     id: 0,
     firstName: "Theron",
     lastName: "Boozer",
     jobPosition: "Underwriter",
-    contents: []
+    dateOfBirth: new Date("1-2-20"),
+    contents: [
+      {
+        id: 0,
+        title: "Hello",
+        link: "https://google.com",
+        ownerName: "",
+        jobPosition: "",
+        contentType: "",
+        status: "",
+        dateAdded: new Date("1-2-20"),
+        dateUpdated: new Date("1-2-20"),
+        expirationDate: new Date("1-2-20"),
+        ownerId: 1
+      },
+      {
+        id: 0,
+        title: "World",
+        link: "https://google.com",
+        ownerName: "",
+        jobPosition: "",
+        contentType: "",
+        status: "",
+        dateAdded: new Date("1-2-20"),
+        dateUpdated: new Date("1-2-20"),
+        expirationDate: new Date("1-2-20"),
+        ownerId: 1
+      }
+    ]
   }
 
   return (
     <div className="flex flex-col h-screen">
-      <Navbar/>
+      <Navbar employee={employee}/>
       <SidebarProvider className="flex-1 min-h-0">
         <AppSidebar />
         <SidebarInset className="flex flex-col overflow-hidden">
