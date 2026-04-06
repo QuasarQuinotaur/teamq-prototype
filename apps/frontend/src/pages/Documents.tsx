@@ -2,9 +2,7 @@ import { AppSidebar } from "@/components/Sidebar"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
-import MinorTopbar from "@/components/MinorTopbar.tsx";
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 
