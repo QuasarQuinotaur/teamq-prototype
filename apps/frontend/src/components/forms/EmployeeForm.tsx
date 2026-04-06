@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button.tsx"
+import { Button } from "@/elements/buttons/button.tsx"
 import {
     Field,
     FieldLabel,
@@ -8,10 +8,10 @@ import {
     FieldSet,
     // FieldLegend,
     // FieldDescription,
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import JobPositionInput from "@/components/forms/input/JobPositionInput.tsx";
-import DateSelectInput from "@/components/forms/input/DateSelectInput.tsx";
+} from "@/components/Field.tsx"
+import { Input } from "@/elements/input.tsx"
+import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 
 type Employee = {
     firstName: string,

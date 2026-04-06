@@ -1,46 +1,17 @@
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import PaginationControl from "@/components/paginationControl.tsx";
+import Pagination from "@/components/Pagination.tsx";
 import {
     CardGrid,
     type CardEntry
 } from "@/components/CardGrid.tsx";
+import { useOutletContext } from "react-router-dom";
+import type { EmployeeWithContents } from "db";
 
 function Tools() {
-    // TODO get from backend
-    const entries: CardEntry[] = [
-        {
-            title: "Desktop Management Tool",
-            link: "https://github.com"
-        },
-        {
-            title: "Error Lookup Tool",
-            link: "https://github.com"
-        },
-        {
-            title: "Workaround Tool",
-            link: "https://github.com"
-        },
-        {
-            title: "IPS",
-            link: "https://github.com"
-        },
-        {
-            title: "RiskMeter Online",
-            link: "https://github.com"
-        },
-        {
-            title: "Property View",
-            link: "https://github.com"
-        },
-        {
-            title: "Underwriting Workstation",
-            link: "https://github.com"
-        },
-        {
-            title: "Kentucky Tax and Tax Exemption Job Aid",
-            link: "https://github.com"
-        },
-    ]
+    const employee: EmployeeWithContents = useOutletContext()
+    const entries = employee.contents.filter((x) => x.contentType==="tool").map((entry) => {
+        return { title: entry.title, link: entry.link }
+    });
 
     return (
         <>
@@ -50,7 +21,7 @@ function Tools() {
                 defaultBadge={"Tool"}
             />
             <div>
-                <PaginationControl docNum={8}/>
+                <Pagination docNum={8}/>
             </div>
         </>
     )

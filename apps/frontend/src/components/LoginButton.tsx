@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/elements/buttons/button.tsx';
 import { Link } from 'react-router-dom';
 
 function LoginButton({ animate }: { animate: boolean }) {

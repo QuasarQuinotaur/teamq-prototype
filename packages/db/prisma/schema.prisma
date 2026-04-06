@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
@@ -14,6 +14,9 @@ model Employee {
   dateOfBirth DateTime
   jobPosition String
   contents    Content[]
+
+  createdRequests  ServiceRequest[] @relation("CreatedRequests")
+  assignedRequests ServiceRequest[] @relation("AssignedRequests")
 }
 
 model Content {
@@ -29,4 +32,13 @@ model Content {
   expirationDate DateTime
   ownerId        Int
   owner          Employee @relation(fields: [ownerId], references: [id])
+}
+
+model ServiceRequest {
+  id          Int      @id @default(autoincrement())
+  type        String
+  creatorID   Int
+  creator     Employee @relation("CreatedRequests", fields: [creatorID], references: [id])
+  requesteeID Int
+  requestee   Employee @relation("AssignedRequests", fields: [requesteeID], references: [id])
 }

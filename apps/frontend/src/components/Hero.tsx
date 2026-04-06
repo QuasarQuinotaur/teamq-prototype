@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import LoginButton from './LoginButton';
 import HeroContent from './HeroContent';
 // import ConfettiButton from './ConfettiButton';
-const BeamsCanvas = React.lazy(() => import('./ui/Beams'));
+const BeamsCanvas = React.lazy(() => import('../elements/beams.tsx'));
 
 const BEAMS_CONFIG = {
   beamWidth: 3.8,

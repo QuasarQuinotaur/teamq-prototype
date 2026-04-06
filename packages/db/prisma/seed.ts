@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 
@@ -27,6 +27,16 @@ async function main() {
             { title: "Q1 Presentation", link: "content-files/dummy-slide.pptx", ownerName: `${employees[2].firstName} ${employees[2].lastName}`, jobPosition: employees[2].jobPosition, contentType: "presentation", status: "active", expirationDate: new Date("2026-12-31"), ownerId: employees[2].id },
             { title: "Project Brief", link: "content-files/dummy-report-1.pdf", ownerName: `${employees[3].firstName} ${employees[3].lastName}`, jobPosition: employees[3].jobPosition, contentType: "pdf", status: "archived", expirationDate: new Date("2026-12-31"), ownerId: employees[3].id },
             { title: "Meeting Summary", link: "content-files/dummy-document.textClipping", ownerName: `${employees[4].firstName} ${employees[4].lastName}`, jobPosition: employees[4].jobPosition, contentType: "text", status: "draft", expirationDate: new Date("2026-12-31"), ownerId: employees[4].id },
+        ],
+    });
+
+    await prisma.serviceRequest.createMany({
+        data: [
+            { id: 1, type: "Fix printer", creatorID: 1, requesteeID: 2 },
+            { id: 2, type: "Update website", creatorID: 2, requesteeID: 3 },
+            { id: 3, type: "Prepare report", creatorID: 3, requesteeID: 4 },
+            { id: 4, type: "System maintenance", creatorID: 4, requesteeID: 5 },
+            { id: 5, type: "Client meeting", creatorID: 5, requesteeID: 1 },
         ],
     });
 

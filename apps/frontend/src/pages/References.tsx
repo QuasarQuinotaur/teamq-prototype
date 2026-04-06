@@ -1,44 +1,18 @@
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import PaginationControl from "../components/paginationControl"
+import Pagination from "../components/Pagination.tsx"
 import {
     CardGrid,
     type CardEntry
 } from "@/components/CardGrid.tsx";
+import type { EmployeeWithContents } from "db";
+import { useOutletContext } from "react-router-dom";
 
 
 function References() {
-    // TODO get from backend
-    const entries: CardEntry[] = [
-        {
-            title: "ISOnet Website",
-            link: "https://github.com"
-        },
-        {
-            title: "Forms Knowledge Base",
-            link: "https://github.com"
-        },
-        {
-            title: "Coastal Guidelines",
-            link: "https://github.com"
-        },
-        {
-            title: "CPP Rater",
-            link: "https://github.com"
-        },
-        {
-            title: "Experience & Schedule Rating Plans",
-            link: "https://github.com"
-        },
-        {
-            title: "States on Hold",
-            link: "https://github.com"
-        },
-        {
-            title: "PMS URG",
-            link: "https://github.com"
-        },
-    ]
-
+    const employee: EmployeeWithContents = useOutletContext()
+    const entries = employee.contents.filter((x) => x.contentType==="reference").map((entry) => {
+        return { title: entry.title, link: entry.link }
+    });
 
     return (
         <>
@@ -48,7 +22,7 @@ function References() {
                 defaultBadge={"Reference"}
             />
             <div>
-                <PaginationControl docNum={7}/>
+                <Pagination docNum={7}/>
             </div>
         </>
     )

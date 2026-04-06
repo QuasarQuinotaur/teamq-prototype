@@ -1,4 +1,4 @@
-import CardImage from "@/components/cardImage.tsx";
+import Card from "@/components/Card.tsx";
 
 export type CardEntry = {
     title: string;
@@ -14,7 +14,7 @@ function CardGrid({ entries, defaultBadge }: CardGridProps) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             {entries.map((entry) => (
-                <CardImage
+                <Card
                     title={entry.title}
                     description={entry.description ?? ""}
                     badge={entry.badge ?? defaultBadge}

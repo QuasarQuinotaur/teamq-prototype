@@ -1,5 +1,5 @@
 
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 
 export default function Dashboard(){
     return (

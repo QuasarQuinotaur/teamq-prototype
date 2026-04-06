@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/elements/buttons/button.tsx';
 // import ConfettiButto from '@/components/Confetti'
 import type { ConfettiHandle } from './Confetti';
 import { useRef } from 'react';
