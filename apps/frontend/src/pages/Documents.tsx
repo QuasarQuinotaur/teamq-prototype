@@ -5,11 +5,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import { Prisma } from "db";
-
-export type EmployeeWithContents = Prisma.EmployeeGetPayload<{
-  include: { contents: true }
-}>;
+import type { EmployeeWithContents } from "db";
 
 export default function Documents() {
 
