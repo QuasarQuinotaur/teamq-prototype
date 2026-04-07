@@ -18,6 +18,8 @@ import {
 import { Avatar, AvatarFallback } from "@/elements/avatar"
 import type { EmployeeWithContents } from 'db';
 
+import { useAuth0 } from "@auth0/auth0-react";
+
 // const components: { title: string; href: string; description: string }[] = [
 //   // {
 //   //   title: "Documents",
@@ -31,7 +33,8 @@ import type { EmployeeWithContents } from 'db';
 //   // },
 // ]
 
-function Navbar({employee}: {employee: EmployeeWithContents}) {
+function Navbar() {
+
     return (
         /* Changed bg-white to bg-hanover-blue and text-black to text-white */
         <nav className='grid grid-cols-3 items-center px-8 min-w-full text-white shadow-md bg-hanover-blue h-navbar-height'>
@@ -92,7 +95,7 @@ function Navbar({employee}: {employee: EmployeeWithContents}) {
                     <DropdownMenuTrigger asChild>
                         <button className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                             <Avatar size="default" className="cursor-pointer bg-white/20 hover:bg-white/30 transition-colors">
-                                <AvatarFallback className="text-white bg-transparent font-medium">{employee.firstName.charAt(0).toUpperCase()}{employee.lastName.charAt(0).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback className="text-white bg-transparent font-medium">JD</AvatarFallback>
                             </Avatar>
                         </button>
                     </DropdownMenuTrigger>
