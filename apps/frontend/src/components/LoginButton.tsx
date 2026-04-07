@@ -6,7 +6,7 @@ function LoginButton({ animate }: { animate: boolean }) {
     : '';
 
     const handleLogin = () => {
-      window.location.href = `http://localhost:3000/login`;
+      window.location.href = `http://localhost:5173/documents`;
     };
 
   return (

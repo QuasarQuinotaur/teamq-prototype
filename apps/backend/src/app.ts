@@ -26,8 +26,9 @@ const config = {
   clientID: process.env.CLIENT_ID,
   issuerBaseURL: process.env.ISSUER_BASE_URL,
   routes: {
-    login: false
-  }
+    login: false,
+    logout: false
+  },
 } as const;
 
 // Apply the auth middleware
@@ -46,6 +47,12 @@ app.get("/", (req, res) => {
 app.get('/login', (req, res) => {
   res.oidc.login({
     returnTo: 'http://localhost:5173/documents',
+  });
+});
+
+app.get('/logout', (req, res) => {
+  res.oidc.logout({
+    returnTo: 'http://localhost:5173/',
   });
 });
 
@@ -184,15 +191,14 @@ app.get("/assigned/:flag", async (req, res) => {
     else res.json(assigned);
 });
 
-app.get('/api/me', requiresAuth(), async (req, res) => {
+app.get('/api/me', async (req, res) => {
+  if (!req.oidc.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
   const employee = await getEmployeeFromRequest(req);
-
-  console.log(employee)
-  
   if (!employee) {
     return res.status(404).json({ error: 'No linked employee account found' });
   }
-  
   res.json(employee);
 });
 
