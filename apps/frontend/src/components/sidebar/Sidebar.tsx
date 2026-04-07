@@ -10,9 +10,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/elements/sidebar-elements.tsx"
 import {ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon, PersonIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";

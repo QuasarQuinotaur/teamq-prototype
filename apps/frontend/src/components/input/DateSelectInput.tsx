@@ -9,28 +9,12 @@ import {
 } from "@/elements/buttons/popover.tsx"
 import {
     InputGroup,
-    InputGroupAddon, InputGroupButton,
+    InputGroupAddon,
+    InputGroupButton,
     InputGroupInput,
 } from "@/elements/input-group.tsx"
+import { formatDate, isValidDate } from "@/lib/utils.ts";
 
-function formatDate(date: Date | undefined) {
-    if (!date) {
-        return ""
-    }
-
-    return date.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    })
-}
-
-function isValidDate(date: Date | undefined) {
-    if (!date) {
-        return false
-    }
-    return !isNaN(date.getTime())
-}
 
 type DateProps = {
     date: Date | undefined;
