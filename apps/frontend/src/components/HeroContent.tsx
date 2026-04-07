@@ -12,12 +12,6 @@ function HeroContent({ animate }: { animate: boolean }) {
           className={`h-32 w-auto brightness-0 invert select-none ${fadeBase}`}
           style={animate ? { animationDelay: '0ms' } : undefined}
         />
-        <p
-          className={`text-lg text-gray-500 ${fadeBase}`}
-          style={animate ? { animationDelay: '160ms' } : undefined}
-        >
-          Trusted coverage for what matters most.
-        </p>
       </div>
     </div>
   );
