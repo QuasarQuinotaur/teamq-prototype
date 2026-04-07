@@ -10,13 +10,12 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/elements/sidebar-elements.tsx"
 import {ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon, PersonIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
+import { useEffect, useState } from "react"
+import axios from "axios"
 
 const data = {
   // user: {
@@ -68,13 +67,6 @@ const data = {
           <WrenchIcon/>
       ),
     },
-    {
-      title: "Employees",
-      url: "/documents/employees",
-      icon: (
-          <PersonIcon/>
-      )
-    }
   ],
   // navSecondary: [
   //   {
@@ -123,6 +115,37 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
+  const [employee, setEmployee] = useState<{ jobPosition: string } | null>(null);
+
+    const api = axios.create({
+        baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
+        withCredentials: true,
+    });
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/me');
+                setEmployee(response.data);
+            } catch (error) {
+                console.error("Not logged in or no employee record found", error);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    const navItems = [
+      ...data.navMain,
+      ...(employee?.jobPosition === 'Admin' ? [{
+        title: "Employees",
+        url: "/documents/employees",
+        icon: (
+            <PersonIcon/>
+        )
+      }] : [])
+  ];
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -143,7 +166,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/*</SidebarMenu>*/}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
         {/*<NavProjects projects={data.projects} />*/}
         {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
         {/* NOTE: NavSecondary.tsx is commented out bc it's not needed but could be implemented in the future if we want another section on the sidebar

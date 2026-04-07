@@ -1,25 +1,31 @@
-import Card from "@/components/Card.tsx";
+import * as React from "react";
 
-export type CardEntry = {
-    title: string;
-    link: string;
-    description?: string;
-    badge?: string;
-}
-type CardGridProps = {
-    entries: CardEntry[];
+import Card from "@/components/Card.tsx"
+import type {CardEntry} from "@/components/Card.tsx";
+import type {Item} from "@/components/forms/Form.tsx";
+
+type CardGridProps<T extends Item> = {
+    entries: CardEntry<T>[];
+    entryOptionsWrapper?: (entry: CardEntry<T>, trigger: React.ReactNode) => React.ReactNode
     defaultBadge: string;
 }
-function CardGrid({ entries, defaultBadge }: CardGridProps) {
+function CardGrid<T extends Item>({
+                      entries,
+                      entryOptionsWrapper,
+                      defaultBadge
+}: CardGridProps<T>) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             {entries.map((entry) => (
                 <Card
-                    title={entry.title}
-                    description={entry.description ?? ""}
-                    badge={entry.badge ?? defaultBadge}
+                    entry={entry}
+                    badges={[defaultBadge]}
                     action="View"
-                    link={entry.link}
+                    optionsWrapper={entryOptionsWrapper ? (
+                        (trigger) => (
+                            entryOptionsWrapper(entry, trigger)
+                        )
+                    ) : undefined}
                 />
             ))}
         </div>

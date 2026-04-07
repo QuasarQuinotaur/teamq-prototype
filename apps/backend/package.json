@@ -9,15 +9,18 @@
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.6.0",
 		"@supabase/supabase-js": "^2.101.0",
+		"cors": "^2.8.6",
 		"db": "workspace:*",
 		"dotenv": "^17.3.1",
 		"express": "^5.2.1",
+		"express-openid-connect": "^2.20.1",
 		"morgan": "^1.10.1",
 		"multer": "^2.1.1",
 		"ts-node": "^10.9.2",
 		"typescript": "~5.9.3"
 	},
 	"devDependencies": {
+		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
 		"@types/morgan": "^1.9.10",
 		"@types/multer": "^2.1.0",

@@ -10,11 +10,60 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
     await prisma.employee.createMany({
         data: [
-            { id: 1, firstName: "Alice", lastName: "Johnson", dateOfBirth: new Date("1995-08-15"), jobPosition: "HR Manager" },
-            { id: 2, firstName: "Bob", lastName: "Smith", dateOfBirth: new Date("1990-03-22"), jobPosition: "Financial Analyst" },
-            { id: 3, firstName: "Carol", lastName: "White", dateOfBirth: new Date("1988-11-05"), jobPosition: "Marketing Specialist" },
-            { id: 4, firstName: "David", lastName: "Brown", dateOfBirth: new Date("1992-06-30"), jobPosition: "Project Manager" },
-            { id: 5, firstName: "Eve", lastName: "Davis", dateOfBirth: new Date("1997-01-14"), jobPosition: "Operations Coordinator" },
+            { 
+                id: 1, 
+                firstName: "Alice", 
+                lastName: "Johnson", 
+                email: "alice@example.com", // Added required unique email
+                dateOfBirth: new Date("1995-08-15"), 
+                jobPosition: "HR Manager",
+                auth0Id: null 
+            },
+            { 
+                id: 2, 
+                firstName: "Bob", 
+                lastName: "Smith", 
+                email: "bob@example.com", 
+                dateOfBirth: new Date("1990-03-22"), 
+                jobPosition: "Financial Analyst",
+                auth0Id: null 
+            },
+            { 
+                id: 3, 
+                firstName: "Carol", 
+                lastName: "White", 
+                email: "carol@example.com", 
+                dateOfBirth: new Date("1988-11-05"), 
+                jobPosition: "Marketing Specialist",
+                auth0Id: null 
+            },
+            { 
+                id: 4, 
+                firstName: "David", 
+                lastName: "Brown", 
+                email: "david@example.com", 
+                dateOfBirth: new Date("1992-06-30"), 
+                jobPosition: "Project Manager",
+                auth0Id: null 
+            },
+            { 
+                id: 5, 
+                firstName: "Eve", 
+                lastName: "Davis", 
+                email: "eve@example.com", 
+                dateOfBirth: new Date("1997-01-14"), 
+                jobPosition: "Operations Coordinator",
+                auth0Id: null 
+            },
+            { 
+                id: 6, 
+                firstName: "Ben", 
+                lastName: "Santana", 
+                email: "ben.amaral.santana@gmail.com", 
+                dateOfBirth: new Date("1990-01-01"), // Added placeholder DOB
+                jobPosition: "Software Engineer",     // Added placeholder Position
+                auth0Id: null 
+            },
         ],
     });
 

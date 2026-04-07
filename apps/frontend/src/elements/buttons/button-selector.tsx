@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode} from "react";
 import { Item } from "@/elements/item.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 
@@ -6,23 +6,24 @@ type OptionDefinition = {
     buttonElement: ReactNode;
 }
 type ButtonSelectorProps<T extends Record<string, OptionDefinition>> = {
-    defaultOption: keyof T,
-    options: T
+    value: keyof T;
+    onChange: (value: keyof T) => void;
+    options: T;
 }
 export default function ButtonSelector<T extends Record<string, OptionDefinition>>(
-    { defaultOption, options }: ButtonSelectorProps<T>
+    { value, onChange, options }: ButtonSelectorProps<T>
 ) {
-    const [selectedOption, setSelectedOption] = useState(defaultOption)
 
     return (
         <Item variant={"outline"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
             {Object.entries(options).map(([option, definition]) => (
                 <Button
+                    key={option}
                     id={option}
-                    variant={option == selectedOption ? "default" : "ghost"}
+                    variant={option === value ? "default" : "ghost"}
                     onClick={() => {
-                        if (option != selectedOption) {
-                            setSelectedOption(option)
+                        if (option != value) {
+                            onChange(option as keyof T);
                         }
                     }}
                 >

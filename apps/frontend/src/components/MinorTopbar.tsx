@@ -1,3 +1,5 @@
+import * as React from "react";
+
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -15,7 +17,6 @@ import {
     ArrowsDownUpIcon,
     ListBulletsIcon,
     GridFourIcon,
-    PlusIcon,
 } from "@phosphor-icons/react";
 import {
     Popover,
@@ -24,24 +25,9 @@ import {
 } from "@/elements/buttons/popover.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
-import ButtonSelector from "@/elements/buttons/button-selector.tsx";
-import DocumentForm from "@/components/forms/DocumentForm.tsx";
 import { SidebarTrigger } from "../elements/sidebar-elements.tsx";
+import ButtonSelector from "@/elements/buttons/button-selector.tsx";
 
-function AddDocumentButton() {
-    return (
-        <Popover>
-            <PopoverTrigger>
-                <Button variant={"outline"}>
-                    <PlusIcon/>
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className={"w-max"}>
-                <DocumentForm/>
-            </PopoverContent>
-        </Popover>
-    )
-}
 
 function FilterButton() {
     return (
@@ -77,10 +63,18 @@ function SortButton() {
     )
 }
 
-function ViewSelectorButton() {
+export type ViewType = "List" | "Grid";
+
+// these props are passed in from minor topbar, which get passed in from reference page / tools page
+type ViewSelectorButtonProps = {
+    view: ViewType
+    setView: (view: ViewType) => void
+}
+function ViewSelectorButton( {view, setView }: ViewSelectorButtonProps ) {
     return (
         <ButtonSelector
-            defaultOption={"List"}
+            value={view}
+            onChange={(val: ViewType) => setView(val)}
             options={{
                 List: {
                     buttonElement: <ListBulletsIcon/>
@@ -93,7 +87,24 @@ function ViewSelectorButton() {
     )
 }
 
-export default function MinorTopbar() {
+
+type MinorTopbarProps = {
+    view: ViewType;
+    setView: (view: ViewType) => void;
+    extraElements?: React.ReactNode[];
+};
+export default function MinorTopbar({
+                                        view,
+                                        setView,
+                                        extraElements
+}: MinorTopbarProps) {
+    const topRightElements = extraElements ? [...extraElements] : [];
+    topRightElements.push(
+        <FilterButton/>,
+        <SortButton/>,
+        <ViewSelectorButton view={view} setView={setView}/>
+    )
+
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
         <div className="flex items-center gap-2 px-4 w-full">
@@ -124,12 +135,7 @@ export default function MinorTopbar() {
             <NavigationMenuList>
                 <ButtonGroup className={"gap-1 overflow-hidden"}>
                     {/*Todo: Overflow Handling?*/}
-                    {[
-                        <AddDocumentButton/>,
-                        <FilterButton/>,
-                        <SortButton/>,
-                        <ViewSelectorButton/>
-                    ].map((item) => {
+                    {topRightElements.map((item) => {
                         return (
                             <NavigationMenuItem>
                                 {item}
