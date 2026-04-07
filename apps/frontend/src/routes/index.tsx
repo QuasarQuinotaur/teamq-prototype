@@ -11,6 +11,7 @@ import Recent from "@/pages/Recent.tsx";
 import Bookmarked from "@/pages/Bookmarked.tsx";
 import Workflow from "@/pages/Workflow";
 import Employees from "@/pages/Employees.tsx";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 
 
 export const router = createBrowserRouter([
@@ -63,8 +64,13 @@ export const router = createBrowserRouter([
                         element: <Tools />,
                     },
                     {
-                        path: "employees",
-                        element: <Employees />
+                        element: <RoleGuard allowedRole="Admin" />, 
+                        children: [
+                        {
+                            path: "/documents/employees",
+                            element: <Employees />,
+                        },
+                        ],
                     },
                 ]
             },
