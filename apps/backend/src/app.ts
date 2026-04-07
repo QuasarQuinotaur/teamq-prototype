@@ -4,9 +4,35 @@ import morgan from "morgan";
 import multer from "multer";
 import { uploadBuffer } from "./lib/supabase.ts";
 import { prisma } from "db";
+import pkg from 'express-openid-connect';
+const { auth, requiresAuth } = pkg;
+
+import cors from 'cors';
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
+
+// Auth0 configuration
+const config = {
+  authRequired: false,      // Allow public routes
+  auth0Logout: true,        // Use Auth0 logout endpoint
+  secret: process.env.SECRET,
+  baseURL: process.env.BASE_URL,
+  clientID: process.env.CLIENT_ID,
+  issuerBaseURL: process.env.ISSUER_BASE_URL,
+  routes: {
+    login: false,
+    logout: false
+  },
+} as const;
+
+// Apply the auth middleware
+app.use(auth(config));
 
 // Middleware
 app.use(express.json());
@@ -14,8 +40,20 @@ app.use(morgan("dev"));
 
 const upload = multer();
 
-app.get("/", (_req, res) => {
-    res.sendStatus(200);
+app.get("/", (req, res) => {
+    res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
+});
+
+app.get('/login', (req, res) => {
+  res.oidc.login({
+    returnTo: 'http://localhost:5173/documents',
+  });
+});
+
+app.get('/logout', (req, res) => {
+  res.oidc.logout({
+    returnTo: 'http://localhost:5173/',
+  });
 });
 
 // Upload route
@@ -46,8 +84,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-app.get("/employees", async (req, res) => {
-    const employees = await prisma.employee.findMany({ orderBy: { id: "asc" } });
+app.get("/employees", requiresAuth(), async (req, res) => {
+    const employees = await prisma.employee.findMany({ 
+        orderBy: { id: "asc" }
+    });
     res.json(employees)
 });
 
@@ -76,8 +116,23 @@ app.get("/employee/:id/:flag", async (req, res) => {
     else res.json(employee)
 });
 
-app.get("/content", async (req, res) => {
-    const contents = await prisma.content.findMany({ orderBy: { id: "asc" }, include: { owner: true } });
+app.get("/content", requiresAuth(), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req)
+    const userJobPosition = employee?.jobPosition
+
+    console.log(userJobPosition)
+ 
+    const contents = (userJobPosition === 'admin') ? await prisma.content.findMany({ 
+        orderBy: { id: "asc" }, 
+        include: { owner: true } 
+    })
+    :
+    await prisma.content.findMany({ 
+        where: { jobPosition: userJobPosition },
+        orderBy: { id: "asc" }, 
+        include: { owner: true } 
+    });
+
     res.json(contents);
 });
 
@@ -135,6 +190,39 @@ app.get("/assigned/:flag", async (req, res) => {
     }
     else res.json(assigned);
 });
+
+app.get('/api/me', async (req, res) => {
+  if (!req.oidc.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  const employee = await getEmployeeFromRequest(req);
+  if (!employee) {
+    return res.status(404).json({ error: 'No linked employee account found' });
+  }
+  res.json(employee);
+});
+
+app.post('/api/me/link', requiresAuth(), async (req, res) => {
+  const sub = req.oidc.user!.sub as string;
+  const email = req.oidc.user!.email as string;
+  // Find employee by email and set their auth0Id
+  const employee = await prisma.employee.update({
+    where: { email },
+    data: { auth0Id: sub },
+  });
+  res.json(employee);
+});
+
+async function getEmployeeFromRequest(req: express.Request) {
+  if (!req.oidc.isAuthenticated()) return null;
+
+  // the 'sub' field is the unique auth0 ID
+  const sub = req.oidc.user!.sub as string;
+
+  return prisma.employee.findUnique({ 
+    where: { auth0Id: sub } 
+  });
+}
 
 // Start server
 app.listen(port, () => {

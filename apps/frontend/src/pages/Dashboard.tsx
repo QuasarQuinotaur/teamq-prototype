@@ -1,5 +1,5 @@
-
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
+import ExampleChart from "@/components/ExampleChart.tsx";
 
 export default function Dashboard(){
     return (
@@ -8,6 +8,7 @@ export default function Dashboard(){
                 <SidebarTrigger className="-ml-1" />
                 <h1 className="font-heading absolute left-1/2 -translate-x-1/2 text-2xl">Dashboard</h1>
             </header>
+            <ExampleChart />
         </>
     )
 }

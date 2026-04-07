@@ -1,32 +1,50 @@
+import { useState, useEffect } from "react";
 import MinorTopbar from "@/components/MinorTopbar.tsx";
-import Pagination from "../components/Pagination.tsx"
-import {
-    CardGrid,
-    type CardEntry
-} from "@/components/CardGrid.tsx";
-import type { EmployeeWithContents } from "db";
-import { useOutletContext } from "react-router-dom";
-
+import Pagination from "@/components/Pagination.tsx";
+import { CardGrid } from "@/components/CardGrid.tsx";
+import { type CardEntry } from "@/components/Card";
+import type { Content } from "db";
+import EntryPage from "@/components/EntryPage";
 
 function References() {
-    const employee: EmployeeWithContents = useOutletContext()
-    const entries = employee.contents.filter((x) => x.contentType==="reference").map((entry) => {
-        return { title: entry.title, link: entry.link }
-    });
+    const [entries, setEntries] = useState<CardEntry<Content>[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch('http://localhost:3000/content', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                const mapped: CardEntry<Content>[] = data.map((item: any) => ({
+                    title: item.title,
+                    link: item.link,
+                    description: item.ownerName,
+                    badge: item.contentType,
+                })).filter((ce:CardEntry<Content>) => {
+                    return ce.badge==="Reference"
+                });
+                setEntries(mapped);
+            })
+            .finally(() => setLoading(false));
+    }, []);
 
     return (
-        <>
-            <MinorTopbar/>
-            <CardGrid
-                entries={entries}
-                defaultBadge={"Reference"}
-            />
-            <div>
-                <Pagination docNum={7}/>
-            </div>
-        </>
-    )
+        // <>
+        //     <MinorTopbar />
+        //     {loading ? (
+        //         <p>Loading...</p>
+        //     ) : (
+        //         <CardGrid entries={entries} defaultBadge="Reference" />
+        //     )}
+        //     <div>
+        //         <Pagination docNum={entries.length} />
+        //     </div>
+        // </>
+        <EntryPage 
+            getItems={() => entries}
+            defaultBadge={"Workflow"}
+            formButtonProps={{formType: "Document"}}
+        />
+    );
 }
-
 
 export default References;
