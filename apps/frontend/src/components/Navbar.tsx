@@ -1,11 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import {
   DropdownMenu,
@@ -16,24 +11,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/DropdownMenu"
 import { Avatar, AvatarFallback } from "@/elements/avatar"
-import type { EmployeeWithContents } from 'db';
+import { useState, useEffect } from 'react';
 
-import { useAuth0 } from "@auth0/auth0-react";
-
-// const components: { title: string; href: string; description: string }[] = [
-//   // {
-//   //   title: "Documents",
-//   //   href: "/documents",
-//   //   description: "All your documents.",
-//   // },
-//   // {
-//   //   title: "About",
-//   //   href: "/about",
-//   //   description: "More information about our firm.",
-//   // },
-// ]
+import axios from 'axios';
 
 function Navbar() {
+    const [employee, setEmployee] = useState<{ firstName: string; lastName: string } | null>(null);
+
+    const api = axios.create({
+        baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
+        withCredentials: true,
+    });
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/me');
+                setEmployee(response.data);
+            } catch (error) {
+                console.error("Not logged in or no employee record found", error);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    const getInitials = () => {
+        if (!employee) return "??";
+        return `${employee.firstName[0]}${employee.lastName[0]}`.toUpperCase();
+    };
 
     return (
         /* Changed bg-white to bg-hanover-blue and text-black to text-white */
@@ -95,7 +100,9 @@ function Navbar() {
                     <DropdownMenuTrigger asChild>
                         <button className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                             <Avatar size="default" className="cursor-pointer bg-white/20 hover:bg-white/30 transition-colors">
-                                <AvatarFallback className="text-white bg-transparent font-medium">JD</AvatarFallback>
+                                <AvatarFallback className="text-white bg-transparent font-medium">
+                                    {getInitials()}
+                                </AvatarFallback>
                             </Avatar>
                         </button>
                     </DropdownMenuTrigger>
@@ -105,7 +112,12 @@ function Navbar() {
                         <DropdownMenuItem>Profile</DropdownMenuItem>
                         <DropdownMenuItem>Settings</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Sign out</DropdownMenuItem>
+                        <DropdownMenuItem 
+                            className="text-destructive" 
+                            onClick={() => window.location.href = `${import.meta.env.VITE_BACKEND_URL}/logout`}
+                        >
+                            Sign out
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

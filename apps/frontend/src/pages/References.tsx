@@ -9,18 +9,14 @@ import { useOutletContext } from "react-router-dom";
 
 
 function References() {
-    const employee: EmployeeWithContents = useOutletContext()
-    const entries = employee.contents.filter((x) => x.contentType==="reference").map((entry) => {
-        return { title: entry.title, link: entry.link }
-    });
 
     return (
         <>
             <MinorTopbar/>
-            <CardGrid
+            {/* <CardGrid
                 entries={entries}
                 defaultBadge={"Reference"}
-            />
+            /> */}
             <div>
                 <Pagination docNum={7}/>
             </div>

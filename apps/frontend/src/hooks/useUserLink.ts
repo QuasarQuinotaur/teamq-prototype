@@ -1,30 +1,43 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
+  withCredentials: true, // Equivalent to credentials: 'include'
+});
 
 export const useUserLink = () => {
   useEffect(() => {
     const bootstrapUser = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/me', { 
-          credentials: 'include' // Required to send cookies
-        });
+        const response = await api.get('/me');
+        
+        console.log("User verified:", response.data);
+      } catch (error: any) {
+        if (error.response) {
+          const status = error.response.status;
 
-        if (response.status === 401) {
-          // If not logged in, redirect the WHOLE browser to the login page
-          window.location.href = 'http://localhost:3000/login';
-          return;
-        }
+          if (status === 401) {
+            console.warn("Unauthorized. Redirecting to login...");
+            window.location.href = `${import.meta.env.VITE_BACKEND_URL}/login`;
+            return;
+          }
 
-        if (response.status === 404) {
-          await fetch('http://localhost:3000/api/me/link', {
-            method: 'POST',
-            credentials: 'include'
-          });
-          window.location.reload();
+          if (status === 404) {
+            console.log("Employee record found but not linked. Linking now...");
+            try {
+              await api.post('/me/link');
+              window.location.reload();
+            } catch (linkError) {
+              console.error("Failed to link account:", linkError);
+            }
+          }
+        } else {
+          console.error("Network error or CORS block:", error.message);
         }
-      } catch (error) {
-        console.error("Auth bridge failed. You might need to log in manually.", error);
       }
     };
+
     bootstrapUser();
   }, []);
 };

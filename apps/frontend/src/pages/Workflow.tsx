@@ -16,10 +16,10 @@ function Workflow() {
     return (
         <>
             <MinorTopbar />
-            <CardGrid
+            {/* <CardGrid
                 entries={entries}
                 defaultBadge={"World"}
-            />
+            /> */}
             <div>
                 <PaginationControl docNum={8}/>
             </div>

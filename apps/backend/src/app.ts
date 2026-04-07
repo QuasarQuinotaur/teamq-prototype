@@ -78,7 +78,9 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 app.get("/employees", requiresAuth(), async (req, res) => {
-    const employees = await prisma.employee.findMany({ orderBy: { id: "asc" } });
+    const employees = await prisma.employee.findMany({ 
+        orderBy: { id: "asc" }
+    });
     res.json(employees)
 });
 
@@ -107,8 +109,23 @@ app.get("/employee/:id/:flag", async (req, res) => {
     else res.json(employee)
 });
 
-app.get("/content", async (req, res) => {
-    const contents = await prisma.content.findMany({ orderBy: { id: "asc" }, include: { owner: true } });
+app.get("/content", requiresAuth(), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req)
+    const userJobPosition = employee?.jobPosition
+
+    console.log(userJobPosition)
+ 
+    const contents = (userJobPosition === 'admin') ? await prisma.content.findMany({ 
+        orderBy: { id: "asc" }, 
+        include: { owner: true } 
+    })
+    :
+    await prisma.content.findMany({ 
+        where: { jobPosition: userJobPosition },
+        orderBy: { id: "asc" }, 
+        include: { owner: true } 
+    });
+
     res.json(contents);
 });
 
