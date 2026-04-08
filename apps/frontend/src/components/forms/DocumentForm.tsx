@@ -205,25 +205,27 @@ function DocumentForm({
     const [document, setDocument] = useState<Document>(
         fromItem ? contentAsDocument(fromItem as Content) : DEFAULT_DOCUMENT
     )
-    const [lastModifiedString, setLastModifiedString] = useState(
-        document.lastModifiedDate ? new Date(document.lastModifiedDate) : null
-    )
-    const [expirationString, setExpirationString] = useState(
-        document.expirationDate ? new Date(document.expirationDate) : null
-    )
     const [confirmOpen, setConfirmOpen] = useState(false)
+
+    const [lastModifiedString, setLastModifiedString] = useState<string>(
+        document.lastModifiedDate ? formatDate(document.lastModifiedDate) : ""
+    );
+    const [expirationString, setExpirationString] = useState<string>(
+        document.expirationDate ? formatDate(document.expirationDate) : ""
+    );
+
 
     const dateStrings: DocumentDateStrings = {
         lastModified: lastModifiedString,
         setLastModified: setLastModifiedString,
         expiration: expirationString,
         setExpiration: setExpirationString,
-    }
+    };
 
     function reset() {
-        setDocument(DEFAULT_DOCUMENT)
-        setLastModifiedString("")
-        setExpirationString("")
+        setDocument(DEFAULT_DOCUMENT);
+        setLastModifiedString("");
+        setExpirationString("");
     }
 
     async function doSubmit() {
