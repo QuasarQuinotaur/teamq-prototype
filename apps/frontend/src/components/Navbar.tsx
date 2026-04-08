@@ -59,39 +59,6 @@ function Navbar() {
 
             {/* middle of navbar */}
             <div className="justify-self-center flex gap-1">
-                {/* <NavigationMenu>
-                    <NavigationMenuList>
-                        <NavigationMenuLink asChild>
-                            <Link to="/clients" className='font-medium hover:text-white/80 transition-colors'>
-                                Clients
-                            </Link>
-                        </NavigationMenuLink>
-                    </NavigationMenuList>
-                </NavigationMenu>
-                
-                <NavigationMenu>
-                    <NavigationMenuList>
-                        <NavigationMenuItem>
-                            <NavigationMenuTrigger className="bg-transparent hover:bg-white/10 text-white focus:bg-white/10">
-                                More
-                            </NavigationMenuTrigger>
-                            <NavigationMenuContent>
-                                <ul className="w-96 p-4 bg-white text-black"> 
-                                    
-                                    {components.map((component) => (
-                                        <ListItem
-                                            key={component.title}
-                                            title={component.title}
-                                            href={component.href}
-                                        >
-                                            {component.description}
-                                        </ListItem>
-                                    ))}
-                                </ul>
-                            </NavigationMenuContent>
-                        </NavigationMenuItem>
-                    </NavigationMenuList>
-                </NavigationMenu> */}
             </div>
 
             {/* right side of navbar */}
@@ -123,30 +90,6 @@ function Navbar() {
             </div>
         </nav>
     )
-}
-
-function ListItem({
-  title,
-  children,
-  href,
-  className, // Extract className if you want to apply it to the li
-  ...props   // These are now li-specific props
-}: React.ComponentPropsWithoutRef<"li"> & { href: string }) {
-  return (
-    <li {...props} className={className}> 
-      <NavigationMenuLink asChild>
-        <Link 
-          to={href} 
-          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </Link>
-      </NavigationMenuLink>
-    </li>
-  )
 }
 
 export default Navbar
