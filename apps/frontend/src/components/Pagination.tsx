@@ -145,24 +145,7 @@ export default function Pagination(props: {docNum: number}) {
 
   return (
       <>
-        <div className="flex items-center justify-center gap-4">
-          <Field orientation="horizontal" className="w-fit">
-            <FieldLabel htmlFor="select-rows-per-page">Showing</FieldLabel>
-            <Select defaultValue="10" onValueChange={handleShowChange}>
-              <SelectTrigger className="w-20" id="select-rows-per-page">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectGroup>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="15">15</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FieldLabel htmlFor="select-rows-per-page">of {docNum} documents</FieldLabel>
-          </Field>
+        <div className="flex items-center justify-center pt-15">
           <PaginationContainer className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem className={prevExists}>
@@ -192,6 +175,25 @@ export default function Pagination(props: {docNum: number}) {
             </PaginationContent>
           </PaginationContainer>
         </div>
+        {/*<div className="flex items-center justify-center gap-4 pt-2">*/}
+        {/*  <Field orientation="horizontal" className="w-fit">*/}
+        {/*    <FieldLabel htmlFor="select-rows-per-page">Showing</FieldLabel>*/}
+        {/*    <Select defaultValue="5" onValueChange={handleShowChange}>*/}
+        {/*      <SelectTrigger className="w-15" id="select-rows-per-page">*/}
+        {/*        <SelectValue />*/}
+        {/*      </SelectTrigger>*/}
+        {/*      <SelectContent align="start">*/}
+        {/*        <SelectGroup>*/}
+        {/*          <SelectItem value="5">5</SelectItem>*/}
+        {/*          <SelectItem value="10">10</SelectItem>*/}
+        {/*          <SelectItem value="15">15</SelectItem>*/}
+        {/*          <SelectItem value="20">20</SelectItem>*/}
+        {/*        </SelectGroup>*/}
+        {/*      </SelectContent>*/}
+        {/*    </Select>*/}
+        {/*    <FieldLabel htmlFor="select-rows-per-page">of {docNum} results</FieldLabel>*/}
+        {/*  </Field>*/}
+        {/*</div>*/}
       </>
   )
 }

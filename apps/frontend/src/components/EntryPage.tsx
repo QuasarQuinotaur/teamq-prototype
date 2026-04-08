@@ -20,6 +20,17 @@ import {
     DialogTrigger
 } from "@/components/Dialog.tsx";
 import {
+    Dialog as AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/AlertDialog.tsx";
+import {
     ArrowsClockwiseIcon,
     TrashIcon,
 } from "@phosphor-icons/react";
@@ -40,38 +51,55 @@ type UpdateDeleteDropdownProps = {
     entry: CardEntry;
     trigger: React.ReactNode;
     formProps: FormWindowProps;
+    onDelete: (entry: CardEntry) => void;
 }
 function UpdateDeleteDropdown({
                                   entry,
                                   trigger,
-                                  formProps
+                                  formProps,
+                                  onDelete,
 }: UpdateDeleteDropdownProps) {
     const [updateFormOpen, setUpdateFormOpen] = useState(false)
 
     // All cards currently use this dropdown
     return (
         <Dialog open={updateFormOpen} onOpenChange={setUpdateFormOpen}>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuGroup>
-                        <DialogTrigger asChild>
-                            <DropdownMenuItem >
-                                <ArrowsClockwiseIcon/>
-                                Update
-                            </DropdownMenuItem>
-                        </DialogTrigger>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                        {/*Todo: Make it delete on backend*/}
-                        <DropdownMenuItem variant="destructive">
-                            <TrashIcon />
+            <AlertDialog>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuGroup>
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem>
+                                    <ArrowsClockwiseIcon/>
+                                    Update
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem variant="destructive">
+                                    <TrashIcon />
+                                    Delete
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <AlertDialogContent size="sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction variant="destructive" onClick={() => onDelete(entry)}>
                             Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <DialogContent className={"sm:max-w-sm"}>
                 <FormWindow
                     header={DEFAULT_UPDATE_FORM_HEADERS[formProps.formType]}
@@ -94,25 +122,43 @@ type EntryPageProps = {
     entries: CardEntry[];
     defaultBadge: string;
     formButtonProps?: FormWindowProps;
+    renderCard?: (entry: CardEntry, optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode) => React.ReactNode;
+    onDelete?: (entry: CardEntry) => Promise<void>;
 }
 export default function EntryPage({
-                                         entries,
+                                         entries: initialEntries,
                                          defaultBadge,
-                                         formButtonProps
+                                         formButtonProps,
+                                         renderCard,
+                                         onDelete,
 }: EntryPageProps) {
     // for view type (grid vs. list)
     const [view, setView] = useState<ViewType>("Grid");
+    const [entries, setEntries] = useState<CardEntry[]>(initialEntries);
 
-
-    // <div>
-    //     <b>Last Modified: </b>
-    //     {formatDate(entry.content.dateUpdated)}
-    //     <br/>
-    //     <b>Expiration Date: </b>
-    //     {formatDate(entry.content.expirationDate)}
-    // </div>
+    React.useEffect(() => {
+        setEntries(initialEntries);
+    }, [initialEntries]);
 
     // note/bug: if u switch to list, visit another page and come back, it will be back to grid
+
+    async function handleDelete(entry: CardEntry) {
+        const item = entry.item as { id: number };
+        try {
+            if (onDelete) {
+                await onDelete(entry);
+            } else {
+                const res = await fetch(`http://localhost:3000/content/${item.id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                if (!res.ok) throw new Error("Delete failed");
+            }
+            setEntries((prev) => prev.filter((e) => (e.item as { id: number }).id !== item.id));
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
+    }
 
     const extraElements: React.ReactNode[] = formButtonProps ? [FormAddButton(formButtonProps)] : [];
     const entryOptionsWrapper = (
@@ -121,7 +167,8 @@ export default function EntryPage({
                 UpdateDeleteDropdown({
                     entry,
                     trigger,
-                    formProps: formButtonProps
+                    formProps: formButtonProps,
+                    onDelete: handleDelete,
                 })
             )
         ) : undefined
@@ -140,13 +187,14 @@ export default function EntryPage({
                         entries={entries}
                         defaultBadge={defaultBadge}
                         entryOptionsWrapper={entryOptionsWrapper}
+                        renderCard={renderCard}
                     />
                 ) :
                 (
-                    <CardList />
+                    <CardList entries={entries} optionsWrapper={entryOptionsWrapper} />
                 )}
             <div>
-                <Pagination docNum={8}/>
+                <Pagination docNum={entries.length}/>
             </div>
         </>
     )

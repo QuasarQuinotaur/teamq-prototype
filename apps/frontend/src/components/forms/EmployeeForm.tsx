@@ -1,124 +1,196 @@
 import { useState } from "react";
+import * as React from "react";
 
-import { Button } from "@/elements/buttons/button.tsx"
 import {
     Field,
     FieldLabel,
     FieldGroup,
     FieldSet,
-    // FieldLegend,
-    // FieldDescription,
 } from "@/components/Field.tsx"
 import { Input } from "@/elements/input.tsx"
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
+import { ScrollArea } from "@/elements/scroll-area.tsx";
+import { type FormProps, FormWindowActions } from "@/components/forms/Form.tsx";
+import { formatDate } from "@/lib/utils.ts";
+import {
+    Dialog as AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/AlertDialog.tsx";
 
-type Employee = {
-    firstName: string,
-    lastName: string,
-    dateOfBirth: Date,
-    jobPosition: string,
+type EmployeeFields = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateOfBirth: Date | undefined;
+    jobPosition: string;
+    isSubmitting: boolean;
 }
 
-export default function EmployeeForm() {
-    function addEmployee(employee: Employee) {
-        // Doesn't do anything right now (just for show)
-        console.log("First Name:", employee.firstName)
-        console.log("Last Name:", employee.lastName)
-        console.log("Date of Birth:", employee.dateOfBirth)
-        console.log("Job Position:", employee.jobPosition)
+const DEFAULT_EMPLOYEE: EmployeeFields = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    dateOfBirth: undefined,
+    jobPosition: "",
+    isSubmitting: false,
+}
+
+function itemAsEmployee(item: object): EmployeeFields {
+    const e = item as { firstName: string; lastName: string; email: string; dateOfBirth: string; jobPosition: string };
+    return {
+        firstName: e.firstName,
+        lastName: e.lastName,
+        email: e.email,
+        dateOfBirth: new Date(e.dateOfBirth),
+        jobPosition: e.jobPosition,
+        isSubmitting: false,
+    };
+}
+
+export default function EmployeeForm({ onCancel, fromItem }: FormProps) {
+    const initial = fromItem ? itemAsEmployee(fromItem) : DEFAULT_EMPLOYEE;
+    const [employee, setEmployee] = useState<EmployeeFields>(initial);
+    const [dobString, setDobString] = useState(
+        initial.dateOfBirth ? formatDate(initial.dateOfBirth) : ""
+    );
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    function set<T extends keyof EmployeeFields>(key: T, value: EmployeeFields[T]) {
+        setEmployee((prev) => ({ ...prev, [key]: value }));
     }
 
-    return <div className='px-100 pt-20'>
-        <h1>Add Employee Form</h1>
-        <br/>
-        <AddEmployeeForm addEmployee={addEmployee}/>
-    </div>
-}
-
-type AddEmployeeFormProps = {
-    addEmployee: (newEmployee: Employee) => void
-}
-function AddEmployeeForm(props: AddEmployeeFormProps) {
-    const [firstName, setFirstName] = useState("")
-    const [lastName, setLastName] = useState("")
-    const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
-    const [dateOfBirthString, setDateOfBirthString] = useState<string>("")
-    const [jobPosition, setJobPosition] = useState("")
-
     function reset() {
-        setFirstName("")
-        setLastName("")
-        setDateOfBirth(undefined)
-        setDateOfBirthString("")
-        setJobPosition("")
+        setEmployee(DEFAULT_EMPLOYEE);
+        setDobString("");
+    }
+
+    async function doSubmit() {
+        const { firstName, lastName, email, dateOfBirth, jobPosition } = employee;
+        set("isSubmitting", true);
+        try {
+            const isUpdate = fromItem != null;
+            const url = isUpdate
+                ? `http://localhost:3000/employees/${(fromItem as { id: number }).id}`
+                : "http://localhost:3000/employees";
+            const res = await fetch(url, {
+                method: isUpdate ? "PUT" : "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    firstName,
+                    lastName,
+                    email,
+                    dateOfBirth: dateOfBirth!.toISOString(),
+                    jobPosition,
+                }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || (isUpdate ? "Update failed" : "Create failed"));
+            reset();
+            if (onCancel) onCancel();
+        } catch (err) {
+            console.error("Submit failed:", err);
+        } finally {
+            set("isSubmitting", false);
+        }
+    }
+
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const { firstName, lastName, email, dateOfBirth, jobPosition } = employee;
+        if (!firstName.trim() || !lastName.trim() || !email.trim() || !dateOfBirth || !jobPosition.trim()) {
+            console.error("Missing required fields");
+            return;
+        }
+        if (fromItem) {
+            setConfirmOpen(true);
+        } else {
+            doSubmit();
+        }
     }
 
     return (
-        <form onReset={(e) => {
-            e.preventDefault()
-            reset()
-        }} onSubmit={(e) => {
-            e.preventDefault()
-            if (firstName.trim() && lastName.trim() && dateOfBirth != null && jobPosition) {
-                props.addEmployee({
-                    firstName, lastName, dateOfBirth, jobPosition
-                })
-                reset()
-            }
-        }}>
-            <FieldGroup>
-                <FieldSet>
-                    {/*<FieldLegend>Add employee form</FieldLegend>*/}
-                    {/*<FieldDescription>Example description</FieldDescription>*/}
-                    <FieldGroup>
-                        <Field>
-                            <FieldLabel htmlFor={"employee-add-form-first-name"}>First Name</FieldLabel>
-                            <Input
-                                id={"employee-add-form-first-name"}
-                                placeholder={"First Name"}
-                                value={firstName}
-                                onChange={(e) =>
-                                    setFirstName(e.target.value)}
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor={"employee-add-form-last-name"}>Last Name</FieldLabel>
-                            <Input
-                                id={"employee-add-form-last-name"}
-                                placeholder={"Last Name"}
-                                value={lastName}
-                                onChange={(e) =>
-                                    setLastName(e.target.value)}
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor={"employee-add-form-dob"}>Date of Birth</FieldLabel>
-                            <DateSelectInput
-                                id={"employee-add-form-dob"}
-                                placeholder={"Date of Birth"}
-                                date={dateOfBirth}
-                                setDate={setDateOfBirth}
-                                dateString={dateOfBirthString}
-                                setDateString={setDateOfBirthString}
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor={"employee-add-form-job-position"}>Job Position</FieldLabel>
-                            <JobPositionInput
-                                id={"employee-add-form-job-position"}
-                                jobPosition={jobPosition}
-                                setJobPosition={setJobPosition}
-                            />
-                        </Field>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <form
+                onReset={(e) => { e.preventDefault(); reset(); }}
+                onSubmit={handleSubmit}
+            >
+                <ScrollArea className={"h-78 w-90 pr-4 mb-4"}>
+                    <FieldGroup className={"p-1"}>
+                        <FieldSet>
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel htmlFor="employee-form-first-name">First Name</FieldLabel>
+                                    <Input
+                                        id="employee-form-first-name"
+                                        placeholder="First Name"
+                                        value={employee.firstName}
+                                        onChange={(e) => set("firstName", e.target.value)}
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="employee-form-last-name">Last Name</FieldLabel>
+                                    <Input
+                                        id="employee-form-last-name"
+                                        placeholder="Last Name"
+                                        value={employee.lastName}
+                                        onChange={(e) => set("lastName", e.target.value)}
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="employee-form-email">Email</FieldLabel>
+                                    <Input
+                                        id="employee-form-email"
+                                        placeholder="email@example.com"
+                                        type="email"
+                                        value={employee.email}
+                                        onChange={(e) => set("email", e.target.value)}
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="employee-form-dob">Date of Birth</FieldLabel>
+                                    <DateSelectInput
+                                        id="employee-form-dob"
+                                        placeholder="Date of Birth"
+                                        date={employee.dateOfBirth}
+                                        setDate={(date) => set("dateOfBirth", date)}
+                                        dateString={dobString}
+                                        setDateString={setDobString}
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="employee-form-job-position">Job Position</FieldLabel>
+                                    <JobPositionInput
+                                        id="employee-form-job-position"
+                                        jobPosition={employee.jobPosition}
+                                        setJobPosition={(pos) => set("jobPosition", pos)}
+                                    />
+                                </Field>
+                            </FieldGroup>
+                        </FieldSet>
                     </FieldGroup>
-                </FieldSet>
-                <Field orientation={"horizontal"}>
-                    <Button type={"button"}>Cancel</Button>
-                    <Button type={"reset"}>Reset</Button>
-                    <Button type={"submit"}>Submit</Button>
-                </Field>
-            </FieldGroup>
-        </form>
-    )
+                </ScrollArea>
+                <FormWindowActions isSubmitting={employee.isSubmitting} onCancel={onCancel} />
+            </form>
+            <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This will save your changes.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { setConfirmOpen(false); doSubmit(); }}>
+                        Confirm
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 }

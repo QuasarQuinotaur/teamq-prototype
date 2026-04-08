@@ -137,7 +137,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const navItems = [
       ...data.navMain,
-      ...(employee?.jobPosition === 'Admin' ? [{
+      ...(employee?.jobPosition === 'admin' ? [{
         title: "Employees",
         url: "/documents/employees",
         icon: (

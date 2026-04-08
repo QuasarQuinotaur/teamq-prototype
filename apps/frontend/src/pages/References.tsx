@@ -10,12 +10,12 @@ function References() {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    function fetchContent() {
         fetch('http://localhost:3000/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.filter((item) => {
-                    return item.contentType === "Reference"
+                    return item.contentType === "reference"
                 }).map((item) => {
                     console.log(item);
                     return {
@@ -29,7 +29,9 @@ function References() {
                 setEntries(mapped);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }
+
+    useEffect(() => { fetchContent(); }, []);
 
     return (
         // <>
@@ -45,8 +47,8 @@ function References() {
         // </>
         <EntryPage
             entries={entries}
-            defaultBadge={"Workflow"}
-            formButtonProps={{formType: "Document"}}
+            defaultBadge={""}
+            formButtonProps={{formType: "Document", onCancel: fetchContent}}
         />
     );
 }

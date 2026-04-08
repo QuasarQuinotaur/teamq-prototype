@@ -7,26 +7,32 @@ type CardGridProps = {
     entries: CardEntry[];
     entryOptionsWrapper?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
     defaultBadge: string;
+    renderCard?: (entry: CardEntry, optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode) => React.ReactNode;
 }
 function CardGrid({
                       entries,
                       entryOptionsWrapper,
                       defaultBadge,
+                      renderCard,
 }: CardGridProps) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            {entries.map((entry) => (
-                <Card
-                    entry={entry}
-                    badges={[defaultBadge]}
-                    action="View"
-                    optionsWrapper={entryOptionsWrapper ? (
-                        (trigger) => (
-                            entryOptionsWrapper(entry, trigger)
-                        )
-                    ) : undefined}
-                />
-            ))}
+            {entries.map((entry) => {
+                const optionsWrapper = entryOptionsWrapper ? (
+                    (trigger: React.ReactNode) => entryOptionsWrapper(entry, trigger)
+                ) : undefined;
+                if (renderCard) {
+                    return renderCard(entry, optionsWrapper);
+                }
+                return (
+                    <Card
+                        entry={entry}
+                        badges={[defaultBadge]}
+                        action="View"
+                        optionsWrapper={optionsWrapper}
+                    />
+                );
+            })}
         </div>
     )
 }

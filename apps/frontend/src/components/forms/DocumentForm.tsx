@@ -16,12 +16,21 @@ import { ScrollArea } from "@/elements/scroll-area.tsx";
 import type { Content } from "db";
 import { formatDate } from "@/lib/utils.ts";
 import {type FormProps, FormWindowActions} from "@/components/forms/Form.tsx";
+import {
+    Dialog as AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/AlertDialog.tsx";
 
 
 type Document = {
     name: string,
     link: string,
-    owner: string,
     jobPosition: string,
     lastModifiedDate: Date | undefined,
     expirationDate: Date | undefined,
@@ -33,7 +42,6 @@ type Document = {
 const DEFAULT_DOCUMENT = {
     name: "",
     link: "",
-    owner: "",
     jobPosition: "",
     lastModifiedDate: undefined,
     expirationDate: undefined,
@@ -44,9 +52,9 @@ const DEFAULT_DOCUMENT = {
 }
 
 function hasDocumentFields(doc: Document) {
-    return doc.name.trim() && doc.owner.trim() && doc.jobPosition.trim()
-        && doc.lastModifiedDate && doc.expirationDate && doc.contentType.trim()
-        && doc.status.trim() && doc.file
+    return doc.name.trim() && doc.jobPosition.trim()
+        && doc.expirationDate && doc.contentType.trim()
+        && doc.status.trim() && (doc.file || doc.link.trim())
 }
 
 function documentHandleKeyChange<T extends keyof Document>(
@@ -111,17 +119,6 @@ function DocumentFormFields({
                         value={document.link}
                         onChange={(e) => {
                             handleKeyChange("link", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-owner"}>Owner</FieldLabel>
-                    <Input
-                        id={"document-add-form-owner"}
-                        placeholder={"Owner"}
-                        value={document.owner}
-                        onChange={(e) => {
-                            handleKeyChange("owner", e.target.value)
                         }}
                     />
                 </Field>
@@ -192,7 +189,6 @@ function contentAsDocument(content: Content): Document {
     return {
         name: content.title,
         link: content.link,
-        owner: content.ownerName,
         jobPosition: content.jobPosition,
         lastModifiedDate: content.dateUpdated,
         expirationDate: content.expirationDate,
@@ -209,14 +205,13 @@ function DocumentForm({
     const [document, setDocument] = useState<Document>(
         fromItem ? contentAsDocument(fromItem as Content) : DEFAULT_DOCUMENT
     )
-    console.log("Active document:", document)
-    console.log(typeof document.lastModifiedDate)
     const [lastModifiedString, setLastModifiedString] = useState(
         document.lastModifiedDate ? new Date(document.lastModifiedDate) : null
     )
     const [expirationString, setExpirationString] = useState(
         document.expirationDate ? new Date(document.expirationDate) : null
     )
+    const [confirmOpen, setConfirmOpen] = useState(false)
 
     const dateStrings: DocumentDateStrings = {
         lastModified: lastModifiedString,
@@ -231,36 +226,54 @@ function DocumentForm({
         setExpirationString("")
     }
 
-    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-        e.preventDefault();
-
-        if (!hasDocumentFields(document)) {
-            console.error("Missing required fields");
-            return;
-        }
-
+    async function doSubmit() {
         try {
             documentHandleKeyChange(setDocument, "isSubmitting", true);
 
             const formData = new FormData();
-            formData.append("file", document.file as File);
             formData.append("name", document.name);
-            formData.append("owner", document.owner);
             formData.append("jobPosition", document.jobPosition);
-            formData.append("lastModifiedDate", (document.lastModifiedDate as Date).toISOString());
-            formData.append("expirationDate", (document.expirationDate as Date).toISOString());
+            formData.append("expirationDate", (
+                (typeof document.expirationDate  == "string") ? document.expirationDate
+                    : (document.expirationDate as Date).toISOString()
+            ));
             formData.append("contentType", document.contentType);
             formData.append("status", document.status);
+            if (document.file) {
+                formData.append("file", document.file);
+            } else {
+                formData.append("link", document.link.trim());
+            }
 
-            const response = await fetch("http://localhost:3001/upload", {
-                method: "POST",
-                body: formData,
-            });
+            let response: Response
+            if (fromItem) {
+                const deleteResponse = await fetch(`http://localhost:3000/content/${(fromItem as {id: number}).id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                if (!deleteResponse.ok) {
+                    throw new Error("Update delete failed");
+                }
+                response = await fetch("http://localhost:3000/upload", {
+                    method: "POST",
+                    credentials: "include",
+                    body: formData,
+                });
+            } else {
+                response = await fetch("http://localhost:3000/upload", {
+                    method: "POST",
+                    credentials: "include",
+                    body: formData,
+                });
+            }
 
             const result = await response.json();
 
             if (!response.ok) {
                 throw new Error(result.error || "Upload failed");
+            }
+            if (actionProps.onCancel) {
+                actionProps.onCancel()
             }
 
             reset();
@@ -271,28 +284,57 @@ function DocumentForm({
         }
     }
 
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        if (!hasDocumentFields(document)) {
+            console.error("Missing required fields");
+            return;
+        }
+
+        if (fromItem) {
+            setConfirmOpen(true);
+        } else {
+            doSubmit();
+        }
+    }
+
     return (
-        <form
-            onReset={(e) => {
-                e.preventDefault()
-                reset()
-            }}
-            onSubmit={handleSubmit}
-        >
-            <ScrollArea className={"h-78 w-90 pr-4 mb-4"}>
-                <FieldGroup className={"p-1"}>
-                    <DocumentFormFields
-                        document={document}
-                        setDocument={setDocument}
-                        dateStrings={dateStrings}
-                    />
-                </FieldGroup>
-            </ScrollArea>
-            <FormWindowActions
-                isSubmitting={document.isSubmitting}
-                {...actionProps}
-            />
-        </form>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <form
+                onReset={(e) => {
+                    e.preventDefault()
+                    reset()
+                }}
+                onSubmit={handleSubmit}
+            >
+                <ScrollArea className={"h-78 w-90 pr-4 mb-4"}>
+                    <FieldGroup className={"p-1"}>
+                        <DocumentFormFields
+                            document={document}
+                            setDocument={setDocument}
+                            dateStrings={dateStrings}
+                        />
+                    </FieldGroup>
+                </ScrollArea>
+                <FormWindowActions
+                    isSubmitting={document.isSubmitting}
+                    {...actionProps}
+                />
+            </form>
+            <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This will save your changes.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { setConfirmOpen(false); doSubmit(); }}>
+                        Confirm
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 }
 

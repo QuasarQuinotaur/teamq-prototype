@@ -6,12 +6,12 @@ function Workflow() {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    function fetchContent() {
         fetch('http://localhost:3000/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.filter((item) => {
-                    return item.contentType === "Workflow"
+                    return item.contentType === "workflow"
                 }).map((item) => ({
                     item: item,
                     title: item.title,
@@ -22,14 +22,16 @@ function Workflow() {
                 setEntries(mapped);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }
+
+    useEffect(() => { fetchContent(); }, []);
 
     return (
         <>
             <EntryPage 
                 entries={entries}
-                defaultBadge={"Workflow"}
-                formButtonProps={{formType: "Document"}}
+                defaultBadge={""}
+                formButtonProps={{formType: "Document", onCancel: fetchContent}}
             />
         </>
     );

@@ -1,7 +1,7 @@
-// import * as React from "react";
 import {useState} from "react";
 
 import { DocumentForm } from "@/components/forms/DocumentForm.tsx";
+import EmployeeForm from "@/components/forms/EmployeeForm.tsx";
 import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popover.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { PlusIcon } from "@phosphor-icons/react";
@@ -15,7 +15,7 @@ const DEFAULT_FORM_HEADERS: Record<FormType, string> = {
 export type FormProps = {
     fromItem?: object;
     isSubmitting?: boolean;
-    onCancel?: () => void
+    onCancel?: () => void;
 }
 export type FormType = "Document" | "Employee"
 
@@ -35,9 +35,8 @@ function FormWindow({
         <>
             <h2 className={headerMargin ? "mb-4" : ""}>{header ?? DEFAULT_FORM_HEADERS[formType]}</h2>
             {(
-                // TODO Fix
                 formType == "Document" ? (<DocumentForm {...props} />) :
-                    formType == "Employee" ? (<DocumentForm {...props} />) :
+                    formType == "Employee" ? (<EmployeeForm {...props} />) :
                         (<></>)
             )}
         </>

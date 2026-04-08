@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
-import { uploadBuffer } from "./lib/supabase.ts";
+import { uploadBuffer, getSignedUrl } from "./lib/supabase.ts";
 import pkg from 'express-openid-connect';
 const { auth, requiresAuth } = pkg;
 import cors from 'cors';
@@ -63,24 +63,75 @@ app.get('/logout', (req, res) => {
 });
 
 // Upload route
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/upload", requiresAuth(), upload.single("file"), async (req, res) => {
     try {
-        const file = req.file;
+        const employee = await getEmployeeFromRequest(req);
 
-        if (!file) {
-            res.status(400).json({ error: "No file uploaded" });
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
             return;
         }
 
-        const data = await uploadBuffer(
-            file.buffer,
-            file.originalname,
-            file.mimetype
-        );
+        const {
+            name,
+            link,
+            jobPosition,
+            expirationDate,
+            contentType,
+            status,
+        } = req.body;
+
+        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
+            res.status(400).json({ error: "Missing required fields" });
+            return;
+        }
+
+        const hasFile = !!req.file;
+        const hasLink = !!link?.trim();
+
+        if (!hasFile && !hasLink) {
+            res.status(400).json({ error: "Provide either a file or an external link." });
+            return;
+        }
+
+        if (hasFile && hasLink) {
+            res.status(400).json({ error: "Provide only one: file or external link." });
+            return;
+        }
+
+        let finalLink = "";
+
+        if (req.file) {
+            const uploaded = await uploadBuffer(
+                req.file.buffer,
+                req.file.originalname,
+                req.file.mimetype
+            );
+
+            finalLink = uploaded.path;
+        } else {
+            finalLink = link.trim();
+        }
+
+        const created = await prisma.content.create({
+            data: {
+                title: name,
+                link: finalLink,
+                ownerName: `${employee.firstName} ${employee.lastName}`,
+                ownerId: employee.id,
+                jobPosition,
+                contentType,
+                status,
+                expirationDate: new Date(expirationDate),
+            },
+            include: {
+                owner: true,
+            },
+        });
 
         res.json({
             success: true,
-            path: data.path,
+            content: created,
         });
     } catch (err) {
         console.error(err);
@@ -118,11 +169,30 @@ app.get("/employee/:id/:flag", async (req, res) => {
     }
 });
 
+app.get("/content/:id/download", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const signedUrl = await getSignedUrl(content.link);
+        res.json({ url: signedUrl });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
+    }
+});
+
 app.get("/content", requiresAuth(), async (req, res) => {
     const employee = await getEmployeeFromRequest(req);
     const jobPosition = employee?.jobPosition;
 
-    const contents = jobPosition === 'Admin'
+    const contents = jobPosition === 'admin'
         ? await contentRepo.getAll()
         : await contentRepo.getByJobPosition(jobPosition ?? '');
 
@@ -168,6 +238,79 @@ app.get("/assigned/:flag", async (req, res) => {
       `);
     } else {
         res.json(assigned);
+    }
+});
+
+app.post("/employees", requiresAuth(), async (req, res) => {
+    const { firstName, lastName, email, dateOfBirth, jobPosition } = req.body;
+    if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !dateOfBirth || !jobPosition?.trim()) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+    }
+    try {
+        const employee = await employeeRepo.create({
+            firstName,
+            lastName,
+            email,
+            dateOfBirth: new Date(dateOfBirth),
+            jobPosition,
+        });
+        res.json(employee);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Create failed" });
+    }
+});
+
+app.put("/employees/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    const { firstName, lastName, email, dateOfBirth, jobPosition } = req.body;
+    if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !dateOfBirth || !jobPosition?.trim()) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+    }
+    try {
+        const employee = await employeeRepo.update(id, {
+            firstName,
+            lastName,
+            email,
+            dateOfBirth: new Date(dateOfBirth),
+            jobPosition,
+        });
+        res.json(employee);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
+    }
+});
+
+app.delete("/employees/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        await employeeRepo.delete(id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
+    }
+});
+
+app.delete("/content/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        await contentRepo.delete(id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
     }
 });
 

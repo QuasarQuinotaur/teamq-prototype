@@ -22,6 +22,9 @@ function JobPositionInput(
             </SelectTrigger>
             <SelectContent position={"popper"}>
                 <SelectGroup>
+                    <SelectItem value="admin">
+                        Admin
+                    </SelectItem>
                     <SelectItem value="underwriter">
                         Underwriter
                     </SelectItem>

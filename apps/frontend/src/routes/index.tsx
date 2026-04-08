@@ -9,6 +9,7 @@ import Recent from "@/pages/Recent.tsx";
 import Bookmarked from "@/pages/Bookmarked.tsx";
 import Workflow from "@/pages/Workflow";
 import Employees from "@/pages/Employees.tsx";
+import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
@@ -58,7 +59,11 @@ export const router = createBrowserRouter([
                                 element: <Tools />,
                             },
                             {
-                                element: <RoleGuard allowedRole="Admin" />, 
+                                path: "test",
+                                element: <Test />
+                            },
+                            {
+                                element: <RoleGuard allowedRole="admin" />, 
                                 children: [
                                 {
                                     path: "/documents/employees",

@@ -1,29 +1,19 @@
-//import { CardEntry} from "@/components/CardGrid.tsx";
-
-import { columns, type Payment } from "./columns.tsx"
+import * as React from "react"
+import type { CardEntry } from "@/components/Card.tsx"
+import { createColumns } from "./columns.tsx"
 import { DataTable } from "./data-table.tsx"
 
-function getData(): Promise<Payment[]> {
-    // Fetch data from your API here.
-    return [
-        {
-            id: "728ed52f",
-            tag: "Underwriter",
-            name: "Title 1",
-            link: "https://google.com",
-        },
-        // ...
-    ]
+type CardListProps = {
+    entries: CardEntry[];
+    optionsWrapper?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
 }
 
-export default function CardList() {
-    const data = getData()
+export default function CardList({ entries, optionsWrapper }: CardListProps) {
+    const columns = createColumns(optionsWrapper);
 
     return (
-        <div className="container mx-auto py-10">
-            <DataTable columns={columns} data={data} />
+        <div className="container mx-auto py-4 px-4">
+            <DataTable columns={columns} data={entries} />
         </div>
     )
 }
-
-// TODO: not connected to data properly

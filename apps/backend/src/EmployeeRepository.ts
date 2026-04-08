@@ -25,9 +25,6 @@ class EmployeeRepository {
     }
 
     async create(data: {
-        username: string;
-        password: string;
-        role: string;
         email: string;
         firstName: string;
         lastName: string;

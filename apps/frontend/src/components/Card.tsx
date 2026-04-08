@@ -11,6 +11,7 @@ export type CardEntry = {
     description?: string;
     subElement?: React.ReactNode;
     badge?: string;
+    image?: string;
 }
 
 function CardContainer({
@@ -109,17 +110,36 @@ type CardProps = {
     action: string;
     optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode;
 }
+const CARD_COLORS = [
+    "bg-blue-500",
+    "bg-violet-500",
+    "bg-emerald-500",
+    "bg-rose-500",
+    "bg-amber-500",
+    "bg-cyan-500",
+    "bg-pink-500",
+    "bg-indigo-500",
+];
+
+function stringToColor(str: string) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    return CARD_COLORS[Math.abs(hash) % CARD_COLORS.length];
+}
+
 export default function Card({
     entry, badges, action, optionsWrapper
 }: CardProps) {
-    let linkDomain = entry.link.replace('https://', '').replace('http://', '');
-    const split = linkDomain.split('/');
-    if (split.length > 0) {
-        linkDomain = split[0];
-    }
+    // Favicon-based image (commented out in case you want to restore it)
+    // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
+    // const split = linkDomain.split('/');
+    // if (split.length > 0) {
+    //     linkDomain = split[0];
+    // }
+    // const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
+    // const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
 
-    const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
-    const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
+    const cardColor = stringToColor(entry.title);
 
     return (
         <CardContainer className="relative mx-auto w-full max-w-sm gap-0">
@@ -149,25 +169,26 @@ export default function Card({
                 </CardDescription>
             </CardHeader>
             <div className={"mt-2 relative z-20"}>
+                <div className={`w-full aspect-video ${cardColor}`} />
+                {/* Favicon-based image (commented out)
                 <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
                 <img
                     src={linkFavicon}
                     alt="Event cover"
                     className="z-20 w-full aspect-video object-cover brightness-60 grayscale dark:brightness-40"
                 />
+                */}
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    {[entry.badge, ...badges].map((badgeString) => (
-                        badgeString != null ? (
-                            <Badge variant="secondary">
-                                {badgeString}
-                            </Badge>
-                        ) : (<></>)
+                    {[entry.badge, ...badges].filter((b) => b != null && b !== "").map((badgeString) => (
+                        <Badge variant="secondary">
+                            {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
+                        </Badge>
                     ))}
                 </div>
             </div>
             <CardFooter>
                 <Button
-                    onClick={() => viewItem(entry.link)}
+                    onClick={() => viewItem(entry.link, entry.item)}
                     className="w-full"
                 >
                     {action}
@@ -177,6 +198,23 @@ export default function Card({
     )
 }
 
-function viewItem(link: string) {
-    window.open(link, "_blank")
+function isSupabasePath(link: string) {
+    return !link.startsWith("http://") && !link.startsWith("https://");
+}
+
+async function viewItem(link: string, item: object) {
+    if (isSupabasePath(link)) {
+        const id = (item as { id: number }).id;
+        const res = await fetch(`http://localhost:3000/content/${id}/download`, {
+            credentials: "include",
+        });
+        if (!res.ok) {
+            console.error("Failed to get download URL");
+            return;
+        }
+        const { url } = await res.json();
+        window.open(url, "_blank");
+    } else {
+        window.open(link, "_blank");
+    }
 }
