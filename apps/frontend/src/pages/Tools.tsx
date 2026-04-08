@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
-import MinorTopbar from "@/components/MinorTopbar.tsx";
-import Pagination from "@/components/Pagination.tsx";
-import { CardGrid } from "@/components/CardGrid.tsx";
 import { type CardEntry } from "@/components/Card";
-import type { Content } from "db";
 import EntryPage from "@/components/EntryPage";
 
 function Tools() {
-    const [entries, setEntries] = useState<CardEntry<Content>[]>([]);
+    const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,7 +28,7 @@ function Tools() {
         <>
             <EntryPage
                 entries={entries}
-                defaultBadge={"Workflow"}
+                defaultBadge={"Tool"}
                 formButtonProps={{formType: "Document"}}
             />
         </>

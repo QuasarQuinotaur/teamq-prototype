@@ -1,40 +1,33 @@
 import EntryPage from "@/components/EntryPage.tsx";
 import {useEffect, useState} from "react";
 import type {CardEntry} from "@/components/Card.tsx";
-import type {Content} from "db";
 
 export default function Employees(){
+    const [entries, setEntries] = useState<CardEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        fetch('http://localhost:3000/employees', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                const mapped: CardEntry[] = data.map((item: any) => ({
+                    item,
+                    title: `${item.firstName} ${item.lastName}`,
+                    link: item.email,
+                    description: item.jobPosition,
+                    badge: item.jobPosition,
+                }));
+                setEntries(mapped);
+            })
+            .finally(() => setLoading(false));
+    }, []);
+    
     return (
         <>
+            <EntryPage
+                entries={entries}
+                formButtonProps={{formType: "Employee"}}
+            />
         </>
-    )
-    // const [entries, setEntries] = useState<CardEntry<Content>[]>([]);
-    // const [loading, setLoading] = useState(true);
-    //
-    // useEffect(() => {
-    //     fetch('http://localhost:3000/content', { credentials: 'include' })
-    //         .then(res => res.json())
-    //         .then(data => {
-    //             const mapped: CardEntry<Content>[] = data.map((item: any) => ({
-    //                 title: item.title,
-    //                 link: item.link,
-    //                 description: item.ownerName,
-    //                 badge: item.contentType,
-    //             })).filter((ce:CardEntry<Content>) => {
-    //                 return ce.badge==='Tool'
-    //             });
-    //             setEntries(mapped);
-    //         })
-    //         .finally(() => setLoading(false));
-    // }, []);
-    //
-    // return (
-    //     <>
-    //         <EntryPage
-    //             entries={entries}
-    //             defaultBadge={"Employee"}
-    //             formButtonProps={{formType: "Employee"}}
-    //         />
-    //     </>
-    // );
+    );
 }
