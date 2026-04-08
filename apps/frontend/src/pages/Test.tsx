@@ -3,6 +3,8 @@ import EmployeeCard from "@/components/EmployeeCard.tsx";
 export default function Test() {
 
     const testEntry = {
+        title: "Testing",
+        link: "https://google.com",
         item: {},
         fullName: "Theron Boozer",
         image: "/blank-pfp.png",
