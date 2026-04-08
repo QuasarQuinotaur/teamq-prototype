@@ -3,6 +3,8 @@ if (process.env.NODE_ENV !== "production") {
   config();
 }
 
+console.log("ENV CHECK:", process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
