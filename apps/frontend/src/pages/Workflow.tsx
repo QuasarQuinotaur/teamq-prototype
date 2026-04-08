@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { type CardEntry } from "@/components/Card.tsx";
 import EntryPage from "@/components/EntryPage";
 
+
 function Workflow() {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:3000/content', { credentials: 'include' })
+        fetch('/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.filter((item) => {
@@ -20,6 +21,7 @@ function Workflow() {
                     badge: item.contentType,
                 }));
                 setEntries(mapped);
+
             })
             .finally(() => setLoading(false));
     }, []);
