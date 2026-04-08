@@ -190,8 +190,8 @@ function contentAsDocument(content: Content): Document {
         name: content.title,
         link: content.link,
         jobPosition: content.jobPosition,
-        lastModifiedDate: content.dateUpdated,
-        expirationDate: content.expirationDate,
+        lastModifiedDate: new Date(content.dateUpdated),
+        expirationDate: new Date(content.expirationDate),
         contentType: content.contentType,
         status: content.status,
         file: null,
@@ -280,6 +280,9 @@ function DocumentForm({
             }
 
             reset();
+            if (actionProps.onCancel) {
+                actionProps.onCancel()
+            }
         } catch (error) {
             console.error("Submit failed:", error);
         } finally {
