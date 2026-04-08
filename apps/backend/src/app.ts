@@ -1,4 +1,8 @@
-import "dotenv/config";
+if (process.env.NODE_ENV !== "production") {
+  const { config } = await import("dotenv");
+  config();
+}
+
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
