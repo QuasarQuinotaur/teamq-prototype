@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "node16",
-    "moduleResolution": "node16",
-    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": false,
     //"preserveSymlinks": true,
     //"skipDefaultLibCheck": true,
     "declaration": false,
     "emitDeclarationOnly": true,
     "allowImportingTsExtensions": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
