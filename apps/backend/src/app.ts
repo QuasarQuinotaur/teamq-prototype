@@ -3,8 +3,6 @@ if (process.env.NODE_ENV !== "production") {
   config();
 }
 
-console.log("ENV CHECK:", process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
@@ -25,7 +23,7 @@ const app = express();
 const port = 3000;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.BASE_URL,
   credentials: true,
 }));
 
@@ -58,13 +56,13 @@ app.get("/", (req, res) => {
 
 app.get('/login', (req, res) => {
   res.oidc.login({
-    returnTo: 'http://localhost:5173/documents',
+    returnTo: `${process.env.BASE_URL}/documents`,
   });
 });
 
 app.get('/logout', (req, res) => {
   res.oidc.logout({
-    returnTo: 'http://localhost:5173/',
+    returnTo: process.env.BASE_URL,
   });
 });
 
@@ -350,7 +348,7 @@ async function getEmployeeFromRequest(req: express.Request) {
 
 // Start server
 app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    console.log(`Server running`);
 });
 
 export default app;

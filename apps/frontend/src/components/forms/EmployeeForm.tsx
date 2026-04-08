@@ -77,8 +77,8 @@ export default function EmployeeForm({ onCancel, fromItem }: FormProps) {
         try {
             const isUpdate = fromItem != null;
             const url = isUpdate
-                ? `http://localhost:3000/employees/${(fromItem as { id: number }).id}`
-                : "http://localhost:3000/employees";
+                ? `${import.meta.env.VITE_BACKEND_URL}/employees/${(fromItem as { id: number }).id}`
+                : `${import.meta.env.VITE_BACKEND_URL}/employees`;
             const res = await fetch(url, {
                 method: isUpdate ? "PUT" : "POST",
                 credentials: "include",

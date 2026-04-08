@@ -6,7 +6,7 @@ function LoginButton({ animate }: { animate: boolean }) {
     : '';
 
     const handleLogin = () => {
-      window.location.href = `http://localhost:5173/documents`;
+      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/documents`;
     };
 
   return (

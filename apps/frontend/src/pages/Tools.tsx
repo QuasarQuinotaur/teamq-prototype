@@ -7,7 +7,7 @@ function Tools() {
     const [loading, setLoading] = useState(true);
 
     function fetchContent() {
-        fetch('http://localhost:3000/content', { credentials: 'include' })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/content`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.filter((item) => {

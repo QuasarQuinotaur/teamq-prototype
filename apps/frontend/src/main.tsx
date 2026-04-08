@@ -11,7 +11,7 @@ createRoot(document.getElementById('root')!).render(
     <Auth0Provider
       domain="ahhhhhhhhhh.us.auth0.com"
       clientId="3w5wvfDcVGySmKc76ijFuhtdR2Gk3S3Q"
-      authorizationParams={{ redirect_uri: "http://localhost:5173/documents" }}
+      authorizationParams={{ redirect_uri: `${process.env.BASE_URL}/documents` }}
     >
       <TooltipProvider>
         <RouterProvider router={router} />

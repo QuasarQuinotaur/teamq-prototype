@@ -9,7 +9,7 @@ export default function Employees(){
     const [loading, setLoading] = useState(true);
 
     function fetchEmployees() {
-        fetch('http://localhost:3000/employees', { credentials: 'include' })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/employees`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.map((item: any) => ({
@@ -29,7 +29,7 @@ export default function Employees(){
 
     async function handleDelete(entry: CardEntry) {
         const item = entry.item as { id: number };
-        const res = await fetch(`http://localhost:3000/employees/${item.id}`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/employees/${item.id}`, {
             method: "DELETE",
             credentials: "include",
         });

@@ -205,7 +205,7 @@ function isSupabasePath(link: string) {
 async function viewItem(link: string, item: object) {
     if (isSupabasePath(link)) {
         const id = (item as { id: number }).id;
-        const res = await fetch(`http://localhost:3000/content/${id}/download`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/content/${id}/download`, {
             credentials: "include",
         });
         if (!res.ok) {
