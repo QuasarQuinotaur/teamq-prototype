@@ -195,10 +195,14 @@ app.get('/api/me', async (req, res) => {
   if (!req.oidc.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  const employee = await getEmployeeFromRequest(req);
-  if (!employee) {
-    return res.status(404).json({ error: 'No linked employee account found' });
-  }
+  let employee = await getEmployeeFromRequest(req);
+    const sub = req.oidc.user!.sub;
+    const email = req.oidc.user!.email;
+
+    employee = await prisma.employee.update({
+        where: { email },
+        data: { auth0Id: sub },
+    });
   res.json(employee);
 });
 
