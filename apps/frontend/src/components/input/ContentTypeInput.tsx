@@ -28,6 +28,9 @@ export default function ContentTypeInput(
                     <SelectItem value="workflow">
                         Workflow
                     </SelectItem>
+                    <SelectItem value="tool">
+                        Tool
+                    </SelectItem>
                 </SelectGroup>
             </SelectContent>
         </Select>
