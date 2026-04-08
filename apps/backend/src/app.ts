@@ -3,11 +3,17 @@ import express from "express";
 import morgan from "morgan";
 import multer from "multer";
 import { uploadBuffer } from "./lib/supabase.ts";
-import { prisma } from "db";
 import pkg from 'express-openid-connect';
 const { auth, requiresAuth } = pkg;
-
 import cors from 'cors';
+import { EmployeeRepository } from "./EmployeeRepository.ts";
+import { ContentRepository } from "./ContentRepository.ts";
+import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
+import { prisma } from "db";
+
+const employeeRepo = new EmployeeRepository();
+const contentRepo = new ContentRepository();
+const serviceRequestRepo = new ServiceRequestRepository();
 
 const app = express();
 const port = 3000;
@@ -85,24 +91,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 app.get("/employees", requiresAuth(), async (req, res) => {
-    const employees = await prisma.employee.findMany({ 
-        orderBy: { id: "asc" }
-    });
-    res.json(employees)
+    const employees = await employeeRepo.getAll();
+    res.json(employees);
 });
-
 
 app.get("/employee/:id/:flag", async (req, res) => {
     const id = Number(req.params.id);
-    const employee = await prisma.employee.findUnique({
-        where: { id }
-    });
-    if(employee) {
+    const employee = await employeeRepo.getById(id);
+    if (employee) {
         console.log(`[${employee.id}] ${employee.firstName} ${employee.lastName} | ${employee.jobPosition} | DOB: ${employee.dateOfBirth.toDateString()}`);
     }
 
     const flag = Number(req.params.flag);
-    if (flag == 1){
+    if (flag == 1) {
         res.send(`
         <html>
           <body>
@@ -112,40 +113,27 @@ app.get("/employee/:id/:flag", async (req, res) => {
           </body>
         </html>
       `);
+    } else {
+        res.json(employee);
     }
-    else res.json(employee)
 });
 
 app.get("/content", requiresAuth(), async (req, res) => {
-    const employee = await getEmployeeFromRequest(req)
-    const userJobPosition = employee?.jobPosition
+    const employee = await getEmployeeFromRequest(req);
+    const jobPosition = employee?.jobPosition;
 
-    console.log(userJobPosition)
- 
-    const contents = (userJobPosition === 'admin') ? await prisma.content.findMany({ 
-        orderBy: { id: "asc" }, 
-        include: { owner: true } 
-    })
-    :
-    await prisma.content.findMany({ 
-        where: { jobPosition: userJobPosition },
-        orderBy: { id: "asc" }, 
-        include: { owner: true } 
-    });
+    const contents = jobPosition === 'Admin'
+        ? await contentRepo.getAll()
+        : await contentRepo.getByJobPosition(jobPosition ?? '');
 
     res.json(contents);
 });
 
 app.get("/servicereqs/:flag", async (req, res) => {
-    const requests = await prisma.serviceRequest.findMany({ orderBy: { id: "asc" } });
-
-    console.log("=== SERVICE REQUESTS ===");
-    requests.forEach((reqst) => {
-        console.log(`[${reqst.id}] Type: ${reqst.type} | CreatorID: ${reqst.creatorID} | RequesteeID: ${reqst.requesteeID}`);
-    });
+    const requests = await serviceRequestRepo.getAll();
 
     const flag = Number(req.params.flag);
-    if (flag == 1){
+    if (flag == 1) {
         res.send(`
         <html>
           <body>
@@ -157,25 +145,16 @@ app.get("/servicereqs/:flag", async (req, res) => {
           </body>
         </html>
       `);
+    } else {
+        res.json(requests);
     }
-   else res.json(requests);
 });
 
 app.get("/assigned/:flag", async (req, res) => {
-    const assigned = await prisma.serviceRequest.findMany({
-        include: {
-            creator: true,
-            requestee: true
-        }
-    });
-
-    console.log("=== ASSIGNED REQUESTS ===");
-    assigned.forEach((ar) => {
-        console.log(`[${ar.id}] Type: ${ar.type} | Creator: ${ar.creator.firstName} ${ar.creator.lastName} | Requestee: ${ar.requestee.firstName} ${ar.requestee.lastName}`);
-    });
+    const assigned = await serviceRequestRepo.getAllWithDetails();
 
     const flag = Number(req.params.flag);
-    if (flag == 1){
+    if (flag == 1) {
         res.send(`
         <html>
           <body>
@@ -187,8 +166,9 @@ app.get("/assigned/:flag", async (req, res) => {
           </body>
         </html>
       `);
+    } else {
+        res.json(assigned);
     }
-    else res.json(assigned);
 });
 
 app.get('/api/me', async (req, res) => {
@@ -209,23 +189,14 @@ app.get('/api/me', async (req, res) => {
 app.post('/api/me/link', requiresAuth(), async (req, res) => {
   const sub = req.oidc.user!.sub as string;
   const email = req.oidc.user!.email as string;
-  // Find employee by email and set their auth0Id
-  const employee = await prisma.employee.update({
-    where: { email },
-    data: { auth0Id: sub },
-  });
+  const employee = await employeeRepo.linkAuth0(email, sub);
   res.json(employee);
 });
 
 async function getEmployeeFromRequest(req: express.Request) {
   if (!req.oidc.isAuthenticated()) return null;
-
-  // the 'sub' field is the unique auth0 ID
   const sub = req.oidc.user!.sub as string;
-
-  return prisma.employee.findUnique({ 
-    where: { auth0Id: sub } 
-  });
+  return employeeRepo.getByAuth0Id(sub);
 }
 
 // Start server
