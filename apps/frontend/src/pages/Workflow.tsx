@@ -14,14 +14,15 @@ function Workflow() {
         fetch('http://localhost:3000/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
-                const mapped: CardEntry<Content>[] = data.map((item: any) => ({
+                const mapped: CardEntry[] = data.filter((item) => {
+                    return item.contentType === "Workflow"
+                }).map((item) => ({
+                    item: item,
                     title: item.title,
                     link: item.link,
                     description: item.ownerName,
                     badge: item.contentType,
-                })).filter((ce:CardEntry<Content>) => {
-                    return ce.badge==='Workflow'
-                });
+                }));
                 setEntries(mapped);
             })
             .finally(() => setLoading(false));
@@ -30,7 +31,7 @@ function Workflow() {
     return (
         <>
             <EntryPage 
-                getItems={() => entries}
+                entries={entries}
                 defaultBadge={"Workflow"}
                 formButtonProps={{formType: "Document"}}
             />

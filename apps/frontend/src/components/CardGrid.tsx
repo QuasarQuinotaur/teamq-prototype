@@ -2,18 +2,17 @@ import * as React from "react";
 
 import Card from "@/components/Card.tsx"
 import type {CardEntry} from "@/components/Card.tsx";
-import type {Item} from "@/components/forms/Form.tsx";
 
-type CardGridProps<T extends Item> = {
-    entries: CardEntry<T>[];
-    entryOptionsWrapper?: (entry: CardEntry<T>, trigger: React.ReactNode) => React.ReactNode
+type CardGridProps = {
+    entries: CardEntry[];
+    entryOptionsWrapper?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
     defaultBadge: string;
 }
-function CardGrid<T extends Item>({
+function CardGrid({
                       entries,
                       entryOptionsWrapper,
-                      defaultBadge
-}: CardGridProps<T>) {
+                      defaultBadge,
+}: CardGridProps) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             {entries.map((entry) => (

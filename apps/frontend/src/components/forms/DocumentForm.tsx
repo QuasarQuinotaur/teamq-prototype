@@ -205,16 +205,17 @@ function contentAsDocument(content: Content): Document {
 
 function DocumentForm({
                           fromItem, ...actionProps
-}: FormProps<Content>) {
+}: FormProps) {
     const [document, setDocument] = useState<Document>(
-        fromItem ? contentAsDocument(fromItem) : DEFAULT_DOCUMENT
+        fromItem ? contentAsDocument(fromItem as Content) : DEFAULT_DOCUMENT
     )
     console.log("Active document:", document)
+    console.log(typeof document.lastModifiedDate)
     const [lastModifiedString, setLastModifiedString] = useState(
-        document.lastModifiedDate ? formatDate(document.lastModifiedDate) : ""
+        document.lastModifiedDate ? new Date(document.lastModifiedDate) : null
     )
     const [expirationString, setExpirationString] = useState(
-        document.expirationDate ? formatDate(document.expirationDate) : ""
+        document.expirationDate ? new Date(document.expirationDate) : null
     )
 
     const dateStrings: DocumentDateStrings = {

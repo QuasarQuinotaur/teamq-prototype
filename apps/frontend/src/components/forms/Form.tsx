@@ -7,31 +7,30 @@ import {Button} from "@/elements/buttons/button.tsx";
 import { PlusIcon } from "@phosphor-icons/react";
 import {Separator} from "@/elements/separator.tsx";
 
-
 const DEFAULT_FORM_HEADERS: Record<FormType, string> = {
     Document: "Add Document",
     Employee: "Add Employee"
 }
 
-export type FormProps<T> = {
-    fromItem?: T;
+export type FormProps = {
+    fromItem?: object;
     isSubmitting?: boolean;
     onCancel?: () => void
 }
 export type FormType = "Document" | "Employee"
 
 
-export type FormWindowProps<T> = {
+export type FormWindowProps = {
     formType: FormType,
     header?: string,
     headerMargin?: boolean
-} & FormProps<T>
-function FormWindow<T>({
+} & FormProps
+function FormWindow({
                         header,
                         headerMargin = true,
                         formType,
                         ...props
-}: FormWindowProps<T>) {
+}: FormWindowProps) {
     return (
         <>
             <h2 className={headerMargin ? "mb-4" : ""}>{header ?? DEFAULT_FORM_HEADERS[formType]}</h2>
@@ -46,9 +45,9 @@ function FormWindow<T>({
 }
 
 
-function FormWindowActions<T>({
+function FormWindowActions({
                                  isSubmitting, onCancel
-}: FormProps<T>) {
+}: FormProps) {
     return (
         <div className={"flex-col w-full"}>
             <Separator className={"mb-3"}/>
@@ -69,7 +68,7 @@ function FormWindowActions<T>({
 }
 
 
-function FormAddButton<T>(windowProps: FormWindowProps<T>) {
+function FormAddButton(windowProps: FormWindowProps) {
     const [formOpen, setFormOpen] = useState(false);
 
     return (

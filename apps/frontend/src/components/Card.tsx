@@ -4,9 +4,10 @@ import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { MoreHorizontalIcon } from "lucide-react";
-import type {Item} from "@/components/forms/Form.tsx";
-export type CardEntry<T extends Item> = {
-    item: T;
+export type CardEntry = {
+    item: object;
+    title: string;
+    link: string;
     description?: string;
     subElement?: React.ReactNode;
     badge?: string;
@@ -102,16 +103,16 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     )
 }
 
-type CardProps<T extends Item> = {
-    entry: CardEntry<T>;
+type CardProps = {
+    entry: CardEntry;
     badges: string[];
     action: string;
     optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode;
 }
-export default function Card<T extends Item>({
+export default function Card({
     entry, badges, action, optionsWrapper
-}: CardProps<T>) {
-    let linkDomain = entry.item.link.replace('https://', '').replace('http://', '');
+}: CardProps) {
+    let linkDomain = entry.link.replace('https://', '').replace('http://', '');
     const split = linkDomain.split('/');
     if (split.length > 0) {
         linkDomain = split[0];
@@ -124,7 +125,7 @@ export default function Card<T extends Item>({
         <CardContainer className="relative mx-auto w-full max-w-sm gap-0">
             <CardHeader>
                 <div className={"flex w-full items-center"}>
-                    <CardTitle className={"w-full"}>{entry.item.title}</CardTitle>
+                    <CardTitle className={"w-full"}>{entry.title}</CardTitle>
                     <div className={"w-full"}/>
                     {optionsWrapper != null && (
                         // Show options button only if wrapped
@@ -166,7 +167,7 @@ export default function Card<T extends Item>({
             </div>
             <CardFooter>
                 <Button
-                    onClick={() => viewItem(entry.item.link)}
+                    onClick={() => viewItem(entry.link)}
                     className="w-full"
                 >
                     {action}

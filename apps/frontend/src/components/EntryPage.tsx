@@ -27,7 +27,7 @@ import {
     FormAddButton,
     FormWindow,
     type FormType,
-    type FormWindowProps, type Item
+    type FormWindowProps
 } from "@/components/forms/Form.tsx";
 
 const DEFAULT_UPDATE_FORM_HEADERS: Record<FormType, string> = {
@@ -36,16 +36,16 @@ const DEFAULT_UPDATE_FORM_HEADERS: Record<FormType, string> = {
 }
 
 
-type UpdateDeleteDropdownProps<T extends Item> = {
-    entry: CardEntry<T>;
+type UpdateDeleteDropdownProps = {
+    entry: CardEntry;
     trigger: React.ReactNode;
-    formProps: FormWindowProps<T>;
+    formProps: FormWindowProps;
 }
-function UpdateDeleteDropdown<T extends Item>({
+function UpdateDeleteDropdown({
                                   entry,
                                   trigger,
                                   formProps
-}: UpdateDeleteDropdownProps<T>) {
+}: UpdateDeleteDropdownProps) {
     const [updateFormOpen, setUpdateFormOpen] = useState(false)
 
     // All cards currently use this dropdown
@@ -90,16 +90,16 @@ function UpdateDeleteDropdown<T extends Item>({
     )
 }
 
-type EntryPageProps<T extends Item> = {
-    getItems: () => T[];
+type EntryPageProps = {
+    entries: CardEntry[];
     defaultBadge: string;
-    formButtonProps?: FormWindowProps<T>;
+    formButtonProps?: FormWindowProps;
 }
-export default function EntryPage<T extends Item>({
-                                         getItems,
+export default function EntryPage({
+                                         entries,
                                          defaultBadge,
                                          formButtonProps
-}: EntryPageProps<T>) {
+}: EntryPageProps) {
     // for view type (grid vs. list)
     const [view, setView] = useState<ViewType>("Grid");
 
@@ -114,18 +114,10 @@ export default function EntryPage<T extends Item>({
 
     // note/bug: if u switch to list, visit another page and come back, it will be back to grid
 
-    const entries: CardEntry<T>[] = getItems().map((item) => {
-        return {
-            title: item.title,
-            link: item.link,
-            item: item
-        }
-    })
-
     const extraElements: React.ReactNode[] = formButtonProps ? [FormAddButton(formButtonProps)] : [];
     const entryOptionsWrapper = (
         formButtonProps ? (
-            (entry: CardEntry<T>, trigger: React.ReactNode): React.ReactNode => (
+            (entry: CardEntry, trigger: React.ReactNode): React.ReactNode => (
                 UpdateDeleteDropdown({
                     entry,
                     trigger,

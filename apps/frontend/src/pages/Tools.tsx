@@ -14,14 +14,15 @@ function Tools() {
         fetch('http://localhost:3000/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
-                const mapped: CardEntry<Content>[] = data.map((item: any) => ({
+                const mapped: CardEntry[] = data.filter((item) => {
+                    return item.contentType === "Tool"
+                }).map((item) => ({
+                    item: item,
                     title: item.title,
                     link: item.link,
                     description: item.ownerName,
                     badge: item.contentType,
-                })).filter((ce:CardEntry<Content>) => {
-                    return ce.badge==='Tool'
-                });
+                }));
                 setEntries(mapped);
             })
             .finally(() => setLoading(false));
@@ -29,10 +30,10 @@ function Tools() {
 
     return (
         <>
-            <EntryPage 
-                        getItems={() => entries}
-                        defaultBadge={"Workflow"}
-                        formButtonProps={{formType: "Document"}}
+            <EntryPage
+                entries={entries}
+                defaultBadge={"Workflow"}
+                formButtonProps={{formType: "Document"}}
             />
         </>
     );

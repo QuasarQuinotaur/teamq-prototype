@@ -7,20 +7,24 @@ import type { Content } from "db";
 import EntryPage from "@/components/EntryPage";
 
 function References() {
-    const [entries, setEntries] = useState<CardEntry<Content>[]>([]);
+    const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetch('http://localhost:3000/content', { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
-                const mapped: CardEntry<Content>[] = data.map((item: any) => ({
-                    title: item.title,
-                    link: item.link,
-                    description: item.ownerName,
-                    badge: item.contentType,
-                })).filter((ce:CardEntry<Content>) => {
-                    return ce.badge==="Reference"
+                const mapped: CardEntry[] = data.filter((item) => {
+                    return item.contentType === "Reference"
+                }).map((item) => {
+                    console.log(item);
+                    return {
+                        item: item,
+                        title: item.title,
+                        link: item.link,
+                        description: item.ownerName,
+                        badge: item.contentType,
+                    }
                 });
                 setEntries(mapped);
             })
@@ -39,8 +43,8 @@ function References() {
         //         <Pagination docNum={entries.length} />
         //     </div>
         // </>
-        <EntryPage 
-            getItems={() => entries}
+        <EntryPage
+            entries={entries}
             defaultBadge={"Workflow"}
             formButtonProps={{formType: "Document"}}
         />
