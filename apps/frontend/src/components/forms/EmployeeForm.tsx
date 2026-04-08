@@ -122,7 +122,7 @@ export default function EmployeeForm({ onCancel, fromItem }: FormProps) {
                 onReset={(e) => { e.preventDefault(); reset(); }}
                 onSubmit={handleSubmit}
             >
-                <ScrollArea className={"h-78 w-90 pr-4 mb-4"}>
+                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
                     <FieldGroup className={"p-1"}>
                         <FieldSet>
                             <FieldGroup>

@@ -48,7 +48,7 @@ function References() {
         <EntryPage
             entries={entries}
             defaultBadge={""}
-            formButtonProps={{formType: "Document", onCancel: fetchContent}}
+            formButtonProps={{formType: "Document", onCancel: fetchContent, defaultContentType: "reference"}}
         />
     );
 }

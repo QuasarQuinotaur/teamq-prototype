@@ -2,7 +2,7 @@ import {useState} from "react";
 
 import { DocumentForm } from "@/components/forms/DocumentForm.tsx";
 import EmployeeForm from "@/components/forms/EmployeeForm.tsx";
-import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popover.tsx";
+import {Dialog, DialogContent, DialogTrigger} from "@/components/Dialog.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { PlusIcon } from "@phosphor-icons/react";
 import {Separator} from "@/elements/separator.tsx";
@@ -16,6 +16,7 @@ export type FormProps = {
     fromItem?: object;
     isSubmitting?: boolean;
     onCancel?: () => void;
+    defaultContentType?: string;
 }
 export type FormType = "Document" | "Employee"
 
@@ -71,18 +72,16 @@ function FormAddButton(windowProps: FormWindowProps) {
     const [formOpen, setFormOpen] = useState(false);
 
     return (
-        <Popover open={formOpen} onOpenChange={setFormOpen}>
-            <PopoverTrigger>
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+            <DialogTrigger asChild>
                 <Button variant={"outline"}>
                     <PlusIcon/>
                 </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className={"w-max"}>
-                <div className='m-1 p-0'>
-                    <FormWindow {...windowProps}/>
-                </div>
-            </PopoverContent>
-        </Popover>
+            </DialogTrigger>
+            <DialogContent className={"sm:max-w-lg"}>
+                <FormWindow {...windowProps}/>
+            </DialogContent>
+        </Dialog>
     )
 }
 

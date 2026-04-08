@@ -200,10 +200,11 @@ function contentAsDocument(content: Content): Document {
 }
 
 function DocumentForm({
-                          fromItem, ...actionProps
+                          fromItem, defaultContentType, ...actionProps
 }: FormProps) {
     const [document, setDocument] = useState<Document>(
-        fromItem ? contentAsDocument(fromItem as Content) : DEFAULT_DOCUMENT
+        fromItem ? contentAsDocument(fromItem as Content)
+            : { ...DEFAULT_DOCUMENT, contentType: defaultContentType ?? "" }
     )
     const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -310,7 +311,7 @@ function DocumentForm({
                 }}
                 onSubmit={handleSubmit}
             >
-                <ScrollArea className={"h-78 w-90 pr-4 mb-4"}>
+                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
                     <FieldGroup className={"p-1"}>
                         <DocumentFormFields
                             document={document}
