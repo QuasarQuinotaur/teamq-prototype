@@ -8,6 +8,7 @@ const api = axios.create({
 
 export const useUserLink = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [notRegistered, setNotRegistered] = useState(false);
 
   useEffect(() => {
     const bootstrapUser = async () => {
@@ -23,13 +24,19 @@ export const useUserLink = () => {
             window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/login`;
             return; // Don't set loading to false, we are leaving the page
           }
+
+          if (status === 404) {
+            setNotRegistered(true);
+            setIsLoading(false);
+            return;
+          }
         }
-        setIsLoading(false); 
+        setIsLoading(false);
       }
     };
 
     bootstrapUser();
   }, []);
 
-  return { isLoading };
+  return { isLoading, notRegistered };
 };

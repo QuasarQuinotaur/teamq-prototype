@@ -330,14 +330,18 @@ app.get('/api/me', async (req, res) => {
   if (!req.oidc.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  let employee = await getEmployeeFromRequest(req);
-    const sub = req.oidc.user!.sub;
-    const email = req.oidc.user!.email;
+  const sub = req.oidc.user!.sub;
+  const email = req.oidc.user!.email;
 
-    employee = await prisma.employee.update({
-        where: { email },
-        data: { auth0Id: sub },
-    });
+  const existing = await prisma.employee.findUnique({ where: { email } });
+  if (!existing) {
+    return res.status(404).json({ error: 'Employee not registered' });
+  }
+
+  const employee = await prisma.employee.update({
+    where: { email },
+    data: { auth0Id: sub },
+  });
   res.json(employee);
 });
 
