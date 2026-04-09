@@ -42,6 +42,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      dotenv-cli:
+        specifier: ^11.0.0
+        version: 11.0.0
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -124,6 +127,9 @@ importers:
       db:
         specifier: workspace:*
         version: link:../../packages/db
+      dotenv-cli:
+        specifier: ^11.0.0
+        version: 11.0.0
       lucide-react:
         specifier: ^1.7.0
         version: 1.7.0(react@19.2.4)
@@ -236,6 +242,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      dotenv-cli:
+        specifier: ^11.0.0
+        version: 11.0.0
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -2730,6 +2739,14 @@ packages:
   diff@8.0.4:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
+
+  dotenv-cli@11.0.0:
+    resolution: {integrity: sha512-r5pA8idbk7GFWuHEU7trSTflWcdBpQEK+Aw17UrSHjS6CReuhrrPcyC3zcQBPQvhArRHnBo/h6eLH1fkCvNlww==}
+    hasBin: true
+
+  dotenv-expand@12.0.3:
+    resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
+    engines: {node: '>=12'}
 
   dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
@@ -7685,6 +7702,17 @@ snapshots:
   diff@4.0.4: {}
 
   diff@8.0.4: {}
+
+  dotenv-cli@11.0.0:
+    dependencies:
+      cross-spawn: 7.0.6
+      dotenv: 17.3.1
+      dotenv-expand: 12.0.3
+      minimist: 1.2.8
+
+  dotenv-expand@12.0.3:
+    dependencies:
+      dotenv: 16.6.1
 
   dotenv@16.6.1: {}
 

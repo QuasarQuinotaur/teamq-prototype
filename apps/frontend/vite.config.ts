@@ -14,4 +14,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  preview: {
+    host: true,
+    allowedHosts: ['localhost', '.onrender.com'],
+  },
 })

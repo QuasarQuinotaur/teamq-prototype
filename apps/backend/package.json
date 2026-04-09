@@ -4,7 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "nodemon",
-		"start": "DOTENV_CONFIG_PATH=../../.env tsx ./src/app.ts"
+		"start": "dotenv -e ../../.env -- tsx ./src/app.ts"
 	},
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.6.0",
@@ -12,6 +12,7 @@
 		"cors": "^2.8.6",
 		"db": "workspace:*",
 		"dotenv": "^17.3.1",
+		"dotenv-cli": "^11.0.0",
 		"express": "^5.2.1",
 		"express-openid-connect": "^2.20.1",
 		"morgan": "^1.10.1",
