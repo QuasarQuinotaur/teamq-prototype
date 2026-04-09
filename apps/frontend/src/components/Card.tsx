@@ -109,6 +109,7 @@ type CardProps = {
     badges: string[];
     action: string;
     optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode;
+    onView?: (entry: CardEntry) => void;
 }
 const CARD_COLORS = [
     "bg-blue-500",
@@ -128,7 +129,7 @@ function stringToColor(str: string) {
 }
 
 export default function Card({
-    entry, badges, action, optionsWrapper
+    entry, badges, action, optionsWrapper, onView
 }: CardProps) {
     // Favicon-based image (commented out in case you want to restore it)
     // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
@@ -188,7 +189,13 @@ export default function Card({
             </div>
             <CardFooter>
                 <Button
-                    onClick={() => viewItem(entry.link, entry.item)}
+                    onClick={() => {
+                        if (onView && isSupabasePath(entry.link)) {
+                            onView(entry);
+                        } else {
+                            viewItem(entry.link, entry.item);
+                        }
+                    }}
                     className="w-full"
                 >
                     {action}

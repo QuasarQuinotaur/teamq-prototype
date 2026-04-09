@@ -8,12 +8,14 @@ type CardGridProps = {
     entryOptionsWrapper?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
     defaultBadge: string;
     renderCard?: (entry: CardEntry, optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode) => React.ReactNode;
+    onView?: (entry: CardEntry) => void;
 }
 function CardGrid({
                       entries,
                       entryOptionsWrapper,
                       defaultBadge,
                       renderCard,
+                      onView,
 }: CardGridProps) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -30,6 +32,7 @@ function CardGrid({
                         badges={[defaultBadge]}
                         action="View"
                         optionsWrapper={optionsWrapper}
+                        onView={onView}
                     />
                 );
             })}

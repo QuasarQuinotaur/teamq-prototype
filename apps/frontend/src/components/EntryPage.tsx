@@ -6,6 +6,7 @@ import Pagination from "@/components/Pagination.tsx";
 import { CardGrid } from "@/components/CardGrid.tsx";
 import { type CardEntry } from "@/components/Card.tsx";
 import CardList from "@/components/list-view-table/CardList.tsx";
+import DocumentViewer from "@/components/DocumentViewer.tsx";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -135,6 +136,8 @@ export default function EntryPage({
     // for view type (grid vs. list)
     const [view, setView] = useState<ViewType>("Grid");
     const [entries, setEntries] = useState<CardEntry[]>(initialEntries);
+    const [selectedEntry, setSelectedEntry] = useState<CardEntry | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
     React.useEffect(() => {
         setEntries(initialEntries);
@@ -160,6 +163,26 @@ export default function EntryPage({
         }
     }
 
+    async function handleView(entry: CardEntry) {
+        const item = entry.item as { id: number };
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${item.id}/download`, {
+                credentials: "include",
+            });
+            if (!res.ok) throw new Error("Failed to get download URL");
+            const { url } = await res.json();
+            setSelectedEntry(entry);
+            setViewerUrl(url);
+        } catch (err) {
+            console.error("Failed to open document:", err);
+        }
+    }
+
+    function handleCloseViewer() {
+        setSelectedEntry(null);
+        setViewerUrl(null);
+    }
+
     const extraElements: React.ReactNode[] = formButtonProps ? [FormAddButton(formButtonProps)] : [];
     const entryOptionsWrapper = (
         formButtonProps ? (
@@ -173,6 +196,17 @@ export default function EntryPage({
             )
         ) : undefined
     )
+
+    if (selectedEntry && viewerUrl) {
+        return (
+            <DocumentViewer
+                url={viewerUrl}
+                filename={selectedEntry.link}
+                title={selectedEntry.title}
+                onClose={handleCloseViewer}
+            />
+        );
+    }
 
     return (
         <>
@@ -188,6 +222,7 @@ export default function EntryPage({
                         defaultBadge={defaultBadge}
                         entryOptionsWrapper={entryOptionsWrapper}
                         renderCard={renderCard}
+                        onView={handleView}
                     />
                 ) :
                 (
