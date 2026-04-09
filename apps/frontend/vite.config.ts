@@ -21,6 +21,7 @@ export default defineConfig({
       '/api': 'http://localhost:3000',
       '/login': 'http://localhost:3000',
       '/logout': 'http://localhost:3000',
+      '/callback': 'http://localhost:3000',
   }
   },
 })
