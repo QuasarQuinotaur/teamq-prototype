@@ -4,7 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "nodemon",
-		"start": "tsx ./src/app.ts"
+		"start": "tsx ./src/app.ts 2>&1"
 	},
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.6.0",

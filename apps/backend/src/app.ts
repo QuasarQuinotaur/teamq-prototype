@@ -1,3 +1,8 @@
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    process.exit(1);
+  });
+
 import "dotenv/config";
 
 import express from "express";
@@ -17,7 +22,7 @@ const contentRepo = new ContentRepository();
 const serviceRequestRepo = new ServiceRequestRepository();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 app.use(cors({
   origin: process.env.FRONTEND_URL,
