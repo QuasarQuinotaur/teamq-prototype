@@ -17,5 +17,10 @@ export default defineConfig({
   preview: {
     host: true,
     allowedHosts: ['localhost', '.onrender.com'],
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/login': 'http://localhost:3000',
+      '/logout': 'http://localhost:3000',
+  }
   },
 })
