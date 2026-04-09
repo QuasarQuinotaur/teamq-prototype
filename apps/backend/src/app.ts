@@ -1,7 +1,4 @@
-if (process.env.NODE_ENV !== "production") {
-  const { config } = await import("dotenv");
-  config();
-}
+import "dotenv/config";
 
 import express from "express";
 import morgan from "morgan";
@@ -23,7 +20,7 @@ const app = express();
 const port = 3000;
 
 app.use(cors({
-  origin: process.env.BASE_URL,
+  origin: process.env.VITE_FRONTEND_URL,
   credentials: true,
 }));
 
@@ -56,13 +53,13 @@ app.get("/", (req, res) => {
 
 app.get('/login', (req, res) => {
   res.oidc.login({
-    returnTo: `${process.env.BASE_URL}/documents`,
+    returnTo: `${process.env.VITE_FRONTEND_URL}/documents`,
   });
 });
 
 app.get('/logout', (req, res) => {
   res.oidc.logout({
-    returnTo: process.env.BASE_URL,
+    returnTo: process.env.VITE_FRONTEND_URL,
   });
 });
 

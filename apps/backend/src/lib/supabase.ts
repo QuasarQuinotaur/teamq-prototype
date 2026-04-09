@@ -1,12 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-export const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!,
-);
+let _supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SECRET_KEY!,
+        );
+    }
+    return _supabase;
+}
 
 export async function getSignedUrl(path: string, expiresIn = 60) {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabase().storage
         .from("uploads")
         .createSignedUrl(path, expiresIn);
 
@@ -21,7 +28,7 @@ export async function uploadBuffer(
 ) {
     const filePath = `uploads/${fileName}`;
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabase().storage
         .from("uploads")
         .upload(filePath, buffer, {
             contentType,
