@@ -29,6 +29,11 @@ app.use(cors({
   credentials: true,
 }));
 
+console.log(process.env.SECRET);
+console.log(process.env.BASE_URL);
+console.log(process.env.CLIENT_ID);
+console.log(process.env.ISSUER_BASE_URL);
+
 // Auth0 configuration
 const config = {
   authRequired: false,      // Allow public routes
