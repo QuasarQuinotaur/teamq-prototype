@@ -24,6 +24,7 @@ class EmployeeRepository {
         });
     }
 
+    //I kept gitting errors about username and id so i made a second one for testing ;-;
     async create(data: {
         username: string;
         password: string;
@@ -34,6 +35,19 @@ class EmployeeRepository {
         dateOfBirth: Date;
         jobPosition: string;
         auth0Id?: string;
+        id?: number;
+    }) {
+        return prisma.employee.create({ data });
+    }
+
+    async create2(data: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        dateOfBirth: Date;
+        jobPosition: string;
+        auth0Id?: string;
+        id?: number;
     }) {
         return prisma.employee.create({ data });
     }
@@ -63,5 +77,6 @@ class EmployeeRepository {
         return prisma.employee.delete({ where: { id } });
     }
 }
+
 
 export { EmployeeRepository };
