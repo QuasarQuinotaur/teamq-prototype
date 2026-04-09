@@ -5,7 +5,7 @@ import { EmployeeRepository } from "./src/EmployeeRepository";
 const employeeRepository = new EmployeeRepository();
 const now = new Date();
 
-describe("EmployeeRepository Tests (SAFE)", () => {
+describe("EmployeeRepository Tests (hopefully safe)", () => {
 
     // basic read
 
