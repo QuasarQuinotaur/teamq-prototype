@@ -4,7 +4,6 @@ import { renderAsync } from "docx-preview";
 import { Button } from "@/elements/buttons/button.tsx";
 import {
     ArrowLeftIcon,
-    ArrowRightIcon,
     ArrowSquareOutIcon,
     WarningIcon,
 } from "@phosphor-icons/react";
@@ -62,7 +61,6 @@ export default function DocumentViewer({ url, filename, title, onClose }: Docume
 
 function PdfViewer({ url }: { url: string }) {
     const [numPages, setNumPages] = React.useState<number>(0);
-    const [pageNumber, setPageNumber] = React.useState(1);
     const [containerWidth, setContainerWidth] = React.useState<number>(0);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -82,42 +80,19 @@ function PdfViewer({ url }: { url: string }) {
         <div ref={containerRef} className="flex flex-col items-center gap-4 py-6 px-4">
             <Document
                 file={url}
-                onLoadSuccess={({ numPages }) => {
-                    setNumPages(numPages);
-                    setPageNumber(1);
-                }}
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
                 loading={<LoadingState />}
                 error={<ErrorState />}
             >
-                <Page
-                    pageNumber={pageNumber}
-                    width={containerWidth ? Math.min(containerWidth - 32, 900) : undefined}
-                    loading={<LoadingState />}
-                />
+                {Array.from({ length: numPages }, (_, i) => (
+                    <Page
+                        key={i + 1}
+                        pageNumber={i + 1}
+                        width={containerWidth ? Math.min(containerWidth - 32, 900) : undefined}
+                        className="mb-4"
+                    />
+                ))}
             </Document>
-            {numPages > 1 && (
-                <div className="flex items-center gap-3 sticky bottom-4 bg-background/90 backdrop-blur border rounded-lg px-4 py-2 shadow-md">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
-                        disabled={pageNumber <= 1}
-                    >
-                        <ArrowLeftIcon />
-                    </Button>
-                    <span className="text-sm tabular-nums">
-                        Page {pageNumber} of {numPages}
-                    </span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPageNumber((p) => Math.min(numPages, p + 1))}
-                        disabled={pageNumber >= numPages}
-                    >
-                        <ArrowRightIcon />
-                    </Button>
-                </div>
-            )}
         </div>
     );
 }
