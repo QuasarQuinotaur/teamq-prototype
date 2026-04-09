@@ -15,7 +15,6 @@
 		"outputs": ["dist/**", ".vite/**"]
 	},
 	"start": {
-			"dependsOn": ["build"],
 			"cache": false,
 			"persistent": true
 		}
