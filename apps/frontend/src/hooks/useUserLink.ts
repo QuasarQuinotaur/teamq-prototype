@@ -20,7 +20,7 @@ export const useUserLink = () => {
           const status = error.response.status;
 
           if (status === 401) {
-            window.location.href = `${import.meta.env.VITE_BACKEND_URL}/login`;
+            window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/login`;
             return; // Don't set loading to false, we are leaving the page
           }
         }

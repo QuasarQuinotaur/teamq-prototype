@@ -44,7 +44,8 @@ const config = {
   issuerBaseURL: process.env.ISSUER_BASE_URL,
   routes: {
     login: false,
-    logout: false
+    logout: false,
+    callback: '/api/callback'
   },
 } as const;
 
@@ -57,24 +58,24 @@ app.use(morgan("dev"));
 
 const upload = multer();
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
     res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
 });
 
-app.get('/login', (req, res) => {
+app.get('/api/login', (req, res) => {
   res.oidc.login({
     returnTo: `${process.env.FRONTEND_URL}/documents`,
   });
 });
 
-app.get('/logout', (req, res) => {
+app.get('/api/logout', (req, res) => {
   res.oidc.logout({
     returnTo: process.env.FRONTEND_URL,
   });
 });
 
 // Upload route
-app.post("/upload", requiresAuth(), upload.single("file"), async (req, res) => {
+app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
 
@@ -152,12 +153,12 @@ app.post("/upload", requiresAuth(), upload.single("file"), async (req, res) => {
     }
 });
 
-app.get("/employees", requiresAuth(), async (req, res) => {
+app.get("/api/employees", requiresAuth(), async (req, res) => {
     const employees = await employeeRepo.getAll();
     res.json(employees);
 });
 
-app.get("/employee/:id/:flag", async (req, res) => {
+app.get("/api/employee/:id/:flag", async (req, res) => {
     const id = Number(req.params.id);
     const employee = await employeeRepo.getById(id);
     if (employee) {
@@ -180,7 +181,7 @@ app.get("/employee/:id/:flag", async (req, res) => {
     }
 });
 
-app.get("/content/:id/download", requiresAuth(), async (req, res) => {
+app.get("/api/content/:id/download", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -199,7 +200,7 @@ app.get("/content/:id/download", requiresAuth(), async (req, res) => {
     }
 });
 
-app.get("/content", requiresAuth(), async (req, res) => {
+app.get("/api/content", requiresAuth(), async (req, res) => {
     const employee = await getEmployeeFromRequest(req);
     const jobPosition = employee?.jobPosition;
 
@@ -210,7 +211,7 @@ app.get("/content", requiresAuth(), async (req, res) => {
     res.json(contents);
 });
 
-app.get("/servicereqs/:flag", async (req, res) => {
+app.get("/api/servicereqs/:flag", async (req, res) => {
     const requests = await serviceRequestRepo.getAll();
 
     const flag = Number(req.params.flag);
@@ -231,7 +232,7 @@ app.get("/servicereqs/:flag", async (req, res) => {
     }
 });
 
-app.get("/assigned/:flag", async (req, res) => {
+app.get("/api/assigned/:flag", async (req, res) => {
     const assigned = await serviceRequestRepo.getAllWithDetails();
 
     const flag = Number(req.params.flag);
@@ -252,7 +253,7 @@ app.get("/assigned/:flag", async (req, res) => {
     }
 });
 
-app.post("/employees", requiresAuth(), async (req, res) => {
+app.post("/api/employees", requiresAuth(), async (req, res) => {
     const { firstName, lastName, email, dateOfBirth, jobPosition } = req.body;
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !dateOfBirth || !jobPosition?.trim()) {
         res.status(400).json({ error: "Missing required fields" });
@@ -272,7 +273,7 @@ app.post("/employees", requiresAuth(), async (req, res) => {
     }
 });
 
-app.put("/employees/:id", requiresAuth(), async (req, res) => {
+app.put("/api/employees/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -297,7 +298,7 @@ app.put("/employees/:id", requiresAuth(), async (req, res) => {
     }
 });
 
-app.delete("/employees/:id", requiresAuth(), async (req, res) => {
+app.delete("/api/employees/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -311,7 +312,7 @@ app.delete("/employees/:id", requiresAuth(), async (req, res) => {
     }
 });
 
-app.delete("/content/:id", requiresAuth(), async (req, res) => {
+app.delete("/api/content/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });

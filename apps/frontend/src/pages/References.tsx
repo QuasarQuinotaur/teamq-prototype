@@ -11,7 +11,7 @@ function References() {
     const [loading, setLoading] = useState(true);
 
     function fetchContent() {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/content`, { credentials: 'include' })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 const mapped: CardEntry[] = data.filter((item) => {

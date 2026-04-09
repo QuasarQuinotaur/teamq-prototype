@@ -81,7 +81,7 @@ function Navbar() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                             className="text-destructive" 
-                            onClick={() => window.location.href = `${import.meta.env.VITE_BACKEND_URL}/logout`}
+                            onClick={() => window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/logout`}
                         >
                             Sign out
                         </DropdownMenuItem>

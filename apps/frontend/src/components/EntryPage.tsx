@@ -148,7 +148,7 @@ export default function EntryPage({
             if (onDelete) {
                 await onDelete(entry);
             } else {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/content/${item.id}`, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${item.id}`, {
                     method: "DELETE",
                     credentials: "include",
                 });

@@ -250,20 +250,20 @@ function DocumentForm({
 
             let response: Response
             if (fromItem) {
-                const deleteResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/content/${(fromItem as {id: number}).id}`, {
+                const deleteResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${(fromItem as {id: number}).id}`, {
                     method: "DELETE",
                     credentials: "include",
                 });
                 if (!deleteResponse.ok) {
                     throw new Error("Update delete failed");
                 }
-                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/upload`, {
+                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload`, {
                     method: "POST",
                     credentials: "include",
                     body: formData,
                 });
             } else {
-                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/upload`, {
+                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload`, {
                     method: "POST",
                     credentials: "include",
                     body: formData,
