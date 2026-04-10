@@ -1,40 +1,9 @@
-import { useState, useEffect } from "react";
-import { type CardEntry } from "@/components/Card";
-import EntryPage from "@/components/EntryPage";
+import ContentEntryPage from "@/components/paging/ContentEntryPage.tsx";
 
-function Tools() {
-    const [entries, setEntries] = useState<CardEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    function fetchContent() {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                const mapped: CardEntry[] = data.filter((item) => {
-                    return item.contentType === "tool"
-                }).map((item) => ({
-                    item: item,
-                    title: item.title,
-                    link: item.link,
-                    description: item.ownerName,
-                    badge: item.contentType,
-                }));
-                setEntries(mapped);
-            })
-            .finally(() => setLoading(false));
-    }
-
-    useEffect(() => { fetchContent(); }, []);
-
+export default function Tools() {
     return (
-        <>
-            <EntryPage
-                entries={entries}
-                defaultBadge={""}
-                formButtonProps={{formType: "Document", onCancel: fetchContent, defaultContentType: "tool"}}
-            />
-        </>
-    );
+        <ContentEntryPage
+            contentType={"tool"}
+        />
+    )
 }
-
-export default Tools;

@@ -1,53 +1,34 @@
+// This sets up a form with fields to be submitted
+// Fields uses a generic, can be DocumentFields, EmployeeFields, etc. for field values
+// Update for shared functionality between all forms
+
 import {useState} from "react";
+import * as React from "react";
 
-import { DocumentForm } from "@/components/forms/DocumentForm.tsx";
-import EmployeeForm from "@/components/forms/EmployeeForm.tsx";
-import {Dialog, DialogContent, DialogTrigger} from "@/components/Dialog.tsx";
-import {Button} from "@/elements/buttons/button.tsx";
-import { PlusIcon } from "@phosphor-icons/react";
+import {
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialog as AlertDialog
+} from "@/components/dialog/AlertDialog.tsx";
+import {ScrollArea} from "@/elements/scroll-area.tsx";
+import {FieldGroup} from "@/components/forms/Field.tsx";
+import {handleKeyChange} from "@/lib/utils.ts";
 import {Separator} from "@/elements/separator.tsx";
+import {Button} from "@/elements/buttons/button.tsx";
 
-const DEFAULT_FORM_HEADERS: Record<FormType, string> = {
-    Document: "Add Document",
-    Employee: "Add Employee"
-}
 
-export type FormProps = {
-    fromItem?: object;
-    isSubmitting?: boolean;
+type FormActionsProps = {
+    isSubmitting: boolean;
     onCancel?: () => void;
-    defaultContentType?: string;
 }
-export type FormType = "Document" | "Employee"
-
-
-export type FormWindowProps = {
-    formType: FormType,
-    header?: string,
-    headerMargin?: boolean
-} & FormProps
-function FormWindow({
-                        header,
-                        headerMargin = true,
-                        formType,
-                        ...props
-}: FormWindowProps) {
-    return (
-        <>
-            <h2 className={headerMargin ? "mb-4" : ""}>{header ?? DEFAULT_FORM_HEADERS[formType]}</h2>
-            {(
-                formType == "Document" ? (<DocumentForm {...props} />) :
-                    formType == "Employee" ? (<EmployeeForm {...props} />) :
-                        (<></>)
-            )}
-        </>
-    )
-}
-
-
-function FormWindowActions({
-                                 isSubmitting, onCancel
-}: FormProps) {
+function FormActions({
+                         isSubmitting,
+                         onCancel
+}: FormActionsProps) {
+// Creates cancel-reset-submit buttons
     return (
         <div className={"flex-col w-full"}>
             <Separator className={"mb-3"}/>
@@ -68,25 +49,136 @@ function FormWindowActions({
 }
 
 
-function FormAddButton(windowProps: FormWindowProps) {
-    const [formOpen, setFormOpen] = useState(false);
-
-    return (
-        <Dialog open={formOpen} onOpenChange={setFormOpen}>
-            <DialogTrigger asChild>
-                <Button variant={"outline"}>
-                    <PlusIcon/>
-                </Button>
-            </DialogTrigger>
-            <DialogContent className={"sm:max-w-lg"}>
-                <FormWindow {...windowProps}/>
-            </DialogContent>
-        </Dialog>
-    )
+export type FormState = {
+    // Pass in to fill form with existing data
+    baseItem?: object & { id: number };
+    // Apply default properties if not filled in
+    defaultItem?: object;
+    onCancel?: () => void;
+}
+export type FormFieldsProps<TFields> = {
+    fields: TFields,
+    // Changes fields key to new value
+    setKey: <TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) => void;
 }
 
-export {
-    FormWindow,
-    FormWindowActions,
-    FormAddButton,
+type FormProps<TFields> = {
+    state: FormState;
+    initialFields: TFields;
+    createFieldsElement: (props: FormFieldsProps<TFields>) => React.ReactNode;
+    submit: (fields: TFields) => Promise<void>;
+    reset?: () => void;
+    // Return an error to display + prevent submitting
+    getFieldsError?: (fields: TFields) => boolean | string | null | undefined;
+}
+export default function Form<TFields extends object>({
+                            state,
+                            initialFields,
+                            createFieldsElement,
+                            submit,
+                            reset,
+                            getFieldsError,
+}: FormProps<TFields>) {
+    const [fields, setFields] = useState<TFields>(initialFields);
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    // Sets a key within the field to be updated
+    function setKey<TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) {
+        handleKeyChange(setFields, key, value)
+    }
+
+    // Resets fields back to their initial fields
+    function handleReset() {
+        setFields(initialFields)
+        if (reset) {
+            reset()
+        }
+    }
+
+    // Calls callback to perform async submit request
+    async function doSubmit() {
+        // TODO Display better error + success status
+        try {
+            setIsSubmitting(true);
+
+            await submit(fields)
+
+            handleReset();
+            if (state.onCancel) {
+                state.onCancel();
+            }
+        } catch (error) {
+            console.error("Submit failed:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    // Begins submission, requesting or prompting user to accept
+    function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        // TODO Display better error status
+        const error = getFieldsError ? getFieldsError(fields) : null;
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        if (state.baseItem) {
+            // Updating item, show dialog
+            setConfirmOpen(true);
+        } else {
+            // Quick submit
+            void doSubmit();
+        }
+    }
+
+    return (
+        <AlertDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+        >
+            <form
+                onReset={(e) => {
+                    e.preventDefault()
+                    handleReset()
+                }}
+                onSubmit={handleSubmit}
+            >
+                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
+                    <FieldGroup className={"p-1"}>
+                        {/*This makes all field elements (different based on type of form)*/}
+                        {createFieldsElement({
+                            fields,
+                            setKey,
+                        })}
+                    </FieldGroup>
+                </ScrollArea>
+                <FormActions
+                    isSubmitting={isSubmitting}
+                    onCancel={state.onCancel}
+                />
+            </form>
+
+            {/*Confirmation dialog (only if updating)*/}
+            <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This will save your changes.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setConfirmOpen(false);
+                            void doSubmit();
+                        }}>
+                        Confirm
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
 }

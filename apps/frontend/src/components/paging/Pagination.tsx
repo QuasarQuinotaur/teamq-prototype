@@ -4,9 +4,6 @@ import { cn } from "@/lib/utils.ts"
 import { Button } from "@/elements/buttons/button.tsx"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 import { useState } from "react";
-import { useParams } from "react-router-dom";
-import {Field, FieldLabel} from "@/components/Field.tsx";
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/elements/select.tsx";
 
 function PaginationContainer({ className, ...props }: React.ComponentProps<"nav">) {
   return (

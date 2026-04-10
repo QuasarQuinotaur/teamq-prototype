@@ -3,18 +3,18 @@
 	"globalEnv": ["DATABASE_URL"],
 	"tasks": {
 		"db:generate": {
-		"cache": true
-	},
-	"dev": {
-		"dependsOn": ["^db:generate"],
-		"cache": false,
-		"persistent": true
-	},
-	"build": {
-		"dependsOn": ["^db:generate"],
-		"outputs": ["dist/**", ".vite/**"]
-	},
-	"start": {
+			"cache": true
+		},
+		"dev": {
+			"dependsOn": ["^db:generate"],
+			"cache": false,
+			"persistent": true
+		},
+		"build": {
+			"dependsOn": ["^db:generate"],
+			"outputs": ["dist/**", ".vite/**"]
+		},
+		"start": {
 			"cache": false,
 			"persistent": true
 		}

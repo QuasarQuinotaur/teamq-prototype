@@ -1,4 +1,5 @@
-import * as React from "react";
+// Form for uploading content to backend (workflow, reference, tool)
+
 import { useState } from "react";
 
 import {
@@ -6,29 +7,21 @@ import {
     FieldLabel,
     FieldGroup,
     FieldSet,
-} from "@/components/Field.tsx"
+} from "@/components/forms/Field.tsx"
 import { Input } from "@/elements/input.tsx"
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import DocumentStatusInput from "@/components/input/DocumentStatusInput.tsx";
-import { ScrollArea } from "@/elements/scroll-area.tsx";
-import type { Content } from "db";
 import { formatDate } from "@/lib/utils.ts";
-import {type FormProps, FormWindowActions} from "@/components/forms/Form.tsx";
-import {
-    Dialog as AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/AlertDialog.tsx";
+import Form, {
+    type FormFieldsProps,
+    type FormState
+} from "@/components/forms/Form.tsx";
+import type {Content} from "db";
 
 
-type Document = {
+type DocumentFields = {
     name: string,
     link: string,
     jobPosition: string,
@@ -37,9 +30,8 @@ type Document = {
     contentType: string,
     status: string,
     file: File | null,
-    isSubmitting: boolean,
 }
-const DEFAULT_DOCUMENT = {
+const DEFAULT_DOCUMENT_FIELDS: DocumentFields = {
     name: "",
     link: "",
     jobPosition: "",
@@ -48,23 +40,6 @@ const DEFAULT_DOCUMENT = {
     contentType: "",
     status: "",
     file: null,
-    isSubmitting: false,
-}
-
-function hasDocumentFields(doc: Document) {
-    return doc.name.trim() && doc.jobPosition.trim()
-        && doc.expirationDate && doc.contentType.trim()
-        && doc.status.trim() && (doc.file || doc.link.trim())
-}
-
-function documentHandleKeyChange<T extends keyof Document>(
-    setDocument: React.Dispatch<React.SetStateAction<Document>>,
-    name: T, value: Document[T]
-) {
-    setDocument((prev) => ({
-        ...prev,
-        [name]: value
-    }))
 }
 
 type DocumentDateStrings = {
@@ -73,18 +48,14 @@ type DocumentDateStrings = {
     expiration: string,
     setExpiration: (expirationDate: string) => void,
 }
-type DocumentFieldsProps = {
-    document: Document,
-    setDocument: React.Dispatch<React.SetStateAction<Document>>,
+type DocumentFormFieldsProps = {
     dateStrings: DocumentDateStrings
-}
+} & FormFieldsProps<DocumentFields>
 function DocumentFormFields({
-    document, setDocument, dateStrings
-}: DocumentFieldsProps) {
-    function handleKeyChange<T extends keyof Document>(name: T, value: Document[T]) {
-        documentHandleKeyChange(setDocument, name, value)
-    }
-
+                                fields,
+                                setKey,
+                                dateStrings
+}: DocumentFormFieldsProps) {
     return (
         <FieldSet>
             <FieldGroup>
@@ -93,9 +64,9 @@ function DocumentFormFields({
                     <Input
                         id={"document-add-form-name"}
                         placeholder={"Name"}
-                        value={document.name}
+                        value={fields.name}
                         onChange={(e) => {
-                            handleKeyChange("name", e.target.value)
+                            setKey("name", e.target.value)
                         }}
                     />
                 </Field>
@@ -106,7 +77,7 @@ function DocumentFormFields({
                         id="document-add-form-file"
                         type="file"
                         onChange={(e) => {
-                            handleKeyChange("file", e.target.files?.[0] ?? null)
+                            setKey("file", e.target.files?.[0] ?? null)
                         }}
                     />
                 </Field>
@@ -116,9 +87,9 @@ function DocumentFormFields({
                         id={"document-add-form-link"}
                         placeholder={"https://..."}
                         type={"url"}
-                        value={document.link}
+                        value={fields.link}
                         onChange={(e) => {
-                            handleKeyChange("link", e.target.value)
+                            setKey("link", e.target.value)
                         }}
                     />
                 </Field>
@@ -126,9 +97,9 @@ function DocumentFormFields({
                     <FieldLabel htmlFor={"document-add-form-job-position"}>Job Position</FieldLabel>
                     <JobPositionInput
                         id={"document-add-form-job-position"}
-                        jobPosition={document.jobPosition}
+                        jobPosition={fields.jobPosition}
                         setJobPosition={(position) => {
-                            handleKeyChange("jobPosition", position)
+                            setKey("jobPosition", position)
                         }}
                     />
                 </Field>
@@ -137,9 +108,9 @@ function DocumentFormFields({
                     <DateSelectInput
                         id={"document-add-form-last-modified"}
                         placeholder={"Last Modified Date"}
-                        date={document.lastModifiedDate}
+                        date={fields.lastModifiedDate}
                         setDate={(date) => {
-                            handleKeyChange("lastModifiedDate", date)
+                            setKey("lastModifiedDate", date)
                         }}
                         dateString={dateStrings.lastModified}
                         setDateString={dateStrings.setLastModified}
@@ -150,9 +121,9 @@ function DocumentFormFields({
                     <DateSelectInput
                         id={"document-add-form-expiration"}
                         placeholder={"Expiration Date"}
-                        date={document.expirationDate}
+                        date={fields.expirationDate}
                         setDate={(date) => {
-                            handleKeyChange("expirationDate", date)
+                            setKey("expirationDate", date)
                         }}
                         dateString={dateStrings.expiration}
                         setDateString={dateStrings.setExpiration}
@@ -162,9 +133,9 @@ function DocumentFormFields({
                     <FieldLabel htmlFor={"document-add-form-content-type"}>Content Type</FieldLabel>
                     <ContentTypeInput
                         id={"document-add-form-content-type"}
-                        contentType={document.contentType}
+                        contentType={fields.contentType}
                         setContentType={(type) => {
-                            handleKeyChange("contentType", type)
+                            setKey("contentType", type)
                         }}
                     />
                 </Field>
@@ -172,9 +143,9 @@ function DocumentFormFields({
                     <FieldLabel htmlFor={"document-add-form-status"}>Document Status</FieldLabel>
                     <DocumentStatusInput
                         id={"document-add-form-status"}
-                        status={document.status}
+                        status={fields.status}
                         setStatus={(status) => {
-                            handleKeyChange("status", status)
+                            setKey("status", status)
                         }}
                     />
                 </Field>
@@ -184,38 +155,49 @@ function DocumentFormFields({
 }
 
 
-function contentAsDocument(content: Content): Document {
-    console.log("Content:", content)
+function itemAsDocumentFields(item: object): DocumentFields {
+    const c = item as Content;
     return {
-        name: content.title,
-        link: content.link,
-        jobPosition: content.jobPosition,
-        lastModifiedDate: new Date(content.dateUpdated),
-        expirationDate: new Date(content.expirationDate),
-        contentType: content.contentType,
-        status: content.status,
+        name: c.title,
+        link: c.link,
+        jobPosition: c.jobPosition,
+        lastModifiedDate: new Date(c.dateUpdated),
+        expirationDate: new Date(c.expirationDate),
+        contentType: c.contentType,
+        status: c.status,
         file: null,
-        isSubmitting: false,
     }
 }
 
-function DocumentForm({
-                          fromItem, defaultContentType, ...actionProps
-}: FormProps) {
-    const [document, setDocument] = useState<Document>(
-        fromItem ? contentAsDocument(fromItem as Content)
-            : { ...DEFAULT_DOCUMENT, contentType: defaultContentType ?? "" }
-    )
-    const [confirmOpen, setConfirmOpen] = useState(false)
+function getDefaultDocumentFields(defaultItem: object = null): DocumentFields {
+    if (defaultItem == null) {
+        return DEFAULT_DOCUMENT_FIELDS
+    }
+    const c = defaultItem as Content
+    return {
+        ...DEFAULT_DOCUMENT_FIELDS,
+        contentType: c.contentType ?? ""
+    }
+}
 
-    const [lastModifiedString, setLastModifiedString] = useState<string>(
-        document.lastModifiedDate ? formatDate(document.lastModifiedDate) : ""
-    );
-    const [expirationString, setExpirationString] = useState<string>(
-        document.expirationDate ? formatDate(document.expirationDate) : ""
-    );
+function hasRequiredDocumentFields(fields: DocumentFields) {
+    return fields.name.trim() && fields.jobPosition.trim()
+        && fields.expirationDate && fields.contentType.trim()
+        && fields.status.trim() && (fields.file || fields.link.trim())
+}
 
 
+export default function DocumentForm(state: FormState) {
+    const initialFields =
+        state.baseItem ? itemAsDocumentFields(state.baseItem) :
+            getDefaultDocumentFields(state.defaultItem)
+    const initialLastModifiedString =
+        initialFields.lastModifiedDate ? formatDate(initialFields.lastModifiedDate) : ""
+    const initialExpirationString =
+        initialFields.expirationDate ? formatDate(initialFields.expirationDate) : ""
+
+    const [lastModifiedString, setLastModifiedString] = useState(initialLastModifiedString)
+    const [expirationString, setExpirationString] = useState(initialExpirationString)
     const dateStrings: DocumentDateStrings = {
         lastModified: lastModifiedString,
         setLastModified: setLastModifiedString,
@@ -223,127 +205,59 @@ function DocumentForm({
         setExpiration: setExpirationString,
     };
 
+    // Reset date strings
     function reset() {
-        setDocument(DEFAULT_DOCUMENT);
-        setLastModifiedString("");
-        setExpirationString("");
+        setLastModifiedString(initialLastModifiedString)
+        setExpirationString(initialExpirationString)
     }
 
-    async function doSubmit() {
-        try {
-            documentHandleKeyChange(setDocument, "isSubmitting", true);
-
-            const formData = new FormData();
-            formData.append("name", document.name);
-            formData.append("jobPosition", document.jobPosition);
-            formData.append("expirationDate", (
-                (typeof document.expirationDate  == "string") ? document.expirationDate
-                    : (document.expirationDate as Date).toISOString()
-            ));
-            formData.append("contentType", document.contentType);
-            formData.append("status", document.status);
-            if (document.file) {
-                formData.append("file", document.file);
-            } else {
-                formData.append("link", document.link.trim());
-            }
-
-            let response: Response
-            if (fromItem) {
-                const deleteResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${(fromItem as {id: number}).id}`, {
-                    method: "DELETE",
-                    credentials: "include",
-                });
-                if (!deleteResponse.ok) {
-                    throw new Error("Update delete failed");
-                }
-                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload`, {
-                    method: "POST",
-                    credentials: "include",
-                    body: formData,
-                });
-            } else {
-                response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload`, {
-                    method: "POST",
-                    credentials: "include",
-                    body: formData,
-                });
-            }
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Upload failed");
-            }
-            if (actionProps.onCancel) {
-                actionProps.onCancel()
-            }
-
-            reset();
-            if (actionProps.onCancel) {
-                actionProps.onCancel()
-            }
-        } catch (error) {
-            console.error("Submit failed:", error);
-        } finally {
-            documentHandleKeyChange(setDocument, "isSubmitting", false);
+    // Create Content on backend from fields
+    async function doSubmit(documentFields: DocumentFields) {
+        const isUpdate = state.baseItem != null;
+        const url = isUpdate
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/upload/${state.baseItem!.id}`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/upload`;
+        const body = {
+            name: documentFields.name,
+            jobPosition: documentFields.jobPosition,
+            expirationDate: documentFields.expirationDate!.toISOString(),
+            contentType: documentFields.contentType,
+            status: documentFields.status,
+            file: documentFields.file && !documentFields.link ? documentFields.file : null,
+            link: documentFields.link && !documentFields.file ? documentFields.link : null,
         }
-    }
+        const res = await fetch(url, {
+            method: isUpdate ? "PUT" : "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
 
-    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-
-        if (!hasDocumentFields(document)) {
-            console.error("Missing required fields");
-            return;
-        }
-
-        if (fromItem) {
-            setConfirmOpen(true);
-        } else {
-            doSubmit();
+        const result = await res.json();
+        if (!res.ok) {
+            throw new Error(result.error || (isUpdate ? "Update failed" : "Upload failed"));
         }
     }
 
     return (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <form
-                onReset={(e) => {
-                    e.preventDefault()
-                    reset()
-                }}
-                onSubmit={handleSubmit}
-            >
-                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
-                    <FieldGroup className={"p-1"}>
-                        <DocumentFormFields
-                            document={document}
-                            setDocument={setDocument}
-                            dateStrings={dateStrings}
-                        />
-                    </FieldGroup>
-                </ScrollArea>
-                <FormWindowActions
-                    isSubmitting={document.isSubmitting}
-                    {...actionProps}
+        <Form
+            state={state}
+            initialFields={initialFields}
+            createFieldsElement={(props) => (
+                // Create document form specific field elements
+                <DocumentFormFields
+                    {...props}
+                    dateStrings={dateStrings}
                 />
-            </form>
-            <AlertDialogContent size="sm">
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will save your changes.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { setConfirmOpen(false); doSubmit(); }}>
-                        Confirm
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+            )}
+            submit={doSubmit}
+            reset={reset}
+            getFieldsError={(fields) => {
+                // Show an error if missing fields
+                if (!hasRequiredDocumentFields(fields)) {
+                    return "Missing required fields."
+                }
+            }}
+        />
     )
-}
-
-export {
-    DocumentForm
 }

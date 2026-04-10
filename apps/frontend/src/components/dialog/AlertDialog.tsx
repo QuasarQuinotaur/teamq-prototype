@@ -1,10 +1,12 @@
+// Dialog used for warning user (deleting, doing something permanent)
+
 import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/elements/buttons/button"
+import { cn } from "@/lib/utils.ts"
+import { Button } from "@/elements/buttons/button.tsx"
 
-function Dialog({
+function AlertDialog({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
@@ -182,7 +184,7 @@ function AlertDialogCancel({
 }
 
 export {
-  Dialog,
+  AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,

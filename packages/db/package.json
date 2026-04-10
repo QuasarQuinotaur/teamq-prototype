@@ -3,14 +3,13 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"server": "dotenv -e ../../.env -- ts-node src/index.ts",
+		"server": "ts-node src/index.ts",
 		"db:generate": "prisma generate"
 	},
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.6.0",
 		"@prisma/client": "^7.6.0",
 		"dotenv": "^17.3.1",
-		"dotenv-cli": "^11.0.0",
 		"pg": "^8.20.0"
 	},
 	"devDependencies": {
@@ -23,6 +22,6 @@
 		"seed": "ts-node prisma/seed.ts"
 	},
 	"exports": {
-		".": "./src/index.ts"
-	}
+    	".": "./src/index.ts"
+  	} 
 }

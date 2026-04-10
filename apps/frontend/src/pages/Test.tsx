@@ -1,11 +1,13 @@
-import EmployeeCard from "@/components/EmployeeCard.tsx";
+import EmployeeCard from "@/components/cards/EmployeeCard.tsx";
 
 export default function Test() {
 
     const testEntry = {
         title: "Testing",
         link: "https://google.com",
-        item: {},
+        item: {
+            id: 0,
+        },
         fullName: "Theron Boozer",
         image: "/blank-pfp.png",
         role: "Admin",
@@ -20,7 +22,7 @@ export default function Test() {
                 <EmployeeCard
                     entry={testEntry}
                     badges={["Tech", "Featured"]}
-                    action="Visit Site"
+                    // action="Visit Site"
                 />
             </div>
         </>
