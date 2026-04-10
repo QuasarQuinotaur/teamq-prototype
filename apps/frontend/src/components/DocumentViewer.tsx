@@ -23,11 +23,13 @@ type DocumentViewerProps = {
     onClose: () => void;
 };
 
-function getFileType(filename: string): "pdf" | "docx" | "doc" | "unknown" {
+function getFileType(filename: string): "pdf" | "docx" | "doc" | "pptx" | "ppt" | "unknown" {
     const ext = filename.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return "pdf";
     if (ext === "docx") return "docx";
     if (ext === "doc") return "doc";
+    if (ext === "pptx") return "pptx";
+    if (ext === "ppt") return "ppt";
     return "unknown";
 }
 
@@ -57,6 +59,7 @@ export default function DocumentViewer({ url, filename, title, contentId, onClos
                 {fileType === "docx" && <DocxViewer url={url} />}
                 {fileType === "doc" && contentId !== undefined && <DocViewer contentId={contentId} />}
                 {fileType === "doc" && contentId === undefined && <UnknownViewer url={url} />}
+                {(fileType === "pptx" || fileType === "ppt") && <PptViewer url={url} />}
                 {fileType === "unknown" && <UnknownViewer url={url} />}
             </div>
         </div>
@@ -185,6 +188,21 @@ function DocViewer({ contentId }: { contentId: number }) {
                     {text}
                 </pre>
             </div>
+        </div>
+    );
+}
+
+function PptViewer({ url }: { url: string }) {
+    const officeEmbedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+
+    return (
+        <div className="flex flex-col h-full py-6 px-4">
+            <iframe
+                src={officeEmbedUrl}
+                className="w-full flex-1 border-0 rounded shadow-sm"
+                style={{ minHeight: "600px" }}
+                allowFullScreen
+            />
         </div>
     );
 }
