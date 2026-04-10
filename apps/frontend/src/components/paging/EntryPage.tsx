@@ -36,9 +36,7 @@ export default function EntryPage({
                                       initWhitelistFilters,
                                       ...entryProps
 }: EntryPageProps & EntryProps) {
-    const {
-        entries,
-    } = entryProps;
+    const { entries, } = entryProps;
 
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
@@ -48,7 +46,7 @@ export default function EntryPage({
     const [filterEntries, setFilterEntries] = useState(entries);
 
     // Store many different whitelist filters from multiple sources
-    const [whitelistFilters, setWhitelistFilters] = useState(initWhitelistFilters)
+    const [whitelistFilters, setWhitelistFilters] = useState(initWhitelistFilters ?? {})
 
     // Sets whitelist filter at a key
     function setWhitelistFilter(key: string, whitelistFilter: (entry: CardEntry) => boolean | undefined) {
