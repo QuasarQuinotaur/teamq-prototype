@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { renderAsync } from "docx-preview";
+import * as XLSX from "xlsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import {
     ArrowLeftIcon,
@@ -23,13 +24,15 @@ type DocumentViewerProps = {
     onClose: () => void;
 };
 
-function getFileType(filename: string): "pdf" | "docx" | "doc" | "pptx" | "ppt" | "unknown" {
+function getFileType(filename: string): "pdf" | "docx" | "doc" | "pptx" | "ppt" | "xlsx" | "xls" | "unknown" {
     const ext = filename.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return "pdf";
     if (ext === "docx") return "docx";
     if (ext === "doc") return "doc";
     if (ext === "pptx") return "pptx";
     if (ext === "ppt") return "ppt";
+    if (ext === "xlsx") return "xlsx";
+    if (ext === "xls") return "xls";
     return "unknown";
 }
 
@@ -57,9 +60,10 @@ export default function DocumentViewer({ url, filename, title, contentId, onClos
             <div className="flex-1 overflow-auto">
                 {fileType === "pdf" && <PdfViewer url={url} />}
                 {fileType === "docx" && <DocxViewer url={url} />}
-                {fileType === "doc" && contentId !== undefined && <DocViewer contentId={contentId} />}
+                {fileType === "doc" && contentId !== undefined && <DocViewer contentId={contentId} url={url} />}
                 {fileType === "doc" && contentId === undefined && <UnknownViewer url={url} />}
                 {(fileType === "pptx" || fileType === "ppt") && <PptViewer url={url} />}
+                {(fileType === "xlsx" || fileType === "xls") && <ExcelViewer url={url} />}
                 {fileType === "unknown" && <UnknownViewer url={url} />}
             </div>
         </div>
@@ -153,7 +157,7 @@ function DocxViewer({ url }: { url: string }) {
     );
 }
 
-function DocViewer({ contentId }: { contentId: number }) {
+function DocViewer({ contentId, url }: { contentId: number; url: string }) {
     const [text, setText] = React.useState<string | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(false);
@@ -182,7 +186,20 @@ function DocViewer({ contentId }: { contentId: number }) {
     if (error) return <ErrorState />;
 
     return (
-        <div className="flex flex-col items-center py-6 px-4">
+        <div className="flex flex-col items-center py-6 px-4 gap-4">
+            <div className="w-full max-w-4xl flex items-start gap-3 rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                <WarningIcon size={18} className="mt-0.5 shrink-0" />
+                <span>
+                    This is an older file format (.doc). Formatting may not display correctly.{" "}
+                    <button
+                        className="underline font-medium hover:text-yellow-900"
+                        onClick={() => window.open(url, "_blank")}
+                    >
+                        Open in new tab
+                    </button>{" "}
+                    for the best experience.
+                </span>
+            </div>
             <div className="w-full max-w-4xl bg-white shadow-sm rounded p-8">
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
                     {text}
@@ -203,6 +220,100 @@ function PptViewer({ url }: { url: string }) {
                 style={{ minHeight: "600px" }}
                 allowFullScreen
             />
+        </div>
+    );
+}
+
+type SheetData = (string | number | boolean | null)[][];
+
+function ExcelViewer({ url }: { url: string }) {
+    const [sheets, setSheets] = React.useState<Record<string, SheetData>>({});
+    const [sheetNames, setSheetNames] = React.useState<string[]>([]);
+    const [activeSheet, setActiveSheet] = React.useState<string>("");
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(false);
+
+    React.useEffect(() => {
+        setLoading(true);
+        setError(false);
+        fetch(url)
+            .then((res) => {
+                if (!res.ok) throw new Error("Fetch failed");
+                return res.arrayBuffer();
+            })
+            .then((buffer) => {
+                const workbook = XLSX.read(buffer, { type: "array" });
+                const parsed: Record<string, SheetData> = {};
+                for (const name of workbook.SheetNames) {
+                    parsed[name] = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
+                        workbook.Sheets[name],
+                        { header: 1, defval: null }
+                    );
+                }
+                setSheets(parsed);
+                setSheetNames(workbook.SheetNames);
+                setActiveSheet(workbook.SheetNames[0] ?? "");
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+                setError(true);
+            });
+    }, [url]);
+
+    if (loading) return <LoadingState />;
+    if (error) return <ErrorState />;
+
+    const rows = sheets[activeSheet] ?? [];
+    const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+
+    return (
+        <div className="flex flex-col h-full">
+            {sheetNames.length > 1 && (
+                <div className="flex gap-1 px-4 pt-4 flex-wrap shrink-0">
+                    {sheetNames.map((name) => (
+                        <button
+                            key={name}
+                            onClick={() => setActiveSheet(name)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
+                                name === activeSheet
+                                    ? "border-primary text-primary bg-primary/5"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                        >
+                            {name}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div className="flex-1 overflow-auto px-4 py-4">
+                <div className="rounded border overflow-auto">
+                    <table className="text-xs border-collapse w-full">
+                        <tbody>
+                            {rows.map((row, ri) => (
+                                <tr key={ri} className={ri === 0 ? "bg-muted font-medium" : "hover:bg-muted/40"}>
+                                    {Array.from({ length: colCount }, (_, ci) => {
+                                        const cell = row[ci];
+                                        return (
+                                            <td
+                                                key={ci}
+                                                className="border px-2 py-1 whitespace-nowrap max-w-[200px] truncate"
+                                            >
+                                                {cell === null || cell === undefined ? "" : String(cell)}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {rows.length === 0 && (
+                        <p className="text-center text-muted-foreground text-sm py-8">
+                            This sheet is empty.
+                        </p>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
