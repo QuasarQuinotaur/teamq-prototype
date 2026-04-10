@@ -44,31 +44,31 @@ model ServiceRequest {
   priority                    String
   status                      String                    @default("to-do")
   serviceRequestToEmployeesID Int
-  serviceRequestToEmployees   ServiceRequestToEmployees @relation("", fields: [serviceRequestToEmployeesID], references: [id])
+  serviceRequestToEmployees   ServiceRequestToEmployees @relation("employees requested", fields: [serviceRequestToEmployeesID], references: [id])
   serviceRequestToContentsID  Int
-  serviceRequestToContents    ServiceRequestToContents  @relation("", fields: [serviceRequestToContentsID], references: [id])
+  serviceRequestToContents    ServiceRequestToContents  @relation("contents used in request", fields: [serviceRequestToContentsID], references: [id])
 }
 
 model ServiceRequestToEmployees {
   id          Int            @id @default(autoincrement())
   serviceID   Int
-  service     ServiceRequest @relation("", fields: [serviceID], references: [id])
+  service     ServiceRequest @relation("service requested to", fields: [serviceID], references: [id])
   requestedID Int
-  requested   Employee       @relation("", fields: [requesteeID], references: [id])
+  requested   Employee       @relation("employee requested", fields: [requesteeID], references: [id])
 }
 
 model ServiceRequestToContents {
-  id        Int      @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   serviceID Int
-  service   Employee @relation("AssignedRequests", fields: [serviceID], references: [id])
+  service   ServiceRequest @relation("service requested to", fields: [serviceID], references: [id])
   contentID Int
-  Content   Content  @relation("", fields: [contentID], references: [id])
+  Content   Content        @relation("content requested", fields: [contentID], references: [id])
 }
 
 model Favorites {
   id         Int      @id @default(autoincrement())
   employeeID Int
-  employee   Employee @relation("", fields: [employeeID], references: [id])
+  employee   Employee @relation("employee who favorites", fields: [employeeID], references: [id])
   contentID  Int
   Content    Content  @relation("", fields: [contentID], references: [id])
 }
