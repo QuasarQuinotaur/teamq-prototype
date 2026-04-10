@@ -37,13 +37,38 @@ model Content {
 }
 
 model ServiceRequest {
-  id          Int      @id @default(autoincrement())
-  type        String
-  datecreated DateTime
-  dateDue     DateTime
-  Priority    String
-  creatorID   Int
-  creator     Employee @relation("CreatedRequests", fields: [creatorID], references: [id])
+  id                          Int                       @id @default(autoincrement())
+  description                 String
+  dateCreated                 DateTime                  @default(now())
+  dateDue                     DateTime
+  priority                    String
+  status                      String                    @default("to-do")
+  serviceRequestToEmployeesID Int
+  serviceRequestToEmployees   ServiceRequestToEmployees @relation("", fields: [serviceRequestToEmployeesID], references: [id])
+  serviceRequestToContentsID  Int
+  serviceRequestToContents    ServiceRequestToContents  @relation("", fields: [serviceRequestToContentsID], references: [id])
+}
+
+model ServiceRequestToEmployees {
+  id          Int            @id @default(autoincrement())
+  serviceID   Int
+  service     ServiceRequest @relation("", fields: [serviceID], references: [id])
   requestedID Int
-  requested   Employee @relation("AssignedRequests", fields: [requesteeID], references: [id])
+  requested   Employee       @relation("", fields: [requesteeID], references: [id])
+}
+
+model ServiceRequestToContents {
+  id        Int      @id @default(autoincrement())
+  serviceID Int
+  service   Employee @relation("AssignedRequests", fields: [serviceID], references: [id])
+  contentID Int
+  Content   Content  @relation("", fields: [contentID], references: [id])
+}
+
+model Favorites {
+  id         Int      @id @default(autoincrement())
+  employeeID Int
+  employee   Employee @relation("", fields: [employeeID], references: [id])
+  contentID  Int
+  Content    Content  @relation("", fields: [contentID], references: [id])
 }
