@@ -136,7 +136,7 @@ export default function EntryPage({
     const [view, setView] = useState<ViewType>("Grid");
     const [entries, setEntries] = useState<CardEntry[]>(initialEntries);
     const [pageEntries, setPageEntries] = useState<CardEntry[]>(initialEntries);
-    const entriesPerPage = 3
+    const entriesPerPage = 10
 
     React.useEffect(() => {
         setEntries(initialEntries);
@@ -193,18 +193,21 @@ export default function EntryPage({
             {view === "Grid" ?
                 (
                     <CardGrid
-                        entries={pageEntries}
+                        entries={entries}
                         defaultBadge={defaultBadge}
                         entryOptionsWrapper={entryOptionsWrapper}
                         renderCard={renderCard}
                     />
                 ) :
                 (
-                    <CardList entries={pageEntries} optionsWrapper={entryOptionsWrapper} />
+                    <>
+                        <CardList entries={pageEntries} optionsWrapper={entryOptionsWrapper} />
+                        <div>
+                            <Pagination docNum={entries.length} entriesCallback={pageCallback} />
+                        </div>
+                    </>
                 )}
-            <div>
-                <Pagination docNum={entries.length} entriesCallback={pageCallback} />
-            </div>
+
         </>
     )
 }

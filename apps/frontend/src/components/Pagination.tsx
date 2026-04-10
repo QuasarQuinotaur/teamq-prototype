@@ -126,8 +126,11 @@ export default function Pagination(props: {docNum: number, entriesCallback: (x:n
   const [pageNum, setPageNum] = useState<number>(1);
   const entriesCallback = props.entriesCallback
   const docNum = props.docNum
-  const docsPerPage = 3
+  const docsPerPage = 10
   const maxPages = Math.ceil(docNum/docsPerPage);
+
+  console.log(`maxPages: ${maxPages}`)
+  console.log(`docNum: ${docNum}`)
 
   const prevExists = pageNum-1===0 ? "hidden" : ""
   const nextExists = pageNum===maxPages ? "hidden" : ""
@@ -149,7 +152,7 @@ export default function Pagination(props: {docNum: number, entriesCallback: (x:n
 
   return (
       <>
-        <div className="flex items-center justify-center pt-15">
+        <div className="flex items-center justify-center pt-10">
           <PaginationContainer className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem className={prevExists}>
