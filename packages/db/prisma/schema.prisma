@@ -39,8 +39,11 @@ model Content {
 model ServiceRequest {
   id          Int      @id @default(autoincrement())
   type        String
+  datecreated DateTime
+  dateDue     DateTime
+  Priority    String
   creatorID   Int
   creator     Employee @relation("CreatedRequests", fields: [creatorID], references: [id])
-  requesteeID Int
-  requestee   Employee @relation("AssignedRequests", fields: [requesteeID], references: [id])
+  requestedID Int
+  requested   Employee @relation("AssignedRequests", fields: [requesteeID], references: [id])
 }
