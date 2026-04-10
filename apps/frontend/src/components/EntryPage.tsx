@@ -198,11 +198,13 @@ export default function EntryPage({
     )
 
     if (selectedEntry && viewerUrl) {
+        const selectedId = (selectedEntry.item as { id: number }).id;
         return (
             <DocumentViewer
                 url={viewerUrl}
                 filename={selectedEntry.link}
                 title={selectedEntry.title}
+                contentId={selectedId}
                 onClose={handleCloseViewer}
             />
         );

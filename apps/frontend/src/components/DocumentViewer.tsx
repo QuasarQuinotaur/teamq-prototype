@@ -19,17 +19,19 @@ type DocumentViewerProps = {
     url: string;
     filename: string;
     title: string;
+    contentId?: number;
     onClose: () => void;
 };
 
-function getFileType(filename: string): "pdf" | "docx" | "unknown" {
+function getFileType(filename: string): "pdf" | "docx" | "doc" | "unknown" {
     const ext = filename.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return "pdf";
     if (ext === "docx") return "docx";
+    if (ext === "doc") return "doc";
     return "unknown";
 }
 
-export default function DocumentViewer({ url, filename, title, onClose }: DocumentViewerProps) {
+export default function DocumentViewer({ url, filename, title, contentId, onClose }: DocumentViewerProps) {
     const fileType = getFileType(filename);
 
     return (
@@ -53,6 +55,8 @@ export default function DocumentViewer({ url, filename, title, onClose }: Docume
             <div className="flex-1 overflow-auto">
                 {fileType === "pdf" && <PdfViewer url={url} />}
                 {fileType === "docx" && <DocxViewer url={url} />}
+                {fileType === "doc" && contentId !== undefined && <DocViewer contentId={contentId} />}
+                {fileType === "doc" && contentId === undefined && <UnknownViewer url={url} />}
                 {fileType === "unknown" && <UnknownViewer url={url} />}
             </div>
         </div>
@@ -142,6 +146,45 @@ function DocxViewer({ url }: { url: string }) {
                 className="w-full max-w-4xl shadow-sm"
                 style={{ display: loading || error ? "none" : undefined }}
             />
+        </div>
+    );
+}
+
+function DocViewer({ contentId }: { contentId: number }) {
+    const [text, setText] = React.useState<string | null>(null);
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(false);
+
+    React.useEffect(() => {
+        setLoading(true);
+        setError(false);
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/text`, {
+            credentials: "include",
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Fetch failed");
+                return res.json();
+            })
+            .then((data) => {
+                setText(data.text ?? "");
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+                setError(true);
+            });
+    }, [contentId]);
+
+    if (loading) return <LoadingState />;
+    if (error) return <ErrorState />;
+
+    return (
+        <div className="flex flex-col items-center py-6 px-4">
+            <div className="w-full max-w-4xl bg-white shadow-sm rounded p-8">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+                    {text}
+                </pre>
+            </div>
         </div>
     );
 }

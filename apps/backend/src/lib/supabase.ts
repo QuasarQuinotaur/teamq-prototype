@@ -21,6 +21,16 @@ export async function getSignedUrl(path: string, expiresIn = 60) {
     return data.signedUrl;
 }
 
+export async function downloadBuffer(path: string): Promise<Buffer> {
+    const { data, error } = await getSupabase().storage
+        .from("uploads")
+        .download(path);
+
+    if (error) throw error;
+    const arrayBuffer = await data.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
 export async function uploadBuffer(
     buffer: Buffer,
     fileName: string,
