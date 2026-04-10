@@ -25,7 +25,7 @@ type DocumentViewerProps = {
 function getFileType(filename: string): "pdf" | "docx" | "unknown" {
     const ext = filename.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return "pdf";
-    if (ext === "docx" || ext === "doc") return "docx";
+    if (ext === "docx") return "docx";
     return "unknown";
 }
 
