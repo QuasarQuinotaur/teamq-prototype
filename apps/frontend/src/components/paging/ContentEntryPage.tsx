@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import * as React from "react";
-import EntryPage from "@/components/paging/EntryPage.tsx";
+import EntryPage, {FILTER_KEY_CONTENT_TYPE} from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
 import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
@@ -27,9 +27,7 @@ export default function ContentEntryPage({
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: 'include' })
             .then(res => res.json())
             .then((data: Content[]) => {
-                const mapped: CardEntry[] = data.filter((item) => {
-                    return item.contentType === contentType
-                }).map((item) => ({
+                const mapped: CardEntry[] = data.map((item) => ({
                     item: item,
                     title: item.title,
                     link: item.link,
@@ -93,6 +91,15 @@ export default function ContentEntryPage({
                 )),
             }}
             extraToolbarElements={[formAddButton]}
+            initWhitelistFilters={contentType ? {
+                // Add content type filter to only include specified content type
+                [FILTER_KEY_CONTENT_TYPE]: (
+                    (entry) => {
+                        const c = entry.item as Content
+                        return c.contentType === contentType
+                    }
+                )
+            } : null}
         />
     )
 }

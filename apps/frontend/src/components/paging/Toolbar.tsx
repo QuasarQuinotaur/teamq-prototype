@@ -29,6 +29,11 @@ import { Button } from "@/elements/buttons/button.tsx";
 import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
 import { SidebarTrigger } from "../../elements/sidebar-elements.tsx";
 import ButtonSelector from "@/elements/buttons/button-selector.tsx";
+import type {CardEntry} from "@/components/cards/Card.tsx";
+import {FILTER_KEY_SEARCH} from "@/components/paging/EntryPage.tsx";
+
+
+export type ViewType = "List" | "Grid";
 
 
 function FilterButton() {
@@ -65,8 +70,6 @@ function SortButton() {
     )
 }
 
-export type ViewType = "List" | "Grid";
-
 // these props are passed in from minor topbar, which get passed in from reference paging / tools paging
 type ViewSelectorButtonProps = {
     view: ViewType
@@ -89,16 +92,34 @@ function ViewSelectorButton( {view, setView }: ViewSelectorButtonProps ) {
     )
 }
 
+// Removes case sensitivity or whitespace from affecting search
+function formatSearchPhrase(phrase: string): string {
+    return phrase.toLowerCase().replace(/\s+/g, "");
+}
+
+// Returns method to filter entry searches using the phrase
+function getSearchFilter(phrase: string) {
+    const formattedPhrase = formatSearchPhrase(phrase);
+
+    // Search currently only works using title substring
+    return (
+        (entry: CardEntry) =>
+            formatSearchPhrase(entry.title).includes(formattedPhrase)
+    )
+}
+
 
 type ToolbarProps = {
     view: ViewType;
     setView: (view: ViewType) => void;
+    setWhitelistFilter: (key: string, whitelistFilter: ((entry: CardEntry) => boolean) | undefined) => void;
     extraElements?: React.ReactNode[];
 };
 export default function Toolbar({
-                                        view,
-                                        setView,
-                                        extraElements
+                                    view,
+                                    setView,
+                                    setWhitelistFilter,
+                                    extraElements
 }: ToolbarProps) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
@@ -122,9 +143,13 @@ export default function Toolbar({
                         <InputGroupInput
                             id={"minor-topbar-search"}
                             placeholder={"Search..."}
-                            // value={name}
-                            // onChange={(e) =>
-                            //     setName(e.target.value)}
+                            onChange={(e) => {
+                                const phrase = e.target.value;
+                                setWhitelistFilter(
+                                    FILTER_KEY_SEARCH,
+                                    phrase ? getSearchFilter(phrase) : undefined
+                                );
+                            }}
                         />
                         <InputGroupAddon align={"inline-end"}>
                             <MagnifyingGlassIcon/>
