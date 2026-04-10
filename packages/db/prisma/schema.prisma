@@ -20,23 +20,24 @@ model Employee {
 
   createdRequests  ServiceRequest[] @relation("CreatedRequests")
   assignedRequests ServiceRequest[] @relation("AssignedRequests")
-  makeFavorite     Favorites[]      @relation("added content to favorites")
+  favoritedContent Favorites[]      @relation("added content to favorites")
 }
 
 model Content {
-  id             Int       @id @default(autoincrement())
-  title          String
-  link           String
-  ownerName      String
-  jobPosition    String
-  contentType    String
-  status         String
-  dateAdded      DateTime  @default(now())
-  dateUpdated    DateTime  @updatedAt
-  expirationDate DateTime
-  ownerId        Int
-  owner          Employee  @relation(fields: [ownerId], references: [id])
-  favorite       Favorites
+  id                 Int         @id @default(autoincrement())
+  title              String
+  link               String
+  ownerName          String
+  jobPosition        String
+  contentType        String
+  status             String
+  dateAdded          DateTime    @default(now())
+  dateUpdated        DateTime    @updatedAt
+  expirationDate     DateTime
+  favorite           Favorites[] // one content can have many favorites from dif people
+  employeesFavorited Favorites[] @relation("content becomes favorited")
+  ownerId            Int
+  owner              Employee    @relation(fields: [ownerId], references: [id])
 }
 
 model ServiceRequest {
@@ -46,7 +47,7 @@ model ServiceRequest {
   dateDue     DateTime?
   priority    String?
   status      String     @default("to-do")
-  employees   Employee[]
+  employees   Employee[] // one service can have many employees/contents
   contents    Content[]
 
   serviceRequestToEmployees ServiceRequestToEmployees[] @relation("employees requested")
