@@ -8,45 +8,49 @@ datasource db {
 }
 
 model Employee {
-  id          Int       @id @default(autoincrement())
-  auth0Id     String?   @unique
-  email       String    @unique
+  id          Int         @id @default(autoincrement())
+  auth0Id     String?     @unique
+  email       String      @unique
   firstName   String
   lastName    String
   dateOfBirth DateTime
   jobPosition String
   contents    Content[]
+  favorites   Favorites[]
 
   createdRequests  ServiceRequest[] @relation("CreatedRequests")
   assignedRequests ServiceRequest[] @relation("AssignedRequests")
+  makeFavorite     Favorites[]      @relation("added content to favorites")
 }
 
 model Content {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   title          String
   link           String
   ownerName      String
   jobPosition    String
   contentType    String
   status         String
-  dateAdded      DateTime @default(now())
-  dateUpdated    DateTime @updatedAt
+  dateAdded      DateTime  @default(now())
+  dateUpdated    DateTime  @updatedAt
   expirationDate DateTime
   ownerId        Int
-  owner          Employee @relation(fields: [ownerId], references: [id])
+  owner          Employee  @relation(fields: [ownerId], references: [id])
+  favorite       Favorites
 }
 
 model ServiceRequest {
-  id                          Int                       @id @default(autoincrement())
-  description                 String
-  dateCreated                 DateTime                  @default(now())
-  dateDue                     DateTime
-  priority                    String
-  status                      String                    @default("to-do")
-  serviceRequestToEmployeesID Int
-  serviceRequestToEmployees   ServiceRequestToEmployees @relation("employees requested", fields: [serviceRequestToEmployeesID], references: [id])
-  serviceRequestToContentsID  Int
-  serviceRequestToContents    ServiceRequestToContents  @relation("contents used in request", fields: [serviceRequestToContentsID], references: [id])
+  id          Int        @id @default(autoincrement())
+  description String?
+  dateCreated DateTime   @default(now())
+  dateDue     DateTime?
+  priority    String?
+  status      String     @default("to-do")
+  employees   Employee[]
+  contents    Content[]
+
+  serviceRequestToEmployees ServiceRequestToEmployees[] @relation("employees requested")
+  serviceRequestToContents  ServiceRequestToContents[]  @relation("contents used in request")
 }
 
 model ServiceRequestToEmployees {
@@ -66,9 +70,10 @@ model ServiceRequestToContents {
 }
 
 model Favorites {
-  id         Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   employeeID Int
   employee   Employee @relation("employee who favorites", fields: [employeeID], references: [id])
   contentID  Int
-  Content    Content  @relation("", fields: [contentID], references: [id])
+  Content    Content  @relation("content favorited", fields: [contentID], references: [id])
 }
