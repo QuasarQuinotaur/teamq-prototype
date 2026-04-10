@@ -1,5 +1,8 @@
+// Utility helper functions
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import * as React from "react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -22,4 +25,12 @@ export function isValidDate(date: Date | undefined): boolean {
     return false
   }
   return !isNaN(date.getTime())
+}
+
+export function handleKeyChange<T extends object, K extends keyof T>(
+    setObject: React.Dispatch<React.SetStateAction<T>>,
+    key: K,
+    value: T[K]
+) {
+  setObject((prev) => ({ ...prev, [key]: value }))
 }

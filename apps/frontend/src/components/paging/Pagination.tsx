@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils.ts"
 import { Button } from "@/elements/buttons/button.tsx"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 import {useState} from "react";
-import {Field, FieldLabel} from "@/components/Field.tsx";
+import {Field, FieldLabel} from "@/components/forms/Field.tsx";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/elements/select.tsx";
 
 function PaginationContainer({ className, ...props }: React.ComponentProps<"nav">) {
@@ -177,9 +177,9 @@ export default function Pagination(props: {docNum: number}) {
         </div>
         {/*<div className="flex items-center justify-center gap-4 pt-2">*/}
         {/*  <Field orientation="horizontal" className="w-fit">*/}
-        {/*    <FieldLabel htmlFor="select-rows-per-page">Showing</FieldLabel>*/}
+        {/*    <FieldLabel htmlFor="select-rows-per-paging">Showing</FieldLabel>*/}
         {/*    <Select defaultValue="5" onValueChange={handleShowChange}>*/}
-        {/*      <SelectTrigger className="w-15" id="select-rows-per-page">*/}
+        {/*      <SelectTrigger className="w-15" id="select-rows-per-paging">*/}
         {/*        <SelectValue />*/}
         {/*      </SelectTrigger>*/}
         {/*      <SelectContent align="start">*/}
@@ -191,7 +191,7 @@ export default function Pagination(props: {docNum: number}) {
         {/*        </SelectGroup>*/}
         {/*      </SelectContent>*/}
         {/*    </Select>*/}
-        {/*    <FieldLabel htmlFor="select-rows-per-page">of {docNum} results</FieldLabel>*/}
+        {/*    <FieldLabel htmlFor="select-rows-per-paging">of {docNum} results</FieldLabel>*/}
         {/*  </Field>*/}
         {/*</div>*/}
       </>

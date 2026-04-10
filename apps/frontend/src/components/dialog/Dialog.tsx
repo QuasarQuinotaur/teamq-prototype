@@ -1,8 +1,10 @@
+// General dialog to
+
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/elements/buttons/button"
+import { cn } from "@/lib/utils.ts"
+import { Button } from "@/elements/buttons/button.tsx"
 import { XIcon } from "lucide-react"
 
 function Dialog({

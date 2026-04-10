@@ -1,28 +1,21 @@
-import { useState } from "react";
-import * as React from "react";
+// Form for adding employees on backend
 
+import { useState } from "react";
 import {
     Field,
     FieldLabel,
     FieldGroup,
     FieldSet,
-} from "@/components/Field.tsx"
+} from "@/components/forms/Field.tsx"
 import { Input } from "@/elements/input.tsx"
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
-import { ScrollArea } from "@/elements/scroll-area.tsx";
-import { type FormProps, FormWindowActions } from "@/components/forms/Form.tsx";
-import { formatDate } from "@/lib/utils.ts";
-import {
-    Dialog as AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/AlertDialog.tsx";
+import {formatDate} from "@/lib/utils.ts";
+import type {Employee} from "db";
+import Form, {
+    type FormFieldsProps,
+    type FormState
+} from "@/components/forms/Form.tsx";
 
 type EmployeeFields = {
     firstName: string;
@@ -30,167 +23,177 @@ type EmployeeFields = {
     email: string;
     dateOfBirth: Date | undefined;
     jobPosition: string;
-    isSubmitting: boolean;
 }
 
-const DEFAULT_EMPLOYEE: EmployeeFields = {
+const DEFAULT_EMPLOYEE_FIELDS: EmployeeFields = {
     firstName: "",
     lastName: "",
     email: "",
     dateOfBirth: undefined,
     jobPosition: "",
-    isSubmitting: false,
+}
+
+type EmployeeDateStrings = {
+    dob: string,
+    setDob: (lastDob: string) => void,
+}
+type EmployeeFormFieldsProps = {
+    dateStrings: EmployeeDateStrings,
+} & FormFieldsProps<EmployeeFields>
+function EmployeeFormFields({
+                                fields,
+                                setKey,
+                                dateStrings
+}: EmployeeFormFieldsProps) {
+    return (
+        <FieldSet>
+            <FieldGroup>
+                <Field>
+                    <FieldLabel htmlFor="employee-form-first-name">First Name</FieldLabel>
+                    <Input
+                        id="employee-form-first-name"
+                        placeholder="First Name"
+                        value={fields.firstName}
+                        onChange={(e) => {
+                            setKey("firstName", e.target.value)
+                        }}
+                    />
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="employee-form-last-name">Last Name</FieldLabel>
+                    <Input
+                        id="employee-form-last-name"
+                        placeholder="Last Name"
+                        value={fields.lastName}
+                        onChange={(e) => {
+                            setKey("lastName", e.target.value)
+                        }}
+                    />
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="employee-form-email">Email</FieldLabel>
+                    <Input
+                        id="employee-form-email"
+                        placeholder="email@example.com"
+                        type="email"
+                        value={fields.email}
+                        onChange={(e) => {
+                            setKey("email", e.target.value)
+                        }}
+                    />
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="employee-form-dob">Date of Birth</FieldLabel>
+                    <DateSelectInput
+                        id="employee-form-dob"
+                        placeholder="Date of Birth"
+                        date={fields.dateOfBirth}
+                        setDate={(date) => {
+                            setKey("dateOfBirth", date)
+                        }}
+                        dateString={dateStrings.dob}
+                        setDateString={dateStrings.setDob}
+                    />
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="employee-form-job-position">Job Position</FieldLabel>
+                    <JobPositionInput
+                        id="employee-form-job-position"
+                        jobPosition={fields.jobPosition}
+                        setJobPosition={(pos) => {
+                            setKey("jobPosition", pos)
+                        }}
+                    />
+                </Field>
+            </FieldGroup>
+        </FieldSet>
+    )
 }
 
 function itemAsEmployee(item: object): EmployeeFields {
-    const e = item as { firstName: string; lastName: string; email: string; dateOfBirth: string; jobPosition: string };
+    const e = item as Employee;
     return {
         firstName: e.firstName,
         lastName: e.lastName,
         email: e.email,
         dateOfBirth: new Date(e.dateOfBirth),
         jobPosition: e.jobPosition,
-        isSubmitting: false,
     };
 }
 
-export default function EmployeeForm({ onCancel, fromItem }: FormProps) {
-    const initial = fromItem ? itemAsEmployee(fromItem) : DEFAULT_EMPLOYEE;
-    const [employee, setEmployee] = useState<EmployeeFields>(initial);
-    const [dobString, setDobString] = useState(
-        initial.dateOfBirth ? formatDate(initial.dateOfBirth) : ""
-    );
-    const [confirmOpen, setConfirmOpen] = useState(false);
+function getDefaultEmployeeFields(defaultItem: object): EmployeeFields {
+    return DEFAULT_EMPLOYEE_FIELDS
+}
 
-    function set<T extends keyof EmployeeFields>(key: T, value: EmployeeFields[T]) {
-        setEmployee((prev) => ({ ...prev, [key]: value }));
+function hasRequiredEmployeeFields(fields: EmployeeFields) {
+    return fields.firstName.trim() && fields.lastName.trim()
+        && fields.email.trim() && fields.dateOfBirth
+        && fields.jobPosition.trim()
+}
+
+export default function EmployeeForm(state: FormState) {
+    const initialFields =
+        state.baseItem ? itemAsEmployee(state.baseItem) :
+            getDefaultEmployeeFields(state.defaultItem)
+    const initialDobString =
+        initialFields.dateOfBirth ? formatDate(initialFields.dateOfBirth) : ""
+
+    const [dobString, setDobString] = useState(initialDobString);
+
+    const dateStrings: EmployeeDateStrings = {
+        dob: dobString,
+        setDob: setDobString,
     }
 
+    // Reset date strings
     function reset() {
-        setEmployee(DEFAULT_EMPLOYEE);
-        setDobString("");
+        setDobString(initialDobString);
     }
 
-    async function doSubmit() {
-        const { firstName, lastName, email, dateOfBirth, jobPosition } = employee;
-        set("isSubmitting", true);
-        try {
-            const isUpdate = fromItem != null;
-            const url = isUpdate
-                ? `${import.meta.env.VITE_BACKEND_URL}/api/employees/${(fromItem as { id: number }).id}`
-                : `${import.meta.env.VITE_BACKEND_URL}/api/employees`;
-            const res = await fetch(url, {
-                method: isUpdate ? "PUT" : "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    firstName,
-                    lastName,
-                    email,
-                    dateOfBirth: dateOfBirth!.toISOString(),
-                    jobPosition,
-                }),
-            });
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || (isUpdate ? "Update failed" : "Create failed"));
-            reset();
-            if (onCancel) onCancel();
-        } catch (err) {
-            console.error("Submit failed:", err);
-        } finally {
-            set("isSubmitting", false);
-        }
-    }
+    // Create Employee on backend from fields
+    async function doSubmit(fields: EmployeeFields) {
+        const isUpdate = state.baseItem != null;
+        const url = isUpdate
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/employees/${state.baseItem.id}`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/employees`;
+        const res = await fetch(url, {
+            method: isUpdate ? "PUT" : "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                firstName: fields.firstName,
+                lastName: fields.lastName,
+                email: fields.email,
+                dateOfBirth: fields.dateOfBirth!.toISOString(),
+                jobPosition: fields.jobPosition,
+            }),
+        });
 
-    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const { firstName, lastName, email, dateOfBirth, jobPosition } = employee;
-        if (!firstName.trim() || !lastName.trim() || !email.trim() || !dateOfBirth || !jobPosition.trim()) {
-            console.error("Missing required fields");
-            return;
-        }
-        if (fromItem) {
-            setConfirmOpen(true);
-        } else {
-            doSubmit();
+        const result = await res.json();
+        if (!res.ok) {
+            throw new Error(result.error || (isUpdate ? "Update failed" : "Create failed"));
         }
     }
 
     return (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <form
-                onReset={(e) => { e.preventDefault(); reset(); }}
-                onSubmit={handleSubmit}
-            >
-                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
-                    <FieldGroup className={"p-1"}>
-                        <FieldSet>
-                            <FieldGroup>
-                                <Field>
-                                    <FieldLabel htmlFor="employee-form-first-name">First Name</FieldLabel>
-                                    <Input
-                                        id="employee-form-first-name"
-                                        placeholder="First Name"
-                                        value={employee.firstName}
-                                        onChange={(e) => set("firstName", e.target.value)}
-                                    />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="employee-form-last-name">Last Name</FieldLabel>
-                                    <Input
-                                        id="employee-form-last-name"
-                                        placeholder="Last Name"
-                                        value={employee.lastName}
-                                        onChange={(e) => set("lastName", e.target.value)}
-                                    />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="employee-form-email">Email</FieldLabel>
-                                    <Input
-                                        id="employee-form-email"
-                                        placeholder="email@example.com"
-                                        type="email"
-                                        value={employee.email}
-                                        onChange={(e) => set("email", e.target.value)}
-                                    />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="employee-form-dob">Date of Birth</FieldLabel>
-                                    <DateSelectInput
-                                        id="employee-form-dob"
-                                        placeholder="Date of Birth"
-                                        date={employee.dateOfBirth}
-                                        setDate={(date) => set("dateOfBirth", date)}
-                                        dateString={dobString}
-                                        setDateString={setDobString}
-                                    />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="employee-form-job-position">Job Position</FieldLabel>
-                                    <JobPositionInput
-                                        id="employee-form-job-position"
-                                        jobPosition={employee.jobPosition}
-                                        setJobPosition={(pos) => set("jobPosition", pos)}
-                                    />
-                                </Field>
-                            </FieldGroup>
-                        </FieldSet>
-                    </FieldGroup>
-                </ScrollArea>
-                <FormWindowActions isSubmitting={employee.isSubmitting} onCancel={onCancel} />
-            </form>
-            <AlertDialogContent size="sm">
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will save your changes.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { setConfirmOpen(false); doSubmit(); }}>
-                        Confirm
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
+        <Form
+            state={state}
+            initialFields={initialFields}
+            createFieldsElement={(props) => (
+                // Create employee form specific field elements
+                <EmployeeFormFields
+                    {...props}
+                    dateStrings={dateStrings}
+                />
+            )}
+            submit={doSubmit}
+            reset={reset}
+            getFieldsError={(fields) => {
+                // Show an error if missing fields
+                if (!hasRequiredEmployeeFields(fields)) {
+                    return "Missing required fields."
+                }
+            }}
+        />
+    )
 }
