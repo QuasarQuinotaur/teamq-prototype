@@ -3,7 +3,8 @@ import * as React from "react"
 import { cn } from "@/lib/utils.ts"
 import { Button } from "@/elements/buttons/button.tsx"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
-import {useState} from "react";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 import {Field, FieldLabel} from "@/components/Field.tsx";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/elements/select.tsx";
 
@@ -121,10 +122,12 @@ function PaginationEllipsis({
   )
 }
 
-export default function Pagination(props: {docNum: number}) {
+export default function Pagination(props: {docNum: number, entriesCallback: (x:number) => void}) {
   const [pageNum, setPageNum] = useState<number>(1);
+  const entriesCallback = props.entriesCallback
   const docNum = props.docNum
-  const [maxPages, setMaxPages] = useState<number>(Math.ceil(docNum/10));
+  const docsPerPage = 3
+  const maxPages = Math.ceil(docNum/docsPerPage);
 
   const prevExists = pageNum-1===0 ? "hidden" : ""
   const nextExists = pageNum===maxPages ? "hidden" : ""
@@ -132,16 +135,17 @@ export default function Pagination(props: {docNum: number}) {
 
   function handlePrev(){
     setPageNum(prev=> prev-1)
+    entriesCallback(pageNum-1)
   }
 
   function handleNext(){
     setPageNum(prev=> prev+1)
+    entriesCallback(pageNum+1)
   }
 
-  function handleShowChange(value: string){
-    setMaxPages(Math.ceil(docNum/Number(value)))
-    console.log(maxPages)
-  }
+  // function handleShowChange(value: string){
+  //   setMaxPages(Math.ceil(docNum/Number(value)))
+  // }
 
   return (
       <>

@@ -135,9 +135,12 @@ export default function EntryPage({
     // for view type (grid vs. list)
     const [view, setView] = useState<ViewType>("Grid");
     const [entries, setEntries] = useState<CardEntry[]>(initialEntries);
+    const [pageEntries, setPageEntries] = useState<CardEntry[]>(initialEntries);
+    const entriesPerPage = 3
 
     React.useEffect(() => {
         setEntries(initialEntries);
+        setPageEntries(initialEntries.slice(0, entriesPerPage));
     }, [initialEntries]);
 
     // note/bug: if u switch to list, visit another page and come back, it will be back to grid
@@ -174,6 +177,12 @@ export default function EntryPage({
         ) : undefined
     )
 
+    const pageCallback = (pageNum: number)=> {
+        const first = entriesPerPage*(pageNum-1)
+        const last = entriesPerPage*(pageNum)
+        setPageEntries(entries.slice(first, last))
+    }
+
     return (
         <>
             <MinorTopbar
@@ -184,17 +193,17 @@ export default function EntryPage({
             {view === "Grid" ?
                 (
                     <CardGrid
-                        entries={entries}
+                        entries={pageEntries}
                         defaultBadge={defaultBadge}
                         entryOptionsWrapper={entryOptionsWrapper}
                         renderCard={renderCard}
                     />
                 ) :
                 (
-                    <CardList entries={entries} optionsWrapper={entryOptionsWrapper} />
+                    <CardList entries={pageEntries} optionsWrapper={entryOptionsWrapper} />
                 )}
             <div>
-                <Pagination docNum={entries.length}/>
+                <Pagination docNum={entries.length} entriesCallback={pageCallback} />
             </div>
         </>
     )
