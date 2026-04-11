@@ -9,23 +9,16 @@ import {
     InputGroupInput
 } from "@/elements/input-group.tsx";
 import {
-    FILTER_KEY_SEARCH
+    FILTER_KEY_SEARCH, type FuseFilter
 } from "@/components/paging/EntryPage.tsx";
 import {
     MagnifyingGlassIcon
 } from "@phosphor-icons/react";
-import type {
-    CardEntry
-} from "@/components/cards/Card.tsx";
-import Fuse from "fuse.js";
 
 
 export type SearchBarProps = {
     // Uses fuse to filter array of card entries to include
-    setFuseFilter: (
-        key: string,
-        filter: ((fuse: Fuse<CardEntry>) => CardEntry[]) | undefined
-    ) => void
+    setFuseFilter: (key: string, filter: FuseFilter | undefined) => void
 }
 export default function SearchBar({
                                       setFuseFilter
@@ -41,7 +34,6 @@ export default function SearchBar({
     }
 
     return (
-
         <InputGroup>
             <InputGroupInput
                 placeholder={"Search..."}

@@ -22,6 +22,10 @@ export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
 }
+export type FuseFilter = (fuse: Fuse<CardEntry>) => CardEntry[]
+export type FuseFilters = {[key: string]: FuseFilter}
+export type WhitelistFilter = (entry: CardEntry) => boolean
+export type WhitelistFilters = {[key: string]: WhitelistFilter}
 
 type EntryPageProps = {
     cardGridProps: CardGridProps;
@@ -30,7 +34,7 @@ type EntryPageProps = {
     // These elements get added to top right toolbar
     extraToolbarElements?: React.ReactNode[];
     // Already set filters
-    initWhitelistFilters?: {[key: string]: (entry: CardEntry) => boolean}
+    initWhitelistFilters?: WhitelistFilters
 }
 export default function EntryPage({
                                       // cardListProps,
@@ -58,11 +62,10 @@ export default function EntryPage({
             whitelistFilter
         )
     }
+    console.log(whitelistFilters);
 
     // Filter array using fuse fuzzy search
-    const [fuseFilters, setFuseFilters] = useState<
-        {[key: string]: (fuse: Fuse<CardEntry>) => CardEntry[]}
-    >({})
+    const [fuseFilters, setFuseFilters] = useState<FuseFilters>({})
     const fuse = useMemo(() => {
         return new Fuse(entries, {
             keys: ["title"],
@@ -136,7 +139,6 @@ export default function EntryPage({
                 setView={setView}
                 extraElements={extraToolbarElements}
                 setFuseFilter={setFuseFilter}
-                setWhitelistFilter={setWhitelistFilter}
             />
             {view === "Grid" ?
                 (

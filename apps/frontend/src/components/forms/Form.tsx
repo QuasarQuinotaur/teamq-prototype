@@ -14,34 +14,39 @@ import {
     AlertDialog as AlertDialog
 } from "@/components/dialog/AlertDialog.tsx";
 import {ScrollArea} from "@/elements/scroll-area.tsx";
-import {FieldGroup} from "@/components/forms/Field.tsx";
+import {FieldGroup, FieldSet} from "@/components/forms/Field.tsx";
 import {handleKeyChange} from "@/lib/utils.ts";
 import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 
 
 type FormActionsProps = {
-    isSubmitting: boolean;
-    onCancel?: () => void;
+    submitText?: (isSubmitting: boolean) => string;
+    hideReset?: boolean;
+    hideCancel?: boolean;
 }
 function FormActions({
+                         submitText,
+                         hideReset,
+                         hideCancel,
                          isSubmitting,
-                         onCancel
-}: FormActionsProps) {
+                         onCancel,
+}: FormActionsProps & FormState & { isSubmitting: boolean }) {
 // Creates cancel-reset-submit buttons
     return (
         <div className={"flex-col w-full"}>
             <Separator className={"mb-3"}/>
             <div className={"flex gap-1"}>
-                <Button
+                {!hideCancel && <Button
                     type={"button"}
                     onClick={onCancel}
                 >
                     Cancel
-                </Button>
-                <Button type={"reset"}>Reset</Button>
-                <Button type={"submit"} disabled={isSubmitting} >
-                    {isSubmitting ? "Uploading..." : "Submit"}
+                </Button>}
+                {!hideReset && <Button type={"reset"}>Reset</Button>}
+                <Button type={"submit"} disabled={isSubmitting}>
+                    {submitText ? submitText(isSubmitting) :
+                        isSubmitting ? "Uploading..." : "Submit"}
                 </Button>
             </div>
         </div>
@@ -63,7 +68,7 @@ export type FormFieldsProps<TFields> = {
 }
 
 type FormProps<TFields> = {
-    state: FormState;
+    state?: FormState;
     initialFields: TFields;
     createFieldsElement: (props: FormFieldsProps<TFields>) => React.ReactNode;
     submit: (fields: TFields) => Promise<void>;
@@ -72,13 +77,14 @@ type FormProps<TFields> = {
     getFieldsError?: (fields: TFields) => boolean | string | null | undefined;
 }
 export default function Form<TFields extends object>({
-                            state,
-                            initialFields,
-                            createFieldsElement,
-                            submit,
-                            reset,
-                            getFieldsError,
-}: FormProps<TFields>) {
+                                                         state = {},
+                                                         initialFields = {} as TFields,
+                                                         createFieldsElement,
+                                                         submit,
+                                                         reset,
+                                                         getFieldsError,
+                                                         ...actionsProps
+}: FormProps<TFields> & FormActionsProps) {
     const [fields, setFields] = useState<TFields>(initialFields);
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [confirmOpen, setConfirmOpen] = useState(false)
@@ -149,16 +155,21 @@ export default function Form<TFields extends object>({
             >
                 <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
                     <FieldGroup className={"p-1"}>
-                        {/*This makes all field elements (different based on type of form)*/}
-                        {createFieldsElement({
-                            fields,
-                            setKey,
-                        })}
+                        <FieldSet>
+                            <FieldGroup>
+                                {/*This makes all field elements (different based on type of form)*/}
+                                {createFieldsElement({
+                                    fields,
+                                    setKey,
+                                })}
+                            </FieldGroup>
+                        </FieldSet>
                     </FieldGroup>
                 </ScrollArea>
                 <FormActions
+                    {...actionsProps}
+                    {...state}
                     isSubmitting={isSubmitting}
-                    onCancel={state.onCancel}
                 />
             </form>
 

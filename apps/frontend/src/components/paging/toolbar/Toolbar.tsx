@@ -2,9 +2,6 @@
 
 import * as React from "react";
 
-import type {
-    CardEntry
-} from "@/components/cards/Card.tsx";
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -22,15 +19,13 @@ import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/Search
 type ToolbarProps = {
     view: ViewType;
     setView: (view: ViewType) => void;
-    setWhitelistFilter: (key: string, whitelistFilter: ((entry: CardEntry) => boolean) | undefined) => void;
     extraElements?: React.ReactNode[];
 } & SearchBarProps;
 export default function Toolbar({
                                     view,
                                     setView,
-                                    setFuseFilter,
-                                    // setWhitelistFilter,
-                                    extraElements
+                                    extraElements,
+                                    ...searchBarProps
 }: ToolbarProps) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
@@ -50,9 +45,7 @@ export default function Toolbar({
                     orientation="vertical"
                     className="mr-2 data-[orientation=vertical]"/>
                 <NavigationMenuItem>
-                    <SearchBar
-                        setFuseFilter={setFuseFilter}
-                    />
+                    <SearchBar {...searchBarProps}/>
                 </NavigationMenuItem>
             </NavigationMenuList>
             <div className="flex-1"/>

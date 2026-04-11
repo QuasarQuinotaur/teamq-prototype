@@ -7,9 +7,9 @@ import type {Employee} from "db";
 import EmployeeCard from "@/components/cards/EmployeeCard.tsx";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
-import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -59,13 +59,13 @@ export default function EmployeeEntryPage() {
     }
 
     // Use Employee form
-    const formProps: FormWindowProps = {
+    const formOfTypeProps: FormOfTypeProps = {
         formType: "Employee",
         onCancel: fetchEmployees,
     }
 
     // Create toolbar button for Add Employee Form
-    const formAddButton = FormAddButton(formProps)
+    const formAddButton = FormAddButton(formOfTypeProps)
 
     // Make card "..." show dropdown to modify employees
     const createOptionsElement =
@@ -73,7 +73,7 @@ export default function EmployeeEntryPage() {
             ModifyDropdown({
                 entry,
                 trigger,
-                updateFormProps: formProps,
+                ...formOfTypeProps,
                 handleDelete: handleDelete,
             })
         )

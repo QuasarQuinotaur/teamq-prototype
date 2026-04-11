@@ -8,9 +8,9 @@ import type {Content} from "db";
 import * as React from "react";
 import EntryPage, {FILTER_KEY_CONTENT_TYPE} from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
-import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 
 
 type ContentEntryPageProps = {
@@ -54,7 +54,7 @@ export default function ContentEntryPage({
     }
 
     // Use Document form with default content type
-    const formProps: FormWindowProps = {
+    const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
         onCancel: fetchContent,
         defaultItem: {
@@ -63,7 +63,7 @@ export default function ContentEntryPage({
     }
 
     // Create toolbar button for Add Document Form
-    const formAddButton = FormAddButton(formProps)
+    const formAddButton = FormAddButton(formOfTypeProps)
 
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
@@ -71,7 +71,7 @@ export default function ContentEntryPage({
             ModifyDropdown({
                 entry,
                 trigger,
-                updateFormProps: formProps,
+                ...formOfTypeProps,
                 handleDelete: handleDelete,
             })
         )
