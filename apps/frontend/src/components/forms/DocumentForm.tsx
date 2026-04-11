@@ -3,10 +3,9 @@
 import { useState } from "react";
 
 import {
-    Field,
-    FieldLabel,
     FieldGroup,
     FieldSet,
+    FieldInput,
 } from "@/components/forms/Field.tsx"
 import { Input } from "@/elements/input.tsx"
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
@@ -59,96 +58,120 @@ function DocumentFormFields({
     return (
         <FieldSet>
             <FieldGroup>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-name"}>Document Name</FieldLabel>
-                    <Input
-                        id={"document-add-form-name"}
-                        placeholder={"Name"}
-                        value={fields.name}
-                        onChange={(e) => {
-                            setKey("name", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="document-add-form-file">Document File</FieldLabel>
-                    {/*TODO: Needs to clear when form is reset*/}
-                    <Input
-                        id="document-add-form-file"
-                        type="file"
-                        onChange={(e) => {
-                            setKey("file", e.target.files?.[0] ?? null)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-link"}>Document Link</FieldLabel>
-                    <Input
-                        id={"document-add-form-link"}
-                        placeholder={"https://..."}
-                        type={"url"}
-                        value={fields.link}
-                        onChange={(e) => {
-                            setKey("link", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-job-position"}>Job Position</FieldLabel>
-                    <JobPositionInput
-                        id={"document-add-form-job-position"}
-                        jobPosition={fields.jobPosition}
-                        setJobPosition={(position) => {
-                            setKey("jobPosition", position)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-last-modified"}>Last Modified Date</FieldLabel>
-                    <DateSelectInput
-                        id={"document-add-form-last-modified"}
-                        placeholder={"Last Modified Date"}
-                        date={fields.lastModifiedDate}
-                        setDate={(date) => {
-                            setKey("lastModifiedDate", date)
-                        }}
-                        dateString={dateStrings.lastModified}
-                        setDateString={dateStrings.setLastModified}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-expiration"}>Expiration Date</FieldLabel>
-                    <DateSelectInput
-                        id={"document-add-form-expiration"}
-                        placeholder={"Expiration Date"}
-                        date={fields.expirationDate}
-                        setDate={(date) => {
-                            setKey("expirationDate", date)
-                        }}
-                        dateString={dateStrings.expiration}
-                        setDateString={dateStrings.setExpiration}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-content-type"}>Content Type</FieldLabel>
-                    <ContentTypeInput
-                        id={"document-add-form-content-type"}
-                        contentType={fields.contentType}
-                        setContentType={(type) => {
-                            setKey("contentType", type)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor={"document-add-form-status"}>Document Status</FieldLabel>
-                    <DocumentStatusInput
-                        id={"document-add-form-status"}
-                        status={fields.status}
-                        setStatus={(status) => {
-                            setKey("status", status)
-                        }}
-                    />
-                </Field>
+                <FieldInput
+                    id={"document-add-form-name"}
+                    label={"Document Name"}
+                    createElement={(id) => (
+                        <Input
+                            id={id}
+                            placeholder={"Name"}
+                            value={fields.name}
+                            onChange={(e) => {
+                                setKey("name", e.target.value)
+                            }}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-file"}
+                    label={"Document File"}
+                    createElement={(id) => (
+                        // TODO: Needs to clear when form is reset
+                        <Input
+                            id={id}
+                            type={"file"}
+                            onChange={(e) => {
+                                setKey("file", e.target.files?.[0] ?? null)
+                            }}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-link"}
+                    label={"Document Link"}
+                    createElement={(id) => (
+                        <Input
+                            id={id}
+                            placeholder={"https://..."}
+                            type={"url"}
+                            value={fields.link}
+                            onChange={(e) => {
+                                setKey("link", e.target.value)
+                            }}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-job-position"}
+                    label={"Job Position"}
+                    createElement={(id) => (
+                        <JobPositionInput
+                            id={id}
+                            jobPosition={fields.jobPosition}
+                            setJobPosition={(position) => {
+                                setKey("jobPosition", position)
+                            }}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-last-modified"}
+                    label={"Last Modified Date"}
+                    createElement={(id) => (
+                        <DateSelectInput
+                            id={id}
+                            placeholder={"Last Modified Date"}
+                            date={fields.lastModifiedDate}
+                            setDate={(date) => {
+                                setKey("lastModifiedDate", date)
+                            }}
+                            dateString={dateStrings.lastModified}
+                            setDateString={dateStrings.setLastModified}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-expiration"}
+                    label={"Expiration Date"}
+                    createElement={(id) => (
+                        <DateSelectInput
+                            id={id}
+                            placeholder={"Expiration Date"}
+                            date={fields.expirationDate}
+                            setDate={(date) => {
+                                setKey("expirationDate", date)
+                            }}
+                            dateString={dateStrings.expiration}
+                            setDateString={dateStrings.setExpiration}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-content-type"}
+                    label={"Content Type"}
+                    createElement={(id) => (
+                        <ContentTypeInput
+                            id={id}
+                            contentType={fields.contentType}
+                            setContentType={(type) => {
+                                setKey("contentType", type)
+                            }}
+                        />
+                    )}
+                />
+                <FieldInput
+                    id={"document-add-form-status"}
+                    label={"Document Status"}
+                    createElement={(id) => (
+                        <DocumentStatusInput
+                            id={id}
+                            status={fields.status}
+                            setStatus={(status) => {
+                                setKey("status", status)
+                            }}
+                        />
+                    )}
+                />
             </FieldGroup>
         </FieldSet>
     )

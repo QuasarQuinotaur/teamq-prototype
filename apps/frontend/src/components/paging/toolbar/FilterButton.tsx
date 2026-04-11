@@ -4,20 +4,23 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popove
 import {Button} from "@/elements/buttons/button.tsx";
 import {FunnelSimpleIcon} from "@phosphor-icons/react";
 import * as React from "react";
+import {useState} from "react";
+import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 
 export default function FilterButton() {
+    const [filterOpen, setFilterOpen] = useState(false);
+
     return (
-        <Popover>
-            <PopoverTrigger>
+        <Dialog>
+            <DialogTrigger>
                 <Button variant={"outline"}>
                     <FunnelSimpleIcon/>
                 </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-80">
-                <div>
-                    <p>Filter Example</p>
-                </div>
-            </PopoverContent>
-        </Popover>
+            </DialogTrigger>
+            <DialogContent className="w-80">
+                <h2>Filter Search</h2>
+                <p>hi</p>
+            </DialogContent>
+        </Dialog>
     )
 }
