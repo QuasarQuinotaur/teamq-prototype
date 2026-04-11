@@ -7,13 +7,11 @@ import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import Form from "@/components/forms/Form.tsx";
 import type {WhitelistFilter, WhitelistFilters} from "@/components/paging/EntryPage.tsx";
+import FilterForm, {type FilterFormProps} from "@/components/forms/FilterForm.tsx";
 
 
-export type FilterButtonProps = {
-    whitelistFilters: WhitelistFilters;
-    setWhitelistFilter: (key: string, filter: WhitelistFilter) => void;
-}
-export default function FilterButton() {
+export type FilterButtonProps = FilterFormProps
+export default function FilterButton(props: FilterButtonProps) {
     const [filterOpen, setFilterOpen] = useState(false)
 
     return (
@@ -25,6 +23,7 @@ export default function FilterButton() {
             </DialogTrigger>
             <DialogContent className="w-80">
                 <h2>Filter Search</h2>
+                <FilterForm {...props}/>
             </DialogContent>
         </Dialog>
     )

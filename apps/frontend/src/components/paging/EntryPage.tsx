@@ -2,7 +2,7 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import * as React from "react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
@@ -10,9 +10,9 @@ import Pagination from "@/components/paging/Pagination.tsx";
 import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import CardList, {type CardListProps} from "@/components/cards/CardList.tsx";
-import {handleKeyChangeOrDelete} from "@/lib/utils.ts";
 import Fuse from "fuse.js";
-import type {ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
+import type {ViewSelectorButtonProps, ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
+import useEntryPageFilter from "@/components/forms/entry-page-filter.tsx";
 
 export const FILTER_KEY_SEARCH = "SearchFilter";
 export const FILTER_KEY_CONTENT_TYPE = "ContentTypeFilter";
@@ -52,68 +52,6 @@ export default function EntryPage({
     // Store entries to filter them before passing
     const [filterEntries, setFilterEntries] = useState(entries);
 
-    // Store many different whitelist filters from multiple sources
-    const [whitelistFilters, setWhitelistFilters] = useState(initWhitelistFilters ?? {})
-    function setWhitelistFilter(key: string, whitelistFilter: ((entry: CardEntry) => boolean) | undefined) {
-        handleKeyChangeOrDelete(
-            whitelistFilters,
-            setWhitelistFilters,
-            key,
-            whitelistFilter
-        )
-    }
-    console.log(whitelistFilters);
-
-    // Filter array using fuse fuzzy search
-    const [fuseFilters, setFuseFilters] = useState<FuseFilters>({})
-    const fuse = useMemo(() => {
-        return new Fuse(entries, {
-            keys: ["title"],
-            useExtendedSearch: true,
-            useTokenSearch: true,
-
-        })
-    }, [entries])
-    function setFuseFilter(
-        key: string,
-        fuseFilter: ((fuse: Fuse<CardEntry>) => CardEntry[]) | undefined
-    ) {
-        handleKeyChangeOrDelete(
-            fuseFilters,
-            setFuseFilters,
-            key,
-            fuseFilter
-        )
-    }
-
-    // Returns all entries filtered
-    const getFilteredEntries = useCallback(() => {
-        const fuseFilterList = Object.values(fuseFilters)
-        const fuseFiltered =
-            fuseFilterList.length > 0 ? fuseFilterList.reduce(
-                (acc: CardEntry[], filter) => {
-                    const resultEntries = filter(fuse);
-                    return [
-                        ...acc,
-                        ...resultEntries
-                    ]
-                }, []
-            ) : entries
-        return fuseFiltered.filter((entry: CardEntry): boolean => {
-            // Only include entries in whitelist
-            const notInWhitelist =
-                Object.entries(whitelistFilters).some(([key, filter]) => {
-                    return !filter(entry)
-                })
-            return !notInWhitelist;
-        })
-    }, [entries, fuse, fuseFilters, whitelistFilters]);
-
-
-    useEffect(() => {
-        setFilterEntries(getFilteredEntries)
-    }, [getFilteredEntries]);
-
 
     // Pagination
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
@@ -131,14 +69,23 @@ export default function EntryPage({
         setPageEntries(filterEntries.slice(first, last))
     }
 
+    // Props
+    const useProps = useEntryPageFilter({
+        entries, initWhitelistFilters, setFilterEntries
+    })
+    const viewSelectorButtonProps: ViewSelectorButtonProps = {
+        view, setView
+    }
+
     return (
         <>
             {/*Toolbar for querying*/}
             <Toolbar
-                view={view}
-                setView={setView}
                 extraElements={extraToolbarElements}
-                setFuseFilter={setFuseFilter}
+                searchBarProps={useProps.searchBarProps}
+                filterButtonProps={useProps.filterButtonProps}
+                sortButtonProps={useProps.sortButtonProps}
+                viewSelectorButtonProps={viewSelectorButtonProps}
             />
             {view === "Grid" ?
                 (

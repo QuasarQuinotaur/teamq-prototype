@@ -10,28 +10,31 @@ import {
 import { Separator } from "@/elements/separator.tsx"
 import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
-import FilterButton from "@/components/paging/toolbar/FilterButton.tsx";
+import FilterButton, {type FilterButtonProps} from "@/components/paging/toolbar/FilterButton.tsx";
 import SortButton from "@/components/paging/toolbar/SortButton.tsx";
-import ViewSelectorButton, {type ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
+import ViewSelectorButton, {type ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
 
 
 type ToolbarProps = {
-    view: ViewType;
-    setView: (view: ViewType) => void;
+    searchBarProps: SearchBarProps;
+    filterButtonProps: FilterButtonProps;
+    sortButtonProps: object;//SortButtonProps;
+    viewSelectorButtonProps: ViewSelectorButtonProps;
     extraElements?: React.ReactNode[];
-} & SearchBarProps;
+};
 export default function Toolbar({
-                                    view,
-                                    setView,
+                                    searchBarProps,
+                                    filterButtonProps,
+                                    sortButtonProps,
+                                    viewSelectorButtonProps,
                                     extraElements,
-                                    ...searchBarProps
 }: ToolbarProps) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
-        <FilterButton/>,
-        <SortButton/>,
-        <ViewSelectorButton view={view} setView={setView}/>
+        <FilterButton {...filterButtonProps}/>,
+        <SortButton {...sortButtonProps}/>,
+        <ViewSelectorButton {...viewSelectorButtonProps}/>
     )
 
     return (

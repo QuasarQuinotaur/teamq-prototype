@@ -7,22 +7,25 @@ import * as React from "react";
 export type ViewType = "List" | "Grid";
 
 // These props are passed in from toolbar to switch active view
-type ViewSelectorButtonProps = {
+export type ViewSelectorButtonProps = {
     view: ViewType
     setView: (view: ViewType) => void
 }
-export default function ViewSelectorButton( { view, setView }: ViewSelectorButtonProps ) {
+export default function ViewSelectorButton({
+                                                view,
+                                                setView
+}: ViewSelectorButtonProps ) {
     return (
         <ButtonSelector
             value={view}
             onChange={(val: ViewType) => setView(val)}
             options={{
+                Grid: {
+                    buttonElement: <GridFourIcon/>
+                },
                 List: {
                     buttonElement: <ListBulletsIcon/>
                 },
-                Grid: {
-                    buttonElement: <GridFourIcon/>
-                }
             }}
         />
     )

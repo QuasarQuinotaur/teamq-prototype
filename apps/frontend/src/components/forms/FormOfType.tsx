@@ -1,3 +1,6 @@
+// This groups frequently reused forms into different form "types" to be reused
+// All forms of this type only take in a FormState
+
 import type {FormState} from "@/components/forms/Form.tsx";
 import * as React from "react";
 import DocumentForm from "@/components/forms/DocumentForm.tsx";
