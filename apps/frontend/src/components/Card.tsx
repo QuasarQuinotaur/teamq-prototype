@@ -142,17 +142,18 @@ export default function Card({
     const cardColor = stringToColor(entry.title);
 
     return (
-        <CardContainer className="relative mx-auto w-full max-w-sm gap-0">
+        <CardContainer className="relative w-full h-full flex flex-col justify-between gap-3">
             <CardHeader>
-                <div className={"flex w-full items-center"}>
-                    <CardTitle className={"w-full"}>{entry.title}</CardTitle>
-                    <div className={"w-full"}/>
+                <div className="flex w-full items-start justify-between gap-2">
+                    <CardTitle className="line-clamp-3 break-normal flex-1">
+                        {entry.title}
+                    </CardTitle>
+
                     {optionsWrapper != null && (
-                        // Show options button only if wrapped
-                        <CardAction>
+                        <CardAction className="shrink-0">
                             {optionsWrapper(
-                                <Button variant={"outline"}>
-                                    <MoreHorizontalIcon/>
+                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                    <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
                         </CardAction>
