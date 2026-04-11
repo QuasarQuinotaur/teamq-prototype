@@ -130,16 +130,37 @@ function stringToColor(str: string) {
 export default function Card({
     entry, badges, action, optionsWrapper
 }: CardProps) {
-    // Favicon-based image (commented out in case you want to restore it)
-    // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
-    // const split = linkDomain.split('/');
-    // if (split.length > 0) {
-    //     linkDomain = split[0];
-    // }
-    // const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
-    // const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
+
 
     const cardColor = stringToColor(entry.title);
+
+    // Get the pdf preview from the backend
+    const [thumbnail, setThumbnail] = React.useState<string | null>(null);
+    React.useEffect(() => {
+        const fetchThumbnail = async () => {
+            try {
+                // only for your stored files
+                if (!isSupabasePath(entry.link)) return;
+
+                const id = (entry.item as { id: number }).id;
+
+                const res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/thumbnail`,
+                    { credentials: "include" }
+                );
+
+                if (!res.ok) return;
+
+                const data = await res.json();
+
+                setThumbnail(data.thumbnailUrl);
+            } catch (err) {
+                console.error("Thumbnail fetch failed", err);
+            }
+        };
+
+        fetchThumbnail();
+    }, [entry]);
 
     return (
         <CardContainer className="relative w-full h-full flex flex-col justify-between gap-3">
@@ -163,28 +184,29 @@ export default function Card({
                     {entry.description ? (
                         <>
                             <p>{entry.description}</p>
-                            <br/>
                         </>
                     ) : null}
                     {entry.subElement ?? undefined}
                 </CardDescription>
             </CardHeader>
             <div className={"mt-2 relative z-20"}>
-                <div className={`w-full aspect-video ${cardColor}`} />
-                {/* Favicon-based image (commented out)
-                <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
-                <img
-                    src={linkFavicon}
-                    alt="Event cover"
-                    className="z-20 w-full aspect-video object-cover brightness-60 grayscale dark:brightness-40"
-                />
-                */}
+                {thumbnail ? (
+                    <img
+                        src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
+                        className="w-full aspect-[4/3] object-cover"
+                    />
+                ) : (
+                    <div className={`w-full aspect-[4/3] ${cardColor}`} />
+                )}
+
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    {[entry.badge, ...badges].filter((b) => b != null && b !== "").map((badgeString) => (
-                        <Badge variant="secondary">
-                            {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
-                        </Badge>
-                    ))}
+                    {[entry.badge, ...badges]
+                        .filter((b) => b != null && b !== "")
+                        .map((badgeString) => (
+                            <Badge variant="secondary">
+                                {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
+                            </Badge>
+                        ))}
                 </div>
             </div>
             <CardFooter>

@@ -16,7 +16,7 @@ function CardGrid({
                       renderCard,
 }: CardGridProps) {
     return (
-        <div className="grid auto-rows-min gap-10 md:grid-cols-6 px-10 ">
+        <div className="grid auto-rows-min gap-10 md:grid-cols-5 px-10 ">
             {entries.map((entry) => {
                 const optionsWrapper = entryOptionsWrapper ? (
                     (trigger: React.ReactNode) => entryOptionsWrapper(entry, trigger)
@@ -24,6 +24,7 @@ function CardGrid({
                 if (renderCard) {
                     return renderCard(entry, optionsWrapper);
                 }
+                console.log(entry.item);
                 return (
                     <Card
                         entry={entry}
