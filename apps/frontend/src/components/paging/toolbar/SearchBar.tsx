@@ -17,36 +17,27 @@ import {
 import type {
     CardEntry
 } from "@/components/cards/Card.tsx";
+import Fuse from "fuse.js";
 
-// Removes case sensitivity or whitespace from affecting search
-function formatSearchPhrase(phrase: string): string {
-    return phrase.toLowerCase().replace(/\s+/g, "");
-}
 
-// Returns method to filter entry searches using the phrase
-function getSearchFilter(phrase: string) {
-    const formattedPhrase = formatSearchPhrase(phrase);
-
-    // Search currently only works using title substring
-    return (
-        (entry: CardEntry): boolean => {
-            return formatSearchPhrase(entry.title).includes(formattedPhrase);
-        }
-    )
-}
-
-type SearchBarProps = {
-    // setSearchFilter
-    setWhitelistFilter: (key: string, filter: (entry: CardEntry) => boolean) => void;
+export type SearchBarProps = {
+    // Uses fuse to filter array of card entries to include
+    setFuseFilter: (
+        key: string,
+        filter: ((fuse: Fuse<CardEntry>) => CardEntry[]) | undefined
+    ) => void
 }
 export default function SearchBar({
-                                      setWhitelistFilter
+                                      setFuseFilter
                                   }: SearchBarProps) {
     function setFilter(phrase: string) {
-        setWhitelistFilter(
+        setFuseFilter(
             FILTER_KEY_SEARCH,
-            phrase ? getSearchFilter(phrase) : undefined
-        );
+            phrase ? (
+                (fuse) =>
+                    fuse.search(phrase).map(result => result.item)
+            ) : undefined
+        )
     }
 
     return (

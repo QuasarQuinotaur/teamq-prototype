@@ -16,7 +16,7 @@ import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import FilterButton from "@/components/paging/toolbar/FilterButton.tsx";
 import SortButton from "@/components/paging/toolbar/SortButton.tsx";
 import ViewSelectorButton, {type ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
-import SearchBar from "@/components/paging/toolbar/SearchBar.tsx";
+import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
 
 
 type ToolbarProps = {
@@ -24,11 +24,12 @@ type ToolbarProps = {
     setView: (view: ViewType) => void;
     setWhitelistFilter: (key: string, whitelistFilter: ((entry: CardEntry) => boolean) | undefined) => void;
     extraElements?: React.ReactNode[];
-};
+} & SearchBarProps;
 export default function Toolbar({
                                     view,
                                     setView,
-                                    setWhitelistFilter,
+                                    setFuseFilter,
+                                    // setWhitelistFilter,
                                     extraElements
 }: ToolbarProps) {
     const topRightElements = extraElements ? [...extraElements] : [];
@@ -50,7 +51,7 @@ export default function Toolbar({
                     className="mr-2 data-[orientation=vertical]"/>
                 <NavigationMenuItem>
                     <SearchBar
-                        setWhitelistFilter={setWhitelistFilter}
+                        setFuseFilter={setFuseFilter}
                     />
                 </NavigationMenuItem>
             </NavigationMenuList>

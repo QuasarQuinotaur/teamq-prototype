@@ -2,15 +2,17 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import * as React from "react";
 
-import Toolbar, {type ViewType} from "@/components/paging/toolbar/Toolbar.tsx";
+import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
 import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import CardList, {type CardListProps} from "@/components/cards/CardList.tsx";
-import {handleKeyChange} from "@/lib/utils.ts";
+import {handleKeyChangeOrDelete} from "@/lib/utils.ts";
+import Fuse from "fuse.js";
+import type {ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 
 export const FILTER_KEY_SEARCH = "SearchFilter";
 export const FILTER_KEY_CONTENT_TYPE = "ContentTypeFilter";
@@ -37,7 +39,7 @@ export default function EntryPage({
                                       initWhitelistFilters,
                                       ...entryProps
 }: EntryPageProps & EntryProps) {
-    const { entries, } = entryProps;
+    const { entries } = entryProps;
 
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
@@ -48,33 +50,66 @@ export default function EntryPage({
 
     // Store many different whitelist filters from multiple sources
     const [whitelistFilters, setWhitelistFilters] = useState(initWhitelistFilters ?? {})
-
-    // Sets whitelist filter at a key
-    function setWhitelistFilter(key: string, whitelistFilter: (entry: CardEntry) => boolean | undefined) {
-        if (whitelistFilter === undefined) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { [key]: _, ...withoutKey } = whitelistFilters;
-            setWhitelistFilters(withoutKey);
-        } else {
-            handleKeyChange(setWhitelistFilters, key, whitelistFilter);
-        }
+    function setWhitelistFilter(key: string, whitelistFilter: ((entry: CardEntry) => boolean) | undefined) {
+        handleKeyChangeOrDelete(
+            whitelistFilters,
+            setWhitelistFilters,
+            key,
+            whitelistFilter
+        )
     }
 
-    // Updates entries to filter using whitelistFilters on update
+    // Filter array using fuse fuzzy search
+    const [fuseFilters, setFuseFilters] = useState<
+        {[key: string]: (fuse: Fuse<CardEntry>) => CardEntry[]}
+    >({})
+    const fuse = useMemo(() => {
+        return new Fuse(entries, {
+            keys: ["title"],
+            useExtendedSearch: true,
+            useTokenSearch: true,
+
+        })
+    }, [entries])
+    function setFuseFilter(
+        key: string,
+        fuseFilter: ((fuse: Fuse<CardEntry>) => CardEntry[]) | undefined
+    ) {
+        handleKeyChangeOrDelete(
+            fuseFilters,
+            setFuseFilters,
+            key,
+            fuseFilter
+        )
+    }
+
+    // Returns all entries filtered
+    const getFilteredEntries = useCallback(() => {
+        const fuseFilterList = Object.values(fuseFilters)
+        const fuseFiltered =
+            fuseFilterList.length > 0 ? fuseFilterList.reduce(
+                (acc: CardEntry[], filter) => {
+                    const resultEntries = filter(fuse);
+                    return [
+                        ...acc,
+                        ...resultEntries
+                    ]
+                }, []
+            ) : entries
+        return fuseFiltered.filter((entry: CardEntry): boolean => {
+            // Only include entries in whitelist
+            const notInWhitelist =
+                Object.entries(whitelistFilters).some(([key, filter]) => {
+                    return !filter(entry)
+                })
+            return !notInWhitelist;
+        })
+    }, [entries, fuse, fuseFilters, whitelistFilters]);
+
+
     useEffect(() => {
-        const filterEntries = Object.entries(whitelistFilters)
-        setFilterEntries(entries.filter(
-            (entry) => {
-                // Only include entries in whitelist
-                // console.log("UPDATE FILTER:", whitelistFilters);
-                const notInWhitelist =
-                    filterEntries.some(([key, filter]) => {
-                        return !filter(entry)
-                    })
-                return !notInWhitelist;
-            }
-        ))
-    }, [whitelistFilters, entries]);
+        setFilterEntries(getFilteredEntries)
+    }, [getFilteredEntries]);
 
 
     // Pagination
@@ -100,6 +135,7 @@ export default function EntryPage({
                 view={view}
                 setView={setView}
                 extraElements={extraToolbarElements}
+                setFuseFilter={setFuseFilter}
                 setWhitelistFilter={setWhitelistFilter}
             />
             {view === "Grid" ?
