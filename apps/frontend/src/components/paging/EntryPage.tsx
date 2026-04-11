@@ -15,7 +15,7 @@ import {handleKeyChange} from "@/lib/utils.ts";
 export const FILTER_KEY_SEARCH = "SearchFilter";
 export const FILTER_KEY_CONTENT_TYPE = "ContentTypeFilter";
 
-// Props used for specifying entries
+// Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
@@ -23,14 +23,15 @@ export type EntryProps = {
 
 type EntryPageProps = {
     cardGridProps: CardGridProps;
-    cardListProps?: CardListProps;
+        // currently unused (uncomment if used in future)
+        // cardListProps?: CardListProps;
     // These elements get added to top right toolbar
     extraToolbarElements?: React.ReactNode[];
     // Already set filters
     initWhitelistFilters?: {[key: string]: (entry: CardEntry) => boolean}
 }
 export default function EntryPage({
-                                      cardListProps,
+                                      // cardListProps,
                                       cardGridProps,
                                       extraToolbarElements,
                                       initWhitelistFilters,
@@ -75,6 +76,23 @@ export default function EntryPage({
         ))
     }, [whitelistFilters, entries]);
 
+
+    // Pagination
+    const [pageEntries, setPageEntries] = useState<CardEntry[]>()
+    const entriesPerPage = 10;
+
+    const pagedEntries: EntryProps = { entries: pageEntries, createOptionsElement: entryProps.createOptionsElement }
+
+    useEffect(() => {
+        setPageEntries(filterEntries.slice(0, entriesPerPage))
+    }, [filterEntries]);
+
+    const pageCallback = (pageNum: number)=> {
+        const first = entriesPerPage*(pageNum-1)
+        const last = entriesPerPage*(pageNum)
+        setPageEntries(filterEntries.slice(first, last))
+    }
+
     return (
         <>
             {/*Toolbar for querying*/}
@@ -93,15 +111,16 @@ export default function EntryPage({
                     />
                 ) :
                 (
-                    <CardList
-                        {...cardListProps}
-                        {...entryProps}
-                        entries={filterEntries}
-                    />
+                    <>
+                        <CardList
+                            {...pageEntries}
+                            {...pagedEntries}
+                        />
+                        <div>
+                            <Pagination docNum={entries.length} entriesCallback={pageCallback} />
+                        </div>
+                    </>
                 )}
-            <div>
-                <Pagination docNum={filterEntries.length}/>
-            </div>
         </>
     )
 }
