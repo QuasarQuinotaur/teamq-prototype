@@ -117,7 +117,7 @@ export default function EntryPage({
                             {...pagedEntries}
                         />
                         <div>
-                            <Pagination docNum={entries.length} entriesCallback={pageCallback} />
+                            <Pagination docNum={filterEntries.length} entriesCallback={pageCallback} />
                         </div>
                     </>
                 )}
