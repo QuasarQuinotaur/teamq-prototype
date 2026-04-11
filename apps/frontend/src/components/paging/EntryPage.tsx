@@ -5,7 +5,7 @@
 import {useEffect, useState} from "react";
 import * as React from "react";
 
-import Toolbar, {type ViewType} from "@/components/paging/Toolbar.tsx";
+import Toolbar, {type ViewType} from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
 import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {type CardGridProps} from "@/components/cards/CardGrid.tsx";
