@@ -17,13 +17,6 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
 import {DropdownMenuItem} from "@/components/DropdownMenu.tsx";
 import {CheckCircleIcon, ClockIcon, CircleIcon} from "@phosphor-icons/react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/elements/select.tsx";
 
 type ViewerState = {
     url: string;
@@ -33,11 +26,9 @@ type ViewerState = {
 };
 
 
-type DocumentScope = "all" | "workflow" | "reference" | "tool";
-
 type ContentEntryPageProps = {
     contentType?: string;
-    /** Toolbar dropdown to switch between all types and each document type; uses `/documents/all`. */
+    /** All-documents page (`/documents/all`): category filter starts empty (show all); use filter panel for categories. */
     showContentTypeSelector?: boolean;
 }
 type Employee = {
@@ -115,39 +106,6 @@ export default function ContentEntryPage({
         fetchContent()
     }
 
-    const [documentScope, setDocumentScope] = useState<DocumentScope>("all");
-
-    // Use Document form with default content type
-    const formOfTypeProps: FormOfTypeProps = {
-        formType: "Document",
-        onCancel: fetchContent,
-        defaultItem: {
-            contentType: showContentTypeSelector
-                ? (documentScope === "all" ? undefined : documentScope)
-                : contentType,
-        },
-    }
-
-    const documentScopeSelect = showContentTypeSelector ? (
-        <Select
-            value={documentScope}
-            onValueChange={(v) => setDocumentScope(v as DocumentScope)}
-        >
-            <SelectTrigger className="w-[168px]" size="sm" aria-label="Document category">
-                <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All documents</SelectItem>
-                <SelectItem value="workflow">Workflow</SelectItem>
-                <SelectItem value="reference">Reference</SelectItem>
-                <SelectItem value="tool">Tools</SelectItem>
-            </SelectContent>
-        </Select>
-    ) : null;
-
-    // Create toolbar button for Add Document Form
-    const formAddButton = <FormAddButton {...formOfTypeProps}/>
-
     // Update status for workflow documents via PATCH
     async function handleStatusChange(entry: CardEntry, status: string) {
         await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}/status`, {
@@ -158,6 +116,31 @@ export default function ContentEntryPage({
         });
         fetchContent();
     }
+
+    const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
+        showContentTypeSelector
+            ? {}
+            : (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
+    ), [showContentTypeSelector, contentType]);
+
+    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(() => {
+        if (showContentTypeSelector) return {};
+        return contentType ? { contentTypes: [contentType], jobPositions: [] } : {};
+    });
+
+    const formOfTypeProps: FormOfTypeProps = {
+        formType: "Document",
+        onCancel: fetchContent,
+        defaultItem: {
+            contentType: showContentTypeSelector
+                ? (fieldsFilter.contentTypes?.length === 1
+                    ? fieldsFilter.contentTypes[0]
+                    : undefined)
+                : contentType,
+        },
+    };
+
+    const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
@@ -195,31 +178,6 @@ export default function ContentEntryPage({
             });
         }
 
-    const defaultFieldsFilterFixed = useMemo((): ContentFieldsFilter => (
-        contentType ? { contentTypes: [contentType], jobPositions: [] } : {}
-    ), [contentType]);
-
-    const defaultFieldsFilterSelector = useMemo((): ContentFieldsFilter => ({
-        ...(documentScope === "all" ? {} : { contentTypes: [documentScope] }),
-        jobPositions: [],
-    }), [documentScope]);
-
-    const defaultFieldsFilter = showContentTypeSelector
-        ? defaultFieldsFilterSelector
-        : defaultFieldsFilterFixed;
-
-    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(() => {
-        if (showContentTypeSelector) return {};
-        return contentType ? { contentTypes: [contentType], jobPositions: [] } : {};
-    });
-
-    useEffect(() => {
-        if (!showContentTypeSelector) return;
-        setFieldsFilter((prev) => ({
-            ...prev,
-            contentTypes: documentScope === "all" ? [] : [documentScope],
-        }));
-    }, [documentScope, showContentTypeSelector]);
     const [searchPhrase, setSearchPhrase] = useState("")
     const queryEntries = useContentQueryEntries({
         entries,
@@ -245,10 +203,7 @@ export default function ContentEntryPage({
             fieldsFilter,
             setFieldsFilter,
             createFieldsElement: (props) => (
-                <FilterDocumentFields
-                    {...props}
-                    hideContentType={showContentTypeSelector}
-                />
+                <FilterDocumentFields {...props} />
             ),
         },
         sortButtonProps: {}
@@ -286,7 +241,7 @@ export default function ContentEntryPage({
                     />
                 )),
             }}
-            extraToolbarElements={[documentScopeSelect, formAddButton].filter(Boolean)}
+            extraToolbarElements={[formAddButton]}
             queryProps={queryProps}
         />
     )

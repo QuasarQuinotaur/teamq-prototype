@@ -30,10 +30,7 @@ export default function EmployeeEntryPage() {
                     link: item.email,
                     description: item.email,
                     badge: item.jobPosition ? item.jobPosition.charAt(0).toUpperCase() + item.jobPosition.slice(1) : item.jobPosition,
-                    image: (item as { image?: string }).image ??
-                        `https://api.dicebear.com/9.x/initials/svg?seed=${
-                            encodeURIComponent(item.firstName + ' ' + item.lastName)
-                        }`,
+                    image: (item as { image?: string }).image,
                 }));
                 setEntries(mapped);
             })

@@ -13,23 +13,7 @@ import {
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
-
-const CARD_COLORS = [
-    "bg-blue-500",
-    "bg-violet-500",
-    "bg-emerald-500",
-    "bg-rose-500",
-    "bg-amber-500",
-    "bg-cyan-500",
-    "bg-pink-500",
-    "bg-indigo-500",
-];
-
-function stringToColor(str: string) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return CARD_COLORS[Math.abs(hash) % CARD_COLORS.length];
-}
+import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 
 function isSupabasePath(link: string) {
     return !link.startsWith("http://") && !link.startsWith("https://");
@@ -73,7 +57,7 @@ export default function ContentCard({
     // const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
     // const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
 
-    const cardColor = stringToColor(entry.title);
+    const cardColor = stringToAccentBgClass(entry.title)
 
     const [cardHovered, setCardHovered] = React.useState(false);
     /** After collapse animation, restore single-line ellipsis; cleared on hover. */
