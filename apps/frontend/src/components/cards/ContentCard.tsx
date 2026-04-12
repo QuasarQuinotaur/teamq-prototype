@@ -4,6 +4,7 @@ import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { MoreHorizontalIcon } from "lucide-react";
 import {
+    type CardEntry,
     type CardState,
     CardAction,
     CardContainer,
@@ -53,12 +54,14 @@ async function viewItem(link: string, item: object & { id: number }) {
 
 type ContentCardProps = {
     action: string;
+    onView?: (entry: CardEntry) => void;
 } & CardState;
 export default function ContentCard({
                                  action,
                                  entry,
                                  badges,
-                                 createOptionsElement
+                                 createOptionsElement,
+                                 onView,
 }: ContentCardProps) {
     // Favicon-based image (commented out in case you want to restore it)
     // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
@@ -119,7 +122,13 @@ export default function ContentCard({
             </div>
             <CardFooter>
                 <Button
-                    onClick={() => viewItem(entry.link, entry.item)}
+                    onClick={() => {
+                        if (onView && isSupabasePath(entry.link)) {
+                            onView(entry);
+                        } else {
+                            viewItem(entry.link, entry.item);
+                        }
+                    }}
                     className="w-full"
                 >
                     {action}

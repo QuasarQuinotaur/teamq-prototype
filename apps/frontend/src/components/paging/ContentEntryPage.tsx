@@ -11,6 +11,14 @@ import ContentCard from "@/components/cards/ContentCard.tsx";
 import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import DocumentViewer from "@/components/DocumentViewer.tsx";
+
+type ViewerState = {
+    url: string;
+    filename: string;
+    title: string;
+    contentId?: number;
+};
 
 
 type ContentEntryPageProps = {
@@ -21,6 +29,18 @@ export default function ContentEntryPage({
 }: ContentEntryPageProps) {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewerItem, setViewerItem] = useState<ViewerState | null>(null);
+
+    async function handleView(entry: CardEntry) {
+        const id = entry.item.id;
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/download`, {
+            credentials: "include",
+        });
+        if (!res.ok) return;
+        const { url } = await res.json();
+        const filename = entry.link.split("/").pop() ?? entry.title;
+        setViewerItem({ url, filename, title: entry.title, contentId: id });
+    }
 
     // This gets all content for the signed-in user
     function fetchContent() {
@@ -78,6 +98,18 @@ export default function ContentEntryPage({
             })
         )
 
+    if (viewerItem) {
+        return (
+            <DocumentViewer
+                url={viewerItem.url}
+                filename={viewerItem.filename}
+                title={viewerItem.title}
+                contentId={viewerItem.contentId}
+                onClose={() => setViewerItem(null)}
+            />
+        );
+    }
+
     return (
         <EntryPage
             entries={entries}
@@ -88,6 +120,7 @@ export default function ContentEntryPage({
                     <ContentCard
                         action="View"
                         key={state.entry.item.id}
+                        onView={handleView}
                         {...state}
                     />
                 )),

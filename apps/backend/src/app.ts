@@ -8,7 +8,8 @@ import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
-import { uploadBuffer, getSignedUrl } from "./lib/supabase.ts";
+import { uploadBuffer, getSignedUrl, downloadBuffer } from "./lib/supabase.ts";
+import WordExtractor from "word-extractor";
 import pkg from 'express-openid-connect';
 const { auth, requiresAuth } = pkg;
 import cors from 'cors';
@@ -308,6 +309,27 @@ app.get("/api/content/:id/download", requiresAuth(), async (req, res) => {
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
+    }
+});
+
+app.get("/api/content/:id/text", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const buffer = await downloadBuffer(content.link);
+        const extractor = new WordExtractor();
+        const doc = await extractor.extract(buffer);
+        res.json({ text: doc.getBody() });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Extraction failed" });
     }
 });
 
