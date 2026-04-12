@@ -126,9 +126,9 @@ export default function DocumentFormFields({
                 createElement={(id) => (
                     <ContentTypeInput
                         id={id}
-                        contentTypes={fields.contentType.trim() ? [fields.contentType] : []}
-                        setContentTypes={(types) => {
-                            setKey("contentType", types[0])
+                        contentType={fields.contentType}
+                        setContentType={(type) => {
+                            setKey("contentType", type)
                         }}
                     />
                 )}

@@ -2,9 +2,8 @@
 
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import {FieldInput} from "@/components/forms/Field.tsx";
-import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
-import {Input} from "@/elements/input.tsx";
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import ContentTypeMultiInput from "@/components/input/ContentTypeMultiInput.tsx";
 
 export type ContentFieldsFilter = {
     contentTypes?: string[];
@@ -22,7 +21,7 @@ export default function FilterDocumentFields({
                 id={"filter-documents-content-type"}
                 label={"By Content Type"}
                 createElement={(id) => (
-                    <ContentTypeInput
+                    <ContentTypeMultiInput
                         id={id}
                         contentTypes={fields.contentTypes ?? []}
                         setContentTypes={(types) => {
