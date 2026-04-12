@@ -17,6 +17,8 @@ import { EmployeeRepository } from "./EmployeeRepository.ts";
 import { ContentRepository } from "./ContentRepository.ts";
 import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
+import fs from "fs";
+import { exec } from "child_process";
 
 const employeeRepo = new EmployeeRepository();
 const contentRepo = new ContentRepository();
@@ -56,6 +58,7 @@ app.use(auth(config));
 // Middleware
 app.use(express.json());
 app.use(morgan("dev"));
+app.use("/tmp", express.static("tmp"));
 
 const upload = multer();
 
@@ -332,6 +335,72 @@ app.get("/api/content/:id/text", requiresAuth(), async (req, res) => {
         res.status(500).json({ error: err instanceof Error ? err.message : "Extraction failed" });
     }
 });
+
+
+// THUMBNAIL GENERATION
+app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const signedUrl = await getSignedUrl(content.link);
+
+        const cleanUrl = signedUrl.split("?")[0];
+        const ext = cleanUrl.split(".").pop()?.toLowerCase();
+
+        // If already an image → just return it
+        if (["png", "jpg", "jpeg", "webp"].includes(ext || "")) {
+            res.json({ thumbnailUrl: signedUrl });
+            return;
+        }
+
+        // If PDF → generate thumbnail
+        if (ext === "pdf") {
+            const tempPdf = `./tmp/file-${id}.pdf`;
+            const outputBase = `./tmp/thumb-${id}`;
+
+            // download file
+            const response = await fetch(signedUrl);
+            const buffer = await response.arrayBuffer();
+            fs.writeFileSync(tempPdf, Buffer.from(buffer));
+
+            exec(
+                `pdftoppm -png -f 1 -singlefile ${tempPdf} ${outputBase}`,
+                (err) => {
+                    if (err) {
+                        console.error(err);
+                        res.json({ thumbnailUrl: null });
+                        return;
+                    }
+
+                    res.json({
+                        thumbnailUrl: `/tmp/thumb-${id}.png`,
+                    });
+                }
+            );
+
+            return;
+        }
+
+        // DOCX / others → no preview (for now)
+        res.json({ thumbnailUrl: null });
+
+    } catch (err) {
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Thumbnail failed"
+        });
+    }
+});
+
 
 app.get("/api/content", requiresAuth(), async (req, res) => {
     const employee = await getEmployeeFromRequest(req);
