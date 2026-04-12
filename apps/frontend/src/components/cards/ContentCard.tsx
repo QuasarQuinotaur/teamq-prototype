@@ -1,4 +1,5 @@
 // Displays information about content (workflow, reference, tool)
+// Displays information about content (workflow, reference, tool)
 
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
