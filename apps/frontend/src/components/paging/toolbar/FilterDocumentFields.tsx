@@ -38,9 +38,9 @@ export default function FilterDocumentFields({
                     <JobPositionInput
                         // TODO needs an option for "all"? Or all are selected by default
                         id={id}
-                        jobPosition={fields.jobPositions[0]}
-                        setJobPosition={(position) => {
-                            setKey("jobPositions", [position])
+                        jobPositions={fields.jobPositions ?? []}
+                        setJobPositions={(positions) => {
+                            setKey("jobPositions", positions)
                         }}
                     />
                 )}

@@ -76,14 +76,14 @@ export default function DocumentFormFields({
                 )}
             />
             <FieldInput
-                id={"document-add-form-job-position"}
-                label={"Job Position"}
+                id={"document-add-form-job-positions"}
+                label={"Job Positions"}
                 createElement={(id) => (
                     <JobPositionInput
                         id={id}
-                        jobPosition={fields.jobPosition}
-                        setJobPosition={(position) => {
-                            setKey("jobPosition", position)
+                        jobPositions={fields.jobPosition.trim() ? [fields.jobPosition] : []}
+                        setJobPositions={(positions) => {
+                            setKey("jobPosition", positions[0])
                         }}
                     />
                 )}

@@ -35,7 +35,6 @@ export default function FilterButton<T extends object>({
                 </Button>
             </DialogTrigger>
             <DialogContent className="w-80">
-                <h2>Filter Search</h2>
                 <FilterForm
                     {...props}
                     state={formState}
