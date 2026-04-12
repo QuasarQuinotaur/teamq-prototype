@@ -3,7 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "nodemon",
+		"dev": "set DOTENV_CONFIG_PATH=../../.env&& pnpm dlx tsx ./src/app.ts",
 		"start": "dotenv -e ../../.env -- tsx ./src/app.ts"
 	},
 	"dependencies": {

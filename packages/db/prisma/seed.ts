@@ -81,7 +81,7 @@ async function main() {
 
     await prisma.serviceRequest.createMany({
         data: [
-            { id: 1, type: "Fix printer", creatorID: 1, requesteeID: 2 },
+            { id: 1, type: "Fix printer", creatorID: 1, requestedID: 2 },
             { id: 2, type: "Update website", creatorID: 2, requesteeID: 3 },
             { id: 3, type: "Prepare report", creatorID: 3, requesteeID: 4 },
             { id: 4, type: "System maintenance", creatorID: 4, requesteeID: 5 },

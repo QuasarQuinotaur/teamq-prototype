@@ -153,6 +153,26 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
     }
 });
 
+/*
+app.put("/api/upload-photo", requiresAuth(), upload.single("file"), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        res.status(404).json({ error: "No linked employee account found" });
+    }
+
+    const created = await prisma.UserPhoto.create({
+        data: {
+            ownerId: employee.id,
+        },
+        include: {
+          owner: true
+        },
+    })
+
+})
+*/
+
 app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {

@@ -47,3 +47,9 @@ model ServiceRequest {
   requestedID Int
   requested   Employee @relation("AssignedRequests", fields: [requestedID], references: [id])
 }
+
+// model UserPhoto {
+// id      Int      @id @default(autoincrement())
+// ownerId Int
+// owner   Employee @relation(fields: [ownerId], references: [id])
+//}

@@ -214,28 +214,40 @@ export default function DocumentForm(state: FormState) {
     // Create Content on backend from fields
     async function doSubmit(documentFields: DocumentFields) {
         const isUpdate = state.baseItem != null;
+
         const url = isUpdate
             ? `${import.meta.env.VITE_BACKEND_URL}/api/upload/${state.baseItem!.id}`
             : `${import.meta.env.VITE_BACKEND_URL}/api/upload`;
-        const body = {
-            name: documentFields.name,
-            jobPosition: documentFields.jobPosition,
-            expirationDate: documentFields.expirationDate!.toISOString(),
-            contentType: documentFields.contentType,
-            status: documentFields.status,
-            file: documentFields.file && !documentFields.link ? documentFields.file : null,
-            link: documentFields.link && !documentFields.file ? documentFields.link : null,
+
+        const formData = new FormData();
+
+        // Required fields
+        formData.append("name", documentFields.name);
+        formData.append("jobPosition", documentFields.jobPosition);
+        formData.append(
+            "expirationDate",
+            documentFields.expirationDate!.toISOString()
+        );
+        formData.append("contentType", documentFields.contentType);
+        formData.append("status", documentFields.status);
+        if (documentFields.file && !documentFields.link) {
+            formData.append("file", documentFields.file); // <-- MUST match "file" in multer
+        } else if (documentFields.link && !documentFields.file) {
+            formData.append("link", documentFields.link);
         }
+
         const res = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+            body: formData, // <-- no JSON, no stringify
         });
 
         const result = await res.json();
+
         if (!res.ok) {
-            throw new Error(result.error || (isUpdate ? "Update failed" : "Upload failed"));
+            throw new Error(
+                result.error || (isUpdate ? "Update failed" : "Upload failed")
+            );
         }
     }
 
