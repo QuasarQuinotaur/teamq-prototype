@@ -12,7 +12,7 @@ export default function ContentTypeMultiInput(props: ContentTypeMultiInputProps)
     return (
         <ComboboxMapInput
             map={CONTENT_TYPE_MAP}
-            initValues={props.contentTypes}
+            values={props.contentTypes}
             setValues={props.setContentTypes}
             placeholder={"Content Type"}
             emptyText={"No types found."}

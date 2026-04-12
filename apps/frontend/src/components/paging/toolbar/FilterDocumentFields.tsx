@@ -1,20 +1,26 @@
 // Fields to include in filtering for Content
 
+import * as React from "react";
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import {FieldInput} from "@/components/forms/Field.tsx";
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import ContentTypeMultiInput from "@/components/input/ContentTypeMultiInput.tsx";
+import DocumentTypeInput from "@/components/input/DocumentTypeInput.tsx";
+import type {DocumentType} from "@/components/input/constants.tsx";
+
 
 export type ContentFieldsFilter = {
     contentTypes?: string[];
     jobPositions?: string[];
+    documentTypes?: DocumentType[];
 }
 
 export default function FilterDocumentFields({
                                                  fields,
                                                  setKey,
 }: FormFieldsProps<ContentFieldsFilter>) {
-    // TODO make these fields be multi-check dropdowns (can select multiple content types, job positions, etc.)
+    console.log("Fields for document filter:", fields)
+
     return (
         <>
             <FieldInput
@@ -35,11 +41,23 @@ export default function FilterDocumentFields({
                 label={"By Job Position"}
                 createElement={(id) => (
                     <JobPositionInput
-                        // TODO needs an option for "all"? Or all are selected by default
                         id={id}
                         jobPositions={fields.jobPositions ?? []}
                         setJobPositions={(positions) => {
                             setKey("jobPositions", positions)
+                        }}
+                    />
+                )}
+            />
+            <FieldInput
+                id={"filter-documents-document-type"}
+                label={"By Document Type"}
+                createElement={(id) => (
+                    <DocumentTypeInput
+                        id={id}
+                        documentTypes={fields.documentTypes ?? []}
+                        setDocumentTypes={(types) => {
+                            setKey("documentTypes", types)
                         }}
                     />
                 )}

@@ -13,7 +13,7 @@ export default function JobPositionInput(props: JobPositionInputProps) {
     return (
         <ComboboxMapInput
             map={JOB_POSITION_TYPE_MAP}
-            initValues={props.jobPositions}
+            values={props.jobPositions}
             setValues={props.setJobPositions}
             placeholder={"Job Position"}
             emptyText={"No positions found."}

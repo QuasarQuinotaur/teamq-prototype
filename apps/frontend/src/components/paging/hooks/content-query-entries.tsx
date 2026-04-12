@@ -6,6 +6,11 @@ import type {Content} from "db";
 import type {ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import useQueryEntries from "@/components/paging/hooks/query-entries.tsx";
 
+// TODO put in utils (copied from ContentCard, trying not to modify cards rn)
+function isSupabasePath(link: string) {
+    return !link.startsWith("http://") && !link.startsWith("https://");
+}
+
 type ContentQueryEntriesProps = {
     entries: CardEntry[];
     searchPhrase: string;
@@ -16,22 +21,31 @@ export default function useContentQueryEntries({
                                                    searchPhrase,
                                                    fieldsFilter,
 }: ContentQueryEntriesProps) {
-    console.log("entries ", entries);
     const getFieldsFilterEntries = useCallback((from: CardEntry[]) => {
         return from.filter(entry => {
             const c = entry.item as Content
             const matchContentType = (
-                fieldsFilter.contentTypes.length === 0 ||
+                !fieldsFilter.contentTypes || fieldsFilter.contentTypes.length === 0 ||
                 fieldsFilter.contentTypes.some((type) => c.contentType === type)
             )
             if (!matchContentType) {
                 return false;
             }
             const matchJobPosition = (
-                fieldsFilter.jobPositions.length === 0 ||
+                !fieldsFilter.jobPositions || fieldsFilter.jobPositions.length === 0 ||
                 fieldsFilter.jobPositions.some((position) => c.jobPosition === position)
             )
-            return matchJobPosition;
+            if (!matchJobPosition) {
+                return false;
+            }
+            const matchDocumentTypes = (
+                !fieldsFilter.documentTypes || fieldsFilter.documentTypes.length === 0 ||
+                fieldsFilter.documentTypes.some((type) => (
+                    (type == "links" && c.link && !isSupabasePath(c.link)) ||
+                    (type == "files" && c.link && isSupabasePath(c.link))
+                ))
+            )
+            return matchDocumentTypes;
         })
     }, [fieldsFilter])
 

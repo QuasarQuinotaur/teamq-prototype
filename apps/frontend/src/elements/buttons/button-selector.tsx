@@ -6,7 +6,7 @@ import { type ReactNode} from "react";
 import { Item } from "@/elements/item.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 
-type OptionDefinition = {
+export type OptionDefinition = {
     buttonElement: ReactNode;
 }
 type ButtonSelectorProps<T extends Record<string, OptionDefinition>> = {
