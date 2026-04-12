@@ -15,8 +15,8 @@ model Employee {
   lastName    String
   dateOfBirth DateTime
   jobPosition String
-  contents    Content[]
-  favorites   Favorites[]
+  contents    Content[]   @relation("owned contents") // relationship list
+  favorites   Favorites[] @relation("favorited contents") // relationship list
 
   createdRequests  ServiceRequest[] @relation("CreatedRequests")
   assignedRequests ServiceRequest[] @relation("AssignedRequests")
@@ -28,7 +28,7 @@ model Content {
   title              String
   link               String
   ownerName          String
-  jobPosition        String
+  jobPositions       String[] // scalar list
   contentType        String
   status             String
   dateAdded          DateTime    @default(now())
@@ -71,10 +71,26 @@ model ServiceRequestToContents {
 }
 
 model Favorites {
-  id Int @id @default(autoincrement())
-
+  id         Int      @id @default(autoincrement())
   employeeID Int
   employee   Employee @relation("employee who favorites", fields: [employeeID], references: [id])
   contentID  Int
   Content    Content  @relation("content favorited", fields: [contentID], references: [id])
+}
+
+model NewNotifications {
+  id @id @defualt(autoincrement())
+  type             String
+  dateSent         DateTime  @default(now())
+  employeeNotified Employee
+  contentsUsed     Content[] @relation("contents apart of notification (can be none)")
+}
+
+model OldNotificiations {
+  id @id @defualt(autoincrement())
+  type             String
+  dateSent         DateTime
+  dateRead         DateTime  @default(now())
+  employeeNotified Employee
+  contentsUsed     Content[] @relation("contents apart of notification (can be none)")
 }
