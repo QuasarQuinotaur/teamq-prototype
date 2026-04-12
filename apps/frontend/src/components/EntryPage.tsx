@@ -40,6 +40,7 @@ import {
     type FormType,
     type FormWindowProps
 } from "@/components/forms/Form.tsx";
+import {CheckIcon, Clock3Icon} from "lucide-react";
 
 const DEFAULT_UPDATE_FORM_HEADERS: Record<FormType, string> = {
     Document: "Update Document",
@@ -68,6 +69,22 @@ function UpdateDeleteDropdown({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuGroup>
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem>
+                                    <Clock3Icon/>
+                                    Mark In-Progress
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                        </DropdownMenuGroup>
+                        <DropdownMenuGroup>
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem>
+                                    <CheckIcon/>
+                                    Mark Done
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                        </DropdownMenuGroup>
                         <DropdownMenuGroup>
                             <DialogTrigger asChild>
                                 <DropdownMenuItem>

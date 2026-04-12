@@ -131,7 +131,6 @@ export default function Card({
     entry, badges, action, optionsWrapper
 }: CardProps) {
 
-
     const cardColor = stringToColor(entry.title);
 
     // Get the pdf preview from the backend
