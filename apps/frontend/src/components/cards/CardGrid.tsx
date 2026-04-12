@@ -19,7 +19,7 @@ export default function CardGrid({
                                      createOptionsElement
 }: CardGridProps & EntryProps) {
     return (
-        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div className="grid auto-rows-min gap-10 md:grid-cols-5 px-10 ">
             {entries.map((entry) => {
                 const entryOptionsWrapper = createOptionsElement ? (
                     (trigger: React.ReactNode) => createOptionsElement(entry, trigger)

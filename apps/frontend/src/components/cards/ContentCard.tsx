@@ -16,58 +16,6 @@ import {
     CardTitle
 } from "@/components/cards/Card.tsx";
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-        <div
-            data-slot="card-description"
-            className={cn("text-sm text-muted-foreground", className)}
-            {...props}
-        />
-    )
-}
-
-function CardAction({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-        <div
-            data-slot="card-action"
-            className={cn(
-                "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-                className
-            )}
-            {...props}
-        />
-    )
-}
-
-// function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-//     return (
-//         <div
-//             data-slot="card-content"
-//             className={cn("px-4 group-data-[size=sm]/card:px-3", className)}
-//             {...props}
-//         />
-//     )
-// }
-
-function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-        <div
-            data-slot="card-footer"
-            className={cn(
-                "flex items-center rounded-b-xl border-t bg-muted/50 p-4 group-data-[size=sm]/card:p-3",
-                className
-            )}
-            {...props}
-        />
-    )
-}
-
-type CardProps = {
-    entry: CardEntry;
-    badges: string[];
-    action: string;
-    optionsWrapper?: (trigger: React.ReactNode) => React.ReactNode;
-}
 const CARD_COLORS = [
     "bg-blue-500",
     "bg-violet-500",
@@ -161,7 +109,6 @@ export default function ContentCard({
             <CardHeader>
                 <div className="flex w-full items-start justify-between gap-2">
                     <CardTitle className="line-clamp-3 break-normal flex-1">{entry.title}</CardTitle>
-                    <div className={"w-full"}/>
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0">
                             {createOptionsElement(
