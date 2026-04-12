@@ -46,6 +46,9 @@ type Employee = {
     lastName: string;
 };
 
+/** Fixed grid of placeholders while the first content request is in flight. */
+const SKELETON_GRID_SLOTS = 25;
+
 export default function ContentEntryPage({
                                              contentType,
                                              showContentTypeSelector,
@@ -77,8 +80,11 @@ export default function ContentEntryPage({
 
     // This gets all content for the signed-in user
     function fetchContent() {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: 'include' })
-            .then(res => res.json())
+        const isInitialLoad = entries.length === 0;
+        if (isInitialLoad) setLoading(true);
+
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: "include" })
+            .then((res) => res.json())
             .then((data: Content[]) => {
                 const mapped: CardEntry[] = data.map((item) => ({
                     item: item,
@@ -89,7 +95,9 @@ export default function ContentEntryPage({
                 }));
                 setEntries(mapped);
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (isInitialLoad) setLoading(false);
+            });
     }
     useEffect(() => {
         fetchContent()
@@ -258,10 +266,15 @@ export default function ContentEntryPage({
         );
     }
 
+    const gridSkeletonCount =
+        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
+
     return (
         <EntryPage
             entries={queryEntries}
+            gridSkeletonCount={gridSkeletonCount}
             createOptionsElement={createOptionsElement}
+            onListRowClick={handleView}
             cardGridProps={{
                 renderCard: ((state) => (
                     // Uses content card for grid

@@ -8,8 +8,9 @@ import * as React from "react";
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
 import {type CardEntry} from "@/components/cards/Card.tsx";
-import CardGrid, {type CardGridProps} from "@/components/cards/CardGrid.tsx";
-import CardList, {type CardListProps} from "@/components/cards/CardList.tsx";
+import CardGrid, {CARD_GRID_LAYOUT_CLASS, type CardGridProps} from "@/components/cards/CardGrid.tsx";
+import ContentCardSkeleton from "@/components/cards/ContentCardSkeleton.tsx";
+import CardList from "@/components/cards/CardList.tsx";
 import type {ViewSelectorButtonProps, ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 
@@ -24,17 +25,20 @@ export type EntryProps = {
 // T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
 type EntryPageProps<T> = {
     cardGridProps: CardGridProps;
-        // currently unused (uncomment if used in future)
-        // cardListProps?: CardListProps;
+    /** When set, list view rows open the item (e.g. document viewer) on click. */
+    onListRowClick?: (entry: CardEntry) => void;
     // These elements get added to top right toolbar
     extraToolbarElements?: React.ReactNode[];
     queryProps: QueryProps<T>;
+    /** When set alongside an empty `entries` list, grid view shows this many skeleton cards instead of the grid. */
+    gridSkeletonCount?: number | null;
 }
 export default function EntryPage<T extends object>({
-                                      // cardListProps,
                                       cardGridProps,
+                                      onListRowClick,
                                       extraToolbarElements,
                                       queryProps,
+                                      gridSkeletonCount,
                                       ...entryProps
 }: EntryPageProps<T> & EntryProps) {
     const { entries } = entryProps;
@@ -73,17 +77,30 @@ export default function EntryPage<T extends object>({
             <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2">
             {view === "Grid" ?
                 (
-                    <CardGrid
-                        {...cardGridProps}
-                        {...entryProps}
-                        entries={entries}
-                    />
+                    gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
+                        <div
+                            className={CARD_GRID_LAYOUT_CLASS}
+                            aria-busy="true"
+                            aria-label="Loading documents"
+                        >
+                            {Array.from({ length: gridSkeletonCount }, (_, i) => (
+                                <ContentCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : (
+                        <CardGrid
+                            {...cardGridProps}
+                            {...entryProps}
+                            entries={entries}
+                        />
+                    )
                 ) :
                 (
                     <>
                         <CardList
                             {...pageEntries}
                             {...pagedEntries}
+                            onRowClick={onListRowClick}
                         />
                         <div>
                             <Pagination docNum={entries.length} entriesCallback={pageCallback} />

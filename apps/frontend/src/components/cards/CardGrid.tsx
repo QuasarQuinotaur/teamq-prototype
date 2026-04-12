@@ -8,6 +8,10 @@ import type {
 } from "@/components/cards/Card.tsx";
 import type {EntryProps} from "@/components/paging/EntryPage.tsx";
 
+/** Min track ~0.7× the prior 22rem (~15.4rem →15.5rem); `min(100%,…)` keeps one column on narrow viewports. */
+export const CARD_GRID_LAYOUT_CLASS =
+    "grid auto-rows-min gap-6 px-10 grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))]";
+
 export type CardGridProps = {
     renderCard: (state: CardState) => React.ReactNode;
     defaultBadge?: string;
@@ -19,7 +23,7 @@ export default function CardGrid({
                                      createOptionsElement
 }: CardGridProps & EntryProps) {
     return (
-        <div className="grid auto-rows-min gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 px-10">
+        <div className={CARD_GRID_LAYOUT_CLASS}>
             {entries.map((entry) => {
                 const entryOptionsWrapper = createOptionsElement ? (
                     (trigger: React.ReactNode) => createOptionsElement(entry, trigger)

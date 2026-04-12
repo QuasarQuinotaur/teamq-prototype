@@ -75,6 +75,38 @@ export default function ContentCard({
 
     const cardColor = stringToColor(entry.title);
 
+    const [cardHovered, setCardHovered] = React.useState(false);
+    /** After collapse animation, restore single-line ellipsis; cleared on hover. */
+    const [titleCollapsedClamp, setTitleCollapsedClamp] = React.useState(true);
+    const titleCollapseTimerRef = React.useRef<number | null>(null);
+
+    const TITLE_COLLAPSE_MS = 500;
+
+    function handleCardPointerEnter() {
+        if (titleCollapseTimerRef.current != null) {
+            window.clearTimeout(titleCollapseTimerRef.current);
+            titleCollapseTimerRef.current = null;
+        }
+        setTitleCollapsedClamp(false);
+        setCardHovered(true);
+    }
+
+    function handleCardPointerLeave() {
+        setCardHovered(false);
+        titleCollapseTimerRef.current = window.setTimeout(() => {
+            setTitleCollapsedClamp(true);
+            titleCollapseTimerRef.current = null;
+        }, TITLE_COLLAPSE_MS);
+    }
+
+    React.useEffect(() => {
+        return () => {
+            if (titleCollapseTimerRef.current != null) {
+                window.clearTimeout(titleCollapseTimerRef.current);
+            }
+        };
+    }, []);
+
     // Get the pdf preview from the backend
     const [thumbnail, setThumbnail] = React.useState<string | null>(null);
     React.useEffect(() => {
@@ -115,11 +147,27 @@ export default function ContentCard({
         <CardContainer
             className="relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
             onClick={handleCardClick}
+            onPointerEnter={handleCardPointerEnter}
+            onPointerLeave={handleCardPointerLeave}
         >
             <CardHeader className="pb-3 shrink-0">
                 <div className="flex w-full items-start justify-between gap-2">
-                    <div className="overflow-hidden max-h-[1.4em] transition-[max-height] duration-300 ease-in-out group-hover/card:max-h-24 flex-1 min-w-0">
-                        <CardTitle className="break-words">{entry.title}</CardTitle>
+                    <div
+                        className={cn(
+                            "overflow-hidden flex-1 min-w-0 transition-[max-height] ease-in-out",
+                            cardHovered
+                                ? "max-h-24 duration-300"
+                                : "max-h-[1.4em] duration-500",
+                        )}
+                    >
+                        <CardTitle
+                            className={cn(
+                                "min-w-0 break-words",
+                                titleCollapsedClamp && "line-clamp-1",
+                            )}
+                        >
+                            {entry.title}
+                        </CardTitle>
                     </div>
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
