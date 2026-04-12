@@ -7,6 +7,7 @@ import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import FilterForm, {type FilterFormProps} from "@/components/forms/FilterForm.tsx";
 import {type FormState} from "@/components/forms/Form.tsx";
+import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popover.tsx";
 
 
 export type FilterButtonProps<T> = FilterFormProps<T>
@@ -28,18 +29,21 @@ export default function FilterButton<T extends object>({
     }
 
     return (
-        <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-            <DialogTrigger>
+        <Popover
+            open={filterOpen}
+            onOpenChange={setFilterOpen}
+        >
+            <PopoverTrigger>
                 <Button variant={"outline"}>
                     <FunnelSimpleIcon/>
                 </Button>
-            </DialogTrigger>
-            <DialogContent className="w-80">
+            </PopoverTrigger>
+            <PopoverContent align={"end"} className="w-80">
                 <FilterForm
                     {...props}
                     state={formState}
                 />
-            </DialogContent>
-        </Dialog>
+            </PopoverContent>
+        </Popover>
     )
 }

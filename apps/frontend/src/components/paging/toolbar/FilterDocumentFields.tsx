@@ -24,9 +24,9 @@ export default function FilterDocumentFields({
                 createElement={(id) => (
                     <ContentTypeInput
                         id={id}
-                        contentType={fields.contentTypes[0]}
-                        setContentType={(type) => {
-                            setKey("contentTypes", [type])
+                        contentTypes={fields.contentTypes ?? []}
+                        setContentTypes={(types) => {
+                            setKey("contentTypes", types)
                         }}
                     />
                 )}

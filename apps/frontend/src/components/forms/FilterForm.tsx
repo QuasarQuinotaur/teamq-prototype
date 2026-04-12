@@ -29,7 +29,7 @@ export default function FilterForm<T extends object>({
             initialFields={fieldsFilter}
             createFieldsElement={createFieldsElement}
             submit={handleSubmit}
-            submitText={"Search"}
+            submitText={"Apply"}
             noFixedHeight
             hideCancel
         />
