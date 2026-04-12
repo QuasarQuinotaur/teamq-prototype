@@ -54,6 +54,7 @@ export default function ContentEntryPage({
         if (!res.ok) {
             throw new Error("Delete failed");
         }
+        fetchContent()
     }
 
     // Use Document form with default content type
