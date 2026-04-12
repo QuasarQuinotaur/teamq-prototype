@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import type { CardEntry } from "@/components/Card.tsx"
+import type { CardEntry } from "@/components/cards/Card.tsx"
 import * as React from "react"
 
 // Legacy mock type (kept for reference)
@@ -11,7 +11,7 @@ import * as React from "react"
 // }
 
 export function createColumns(
-    optionsWrapper?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
+    createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
 ): ColumnDef<CardEntry>[] {
     const cols: ColumnDef<CardEntry>[] = [
         {
@@ -33,13 +33,13 @@ export function createColumns(
         },
     ];
 
-    if (optionsWrapper) {
+    if (createOptionsElement) {
         cols.push({
             id: "actions",
             header: "",
             cell: ({ row }) => (
                 <div className="flex justify-end">
-                    {optionsWrapper(
+                    {createOptionsElement(
                         row.original,
                         <button className="px-2 py-1 text-sm border rounded hover:bg-muted">•••</button>
                     )}

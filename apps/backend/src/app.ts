@@ -1,7 +1,7 @@
 process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
     process.exit(1);
-  });
+});
 
 import "dotenv/config";
 
@@ -26,8 +26,8 @@ const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
 }));
 
 console.log(process.env.SECRET);
@@ -37,17 +37,17 @@ console.log(process.env.ISSUER_BASE_URL);
 
 // Auth0 configuration
 const config = {
-  authRequired: false,      // Allow public routes
-  auth0Logout: true,        // Use Auth0 logout endpoint
-  secret: process.env.SECRET,
-  baseURL: process.env.BASE_URL,
-  clientID: process.env.CLIENT_ID,
-  issuerBaseURL: process.env.ISSUER_BASE_URL,
-  routes: {
-    login: false,
-    logout: false,
-    callback: '/api/callback'
-  },
+    authRequired: false,      // Allow public routes
+    auth0Logout: true,        // Use Auth0 logout endpoint
+    secret: process.env.SECRET,
+    baseURL: process.env.BASE_URL,
+    clientID: process.env.CLIENT_ID,
+    issuerBaseURL: process.env.ISSUER_BASE_URL,
+    routes: {
+        login: false,
+        logout: false,
+        callback: '/api/callback'
+    },
 } as const;
 
 // Apply the auth middleware
@@ -64,15 +64,15 @@ app.get("/api", (req, res) => {
 });
 
 app.get('/api/login', (req, res) => {
-  res.oidc.login({
-    returnTo: `${process.env.FRONTEND_URL}/documents`,
-  });
+    res.oidc.login({
+        returnTo: `${process.env.FRONTEND_URL}/documents`,
+    });
 });
 
 app.get('/api/logout', (req, res) => {
-  res.oidc.logout({
-    returnTo: process.env.FRONTEND_URL,
-  });
+    res.oidc.logout({
+        returnTo: process.env.FRONTEND_URL,
+    });
 });
 
 // Upload route
@@ -151,6 +151,117 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
         res.status(500).json({
             error: err instanceof Error ? err.message : "Upload failed",
         });
+    }
+});
+
+app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const {
+            name,
+            link,
+            jobPosition,
+            expirationDate,
+            contentType,
+            status,
+        } = req.body;
+
+        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
+            res.status(400).json({ error: "Missing required fields" });
+            return;
+        }
+
+        const hasFile = !!req.file;
+        const hasLink = !!link?.trim();
+
+        if (!hasFile && !hasLink) {
+            res.status(400).json({ error: "Provide either a file or an external link." });
+            return;
+        }
+
+        if (hasFile && hasLink) {
+            res.status(400).json({ error: "Provide only one: file or external link." });
+            return;
+        }
+
+        let finalLink = "";
+
+        if (req.file) {
+            const uploaded = await uploadBuffer(
+                req.file.buffer,
+                req.file.originalname,
+                req.file.mimetype
+            );
+
+            finalLink = uploaded.path;
+        } else {
+            finalLink = link.trim();
+        }
+
+        const created = await prisma.content.update({
+            where: { id: id },
+            data: {
+                title: name,
+                link: finalLink,
+                ownerName: `${employee.firstName} ${employee.lastName}`,
+                ownerId: employee.id,
+                jobPosition,
+                contentType,
+                status,
+                expirationDate: new Date(expirationDate),
+            },
+            include: {
+                owner: true,
+            },
+        });
+
+        res.json({
+            success: true,
+            content: created,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Upload failed",
+        });
+    }
+});
+
+
+app.put("/api/upload/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    const { firstName, lastName, email, dateOfBirth, jobPosition } = req.body;
+    if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !dateOfBirth || !jobPosition?.trim()) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+    }
+    try {
+        const employee = await employeeRepo.update(id, {
+            firstName,
+            lastName,
+            email,
+            dateOfBirth: new Date(dateOfBirth),
+            jobPosition,
+        });
+        res.json(employee);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
     }
 });
 
@@ -368,16 +479,16 @@ app.get('/api/me', async (req, res) => {
 });
 
 app.post('/api/me/link', requiresAuth(), async (req, res) => {
-  const sub = req.oidc.user!.sub as string;
-  const email = req.oidc.user!.email as string;
-  const employee = await employeeRepo.linkAuth0(email, sub);
-  res.json(employee);
+    const sub = req.oidc.user!.sub as string;
+    const email = req.oidc.user!.email as string;
+    const employee = await employeeRepo.linkAuth0(email, sub);
+    res.json(employee);
 });
 
 async function getEmployeeFromRequest(req: express.Request) {
-  if (!req.oidc.isAuthenticated()) return null;
-  const sub = req.oidc.user!.sub as string;
-  return employeeRepo.getByAuth0Id(sub);
+    if (!req.oidc.isAuthenticated()) return null;
+    const sub = req.oidc.user!.sub as string;
+    return employeeRepo.getByAuth0Id(sub);
 }
 
 // Start server

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   NavigationMenuLink,
-} from "@/components/ui/navigation-menu"
+} from "@/components/NavigationMenu.tsx"
 import {
   DropdownMenu,
   DropdownMenuContent,

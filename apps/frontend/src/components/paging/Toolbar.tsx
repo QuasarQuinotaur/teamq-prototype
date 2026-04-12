@@ -1,10 +1,12 @@
+// Toolbar shows at the top of entry pages for querying
+
 import * as React from "react";
 
 import {
     NavigationMenu,
     NavigationMenuItem,
     NavigationMenuList,
-} from "@/components/ui/navigation-menu"
+} from "@/components/NavigationMenu.tsx"
 import { Separator } from "@/elements/separator.tsx"
 import {
     InputGroup,
@@ -25,7 +27,7 @@ import {
 } from "@/elements/buttons/popover.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
-import { SidebarTrigger } from "../elements/sidebar-elements.tsx";
+import { SidebarTrigger } from "../../elements/sidebar-elements.tsx";
 import ButtonSelector from "@/elements/buttons/button-selector.tsx";
 
 
@@ -65,7 +67,7 @@ function SortButton() {
 
 export type ViewType = "List" | "Grid";
 
-// these props are passed in from minor topbar, which get passed in from reference page / tools page
+// these props are passed in from minor topbar, which get passed in from reference paging / tools paging
 type ViewSelectorButtonProps = {
     view: ViewType
     setView: (view: ViewType) => void
@@ -88,16 +90,16 @@ function ViewSelectorButton( {view, setView }: ViewSelectorButtonProps ) {
 }
 
 
-type MinorTopbarProps = {
+type ToolbarProps = {
     view: ViewType;
     setView: (view: ViewType) => void;
     extraElements?: React.ReactNode[];
 };
-export default function MinorTopbar({
+export default function Toolbar({
                                         view,
                                         setView,
                                         extraElements
-}: MinorTopbarProps) {
+}: ToolbarProps) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
         <FilterButton/>,
@@ -136,6 +138,7 @@ export default function MinorTopbar({
                 <ButtonGroup className={"gap-1 overflow-hidden"}>
                     {/*Todo: Overflow Handling?*/}
                     {topRightElements.map((item) => {
+                        // Make all elements in the top right
                         return (
                             <NavigationMenuItem>
                                 {item}
