@@ -8,10 +8,13 @@ import type {Content} from "db";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
-import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
+import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
+import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
+import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
+import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
 
 type ViewerState = {
     url: string;
@@ -47,9 +50,7 @@ export default function ContentEntryPage({
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: 'include' })
             .then(res => res.json())
             .then((data: Content[]) => {
-                const mapped: CardEntry[] = data.filter((item) => {
-                    return item.contentType === contentType
-                }).map((item) => ({
+                const mapped: CardEntry[] = data.map((item) => ({
                     item: item,
                     title: item.title,
                     link: item.link,
@@ -73,10 +74,11 @@ export default function ContentEntryPage({
         if (!res.ok) {
             throw new Error("Delete failed");
         }
+        fetchContent()
     }
 
     // Use Document form with default content type
-    const formProps: FormWindowProps = {
+    const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
         onCancel: fetchContent,
         defaultItem: {
@@ -85,7 +87,7 @@ export default function ContentEntryPage({
     }
 
     // Create toolbar button for Add Document Form
-    const formAddButton = FormAddButton(formProps)
+    const formAddButton = <FormAddButton {...formOfTypeProps}/>
 
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
@@ -93,10 +95,38 @@ export default function ContentEntryPage({
             ModifyDropdown({
                 entry,
                 trigger,
-                updateFormProps: formProps,
+                ...formOfTypeProps,
                 handleDelete: handleDelete,
             })
         )
+
+    // Filtering using search and key matching
+    const defaultFieldsFilter: ContentFieldsFilter = contentType ? {
+        contentTypes: [contentType],
+        jobPositions: [],
+    } : {}
+    const [fieldsFilter, setFieldsFilter] = useState(defaultFieldsFilter)
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const queryEntries = useContentQueryEntries({
+        entries,
+        searchPhrase,
+        fieldsFilter,
+    })
+
+    // Track properties to update querying
+    const queryProps: QueryProps<ContentFieldsFilter> = {
+        searchBarProps: {
+            setFilter: setSearchPhrase
+        },
+        filterButtonProps: {
+            emptyFieldsFilter: {},
+            defaultFieldsFilter,
+            fieldsFilter,
+            setFieldsFilter,
+            createFieldsElement: FilterDocumentFields
+        },
+        sortButtonProps: {}
+    }
 
     if (viewerItem) {
         return (
@@ -112,7 +142,7 @@ export default function ContentEntryPage({
 
     return (
         <EntryPage
-            entries={entries}
+            entries={queryEntries}
             createOptionsElement={createOptionsElement}
             cardGridProps={{
                 renderCard: ((state) => (
@@ -126,6 +156,7 @@ export default function ContentEntryPage({
                 )),
             }}
             extraToolbarElements={[formAddButton]}
+            queryProps={queryProps}
         />
     )
 }

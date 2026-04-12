@@ -14,34 +14,41 @@ import {
     AlertDialog as AlertDialog
 } from "@/components/dialog/AlertDialog.tsx";
 import {ScrollArea} from "@/elements/scroll-area.tsx";
-import {FieldGroup} from "@/components/forms/Field.tsx";
-import {handleKeyChange} from "@/lib/utils.ts";
+import {FieldGroup, FieldSet} from "@/components/forms/Field.tsx";
+import {cn, handleKeyChange} from "@/lib/utils.ts";
 import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 
 
 type FormActionsProps = {
-    isSubmitting: boolean;
-    onCancel?: () => void;
+    submitText?: string | ((isSubmitting: boolean) => string);
+    cancelText?: string;
+    hideReset?: boolean;
+    hideCancel?: boolean;
 }
 function FormActions({
+                         submitText,
+                         cancelText,
+                         hideReset,
+                         hideCancel,
                          isSubmitting,
-                         onCancel
-}: FormActionsProps) {
-// Creates cancel-reset-submit buttons
+                         onCancel,
+}: FormActionsProps & FormState & { isSubmitting: boolean }) {
+    // Creates cancel-reset-submit buttons
     return (
         <div className={"flex-col w-full"}>
             <Separator className={"mb-3"}/>
             <div className={"flex gap-1"}>
-                <Button
+                {!hideCancel && <Button
                     type={"button"}
                     onClick={onCancel}
                 >
-                    Cancel
-                </Button>
-                <Button type={"reset"}>Reset</Button>
-                <Button type={"submit"} disabled={isSubmitting} >
-                    {isSubmitting ? "Uploading..." : "Submit"}
+                    {cancelText ?? "Cancel"}
+                </Button>}
+                {!hideReset && <Button type={"reset"}>Reset</Button>}
+                <Button type={"submit"} disabled={isSubmitting}>
+                    {submitText ? (typeof(submitText) == "string" ? submitText : submitText(isSubmitting)) :
+                        isSubmitting ? "Uploading..." : "Submit"}
                 </Button>
             </div>
         </div>
@@ -56,41 +63,50 @@ export type FormState = {
     defaultItem?: object;
     onCancel?: () => void;
 }
-export type FormFieldsProps<TFields> = {
-    fields: TFields,
+export type FormFieldsProps<T> = {
+    fields: T,
     // Changes fields key to new value
-    setKey: <TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) => void;
+    setKey: <K extends keyof T>(key: K, value: T[K]) => void;
 }
+export type CreateFieldsElement<T> = (props: FormFieldsProps<T>) => React.ReactNode
 
-type FormProps<TFields> = {
-    state: FormState;
-    initialFields: TFields;
-    createFieldsElement: (props: FormFieldsProps<TFields>) => React.ReactNode;
-    submit: (fields: TFields) => Promise<void>;
+type FormProps<T> = {
+    state?: FormState;
+    initialFields: T;
+    createFieldsElement: CreateFieldsElement<T>;
+    submit: (fields: T) => Promise<void>;
     reset?: () => void;
+    // If specified will be set on reset instead of initial fields
+    resetFields?: T;
     // Return an error to display + prevent submitting
-    getFieldsError?: (fields: TFields) => boolean | string | null | undefined;
+    getFieldsError?: (fields: T) => boolean | string | null | undefined;
+    noFixedHeight?: boolean;
 }
-export default function Form<TFields extends object>({
-                            state,
-                            initialFields,
-                            createFieldsElement,
-                            submit,
-                            reset,
-                            getFieldsError,
-}: FormProps<TFields>) {
-    const [fields, setFields] = useState<TFields>(initialFields);
+export default function Form<T extends object>({
+                                                   state = {},
+                                                   initialFields = {} as T,
+                                                   createFieldsElement,
+                                                   submit,
+                                                   reset,
+                                                   resetFields,
+                                                   getFieldsError,
+                                                   noFixedHeight,
+                                                   ...actionsProps
+}: FormProps<T> & FormActionsProps) {
+    const [fields, setFields] = useState<T>(initialFields);
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [confirmOpen, setConfirmOpen] = useState(false)
+    const [submitError, setSubmitError] = useState<string | null>(null)
 
     // Sets a key within the field to be updated
-    function setKey<TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) {
+    function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
         handleKeyChange(setFields, key, value)
     }
 
     // Resets fields back to their initial fields
     function handleReset() {
-        setFields(initialFields)
+        setFields(resetFields ?? initialFields)
+        setSubmitError(null)
         if (reset) {
             reset()
         }
@@ -109,7 +125,7 @@ export default function Form<TFields extends object>({
                 state.onCancel();
             }
         } catch (error) {
-            console.error("Submit failed:", error);
+            setSubmitError(error instanceof Error ? error.message : "An unexpected error occurred.");
         } finally {
             setIsSubmitting(false);
         }
@@ -147,18 +163,27 @@ export default function Form<TFields extends object>({
                 }}
                 onSubmit={handleSubmit}
             >
-                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
+                <ScrollArea className={cn(noFixedHeight ? "" : "h-96", "w-full pr-4 mb-4")}>
+                    {/*TODO: Form can cut off if you shrink your window height*/}
                     <FieldGroup className={"p-1"}>
-                        {/*This makes all field elements (different based on type of form)*/}
-                        {createFieldsElement({
-                            fields,
-                            setKey,
-                        })}
+                        <FieldSet>
+                            <FieldGroup>
+                                {/*This makes all field elements (different based on type of form)*/}
+                                {createFieldsElement({
+                                    fields,
+                                    setKey,
+                                })}
+                            </FieldGroup>
+                        </FieldSet>
                     </FieldGroup>
                 </ScrollArea>
+                {submitError && (
+                    <p className={"text-sm text-destructive mb-2"}>{submitError}</p>
+                )}
                 <FormActions
+                    {...actionsProps}
+                    {...state}
                     isSubmitting={isSubmitting}
-                    onCancel={state.onCancel}
                 />
             </form>
 

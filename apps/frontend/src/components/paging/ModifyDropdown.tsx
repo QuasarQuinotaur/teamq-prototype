@@ -4,7 +4,6 @@
 
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import * as React from "react";
-import FormWindow, {type FormType, type FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import {
@@ -24,9 +23,15 @@ import {
     AlertDialogTrigger
 } from "@/components/dialog/AlertDialog.tsx";
 import {ArrowsClockwiseIcon, TrashIcon} from "@phosphor-icons/react";
+import type {FormState} from "@/components/forms/Form.tsx";
+import {
+    FormOfType,
+    type FormType,
+    type FormOfTypeProps
+} from "@/components/forms/FormOfType.tsx";
 
 
-const DEFAULT_UPDATE_FORM_HEADERS: Record<FormType, string> = {
+const DEFAULT_UPDATE_FORM_HEADERS: {[P in FormType]: string} = {
     Document: "Update Document",
     Employee: "Update Employee"
 }
@@ -34,16 +39,28 @@ const DEFAULT_UPDATE_FORM_HEADERS: Record<FormType, string> = {
 type ModifyDropdownProps = {
     entry: CardEntry;
     trigger: React.ReactNode;
-    updateFormProps: FormWindowProps;
     handleDelete: (entry: CardEntry) => void;
-}
+} & FormOfTypeProps
 export default function ModifyDropdown({
-                                               entry,
-                                               trigger,
-                                               updateFormProps,
-                                               handleDelete,
+                                           entry,
+                                           trigger,
+                                           handleDelete,
+                                           formType,
+                                           ...state
 }: ModifyDropdownProps) {
     const [updateFormOpen, setUpdateFormOpen] = useState(false)
+
+    const formState: FormState = {
+        ...state,
+        baseItem: entry.item,
+        onCancel: () => {
+            // Closes update form on cancel
+            setUpdateFormOpen(false)
+            if (state.onCancel) {
+                state.onCancel()
+            }
+        }
+    }
 
     return (
         <Dialog open={updateFormOpen} onOpenChange={setUpdateFormOpen}>
@@ -92,17 +109,10 @@ export default function ModifyDropdown({
 
             {/*Update dialog*/}
             <DialogContent className={"sm:max-w-sm"}>
-                <FormWindow
-                    header={DEFAULT_UPDATE_FORM_HEADERS[updateFormProps.formType]}
-                    {...updateFormProps}
-                    baseItem={entry.item}
-                    onCancel={() => {
-                        // Closes update form on cancel
-                        if (updateFormProps.onCancel) {
-                            updateFormProps.onCancel()
-                        }
-                        setUpdateFormOpen(false)
-                    }}
+                <h2>{DEFAULT_UPDATE_FORM_HEADERS[formType]}</h2>
+                <FormOfType
+                    formType={formType}
+                    {...formState}
                 />
             </DialogContent>
         </Dialog>

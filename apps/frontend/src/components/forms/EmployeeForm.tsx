@@ -1,29 +1,16 @@
 // Form for adding employees on backend
 
 import { useState } from "react";
-import {
-    Field,
-    FieldLabel,
-    FieldGroup,
-    FieldSet,
-} from "@/components/forms/Field.tsx"
-import { Input } from "@/elements/input.tsx"
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
-import DateSelectInput from "@/components/input/DateSelectInput.tsx";
-import {formatDate} from "@/lib/utils.ts";
+import { formatDate } from "@/lib/utils.ts";
 import type {Employee} from "db";
 import Form, {
-    type FormFieldsProps,
     type FormState
 } from "@/components/forms/Form.tsx";
+import EmployeeFormFields, {
+    type EmployeeDateStrings,
+    type EmployeeFields
+} from "@/components/forms/EmployeeFormFields.tsx";
 
-type EmployeeFields = {
-    firstName: string;
-    lastName: string;
-    email: string;
-    dateOfBirth: Date | undefined;
-    jobPosition: string;
-}
 
 const DEFAULT_EMPLOYEE_FIELDS: EmployeeFields = {
     firstName: "",
@@ -31,83 +18,6 @@ const DEFAULT_EMPLOYEE_FIELDS: EmployeeFields = {
     email: "",
     dateOfBirth: undefined,
     jobPosition: "",
-}
-
-type EmployeeDateStrings = {
-    dob: string,
-    setDob: (lastDob: string) => void,
-}
-type EmployeeFormFieldsProps = {
-    dateStrings: EmployeeDateStrings,
-} & FormFieldsProps<EmployeeFields>
-function EmployeeFormFields({
-                                fields,
-                                setKey,
-                                dateStrings
-}: EmployeeFormFieldsProps) {
-    return (
-        <FieldSet>
-            <FieldGroup>
-                <Field>
-                    <FieldLabel htmlFor="employee-form-first-name">First Name</FieldLabel>
-                    <Input
-                        id="employee-form-first-name"
-                        placeholder="First Name"
-                        value={fields.firstName}
-                        onChange={(e) => {
-                            setKey("firstName", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="employee-form-last-name">Last Name</FieldLabel>
-                    <Input
-                        id="employee-form-last-name"
-                        placeholder="Last Name"
-                        value={fields.lastName}
-                        onChange={(e) => {
-                            setKey("lastName", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="employee-form-email">Email</FieldLabel>
-                    <Input
-                        id="employee-form-email"
-                        placeholder="email@example.com"
-                        type="email"
-                        value={fields.email}
-                        onChange={(e) => {
-                            setKey("email", e.target.value)
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="employee-form-dob">Date of Birth</FieldLabel>
-                    <DateSelectInput
-                        id="employee-form-dob"
-                        placeholder="Date of Birth"
-                        date={fields.dateOfBirth}
-                        setDate={(date) => {
-                            setKey("dateOfBirth", date)
-                        }}
-                        dateString={dateStrings.dob}
-                        setDateString={dateStrings.setDob}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="employee-form-job-position">Job Position</FieldLabel>
-                    <JobPositionInput
-                        id="employee-form-job-position"
-                        jobPosition={fields.jobPosition}
-                        setJobPosition={(pos) => {
-                            setKey("jobPosition", pos)
-                        }}
-                    />
-                </Field>
-            </FieldGroup>
-        </FieldSet>
-    )
 }
 
 function itemAsEmployee(item: object): EmployeeFields {

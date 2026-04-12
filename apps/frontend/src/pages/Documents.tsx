@@ -16,9 +16,7 @@ export default function Documents() {
       <SidebarProvider className="flex-1 min-h-0">
         <AppSidebar />
         <SidebarInset className="flex flex-col overflow-hidden">
-          <div className="flex flex-col flex-1 rounded-xl bg-muted/50 min-h-0 overflow-auto">
             <Outlet/>
-          </div>
         </SidebarInset>
       </SidebarProvider>
     </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -224,6 +225,24 @@ function FieldError({
   )
 }
 
+type FieldInputProps = {
+  id: string;
+  label: string;
+  createElement: (id: string) => React.ReactNode;
+}
+function FieldInput({
+                      id,
+                      label,
+                      createElement
+}: FieldInputProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {createElement(id)}
+    </Field>
+  )
+}
+
 export {
   Field,
   FieldLabel,
@@ -235,4 +254,5 @@ export {
   FieldSet,
   FieldContent,
   FieldTitle,
+  FieldInput
 }

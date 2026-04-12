@@ -1,8 +1,12 @@
+// Creates a "toggle" button selection
+// Only one of the buttons can be active as at a time, which become highlighted
+// Example: List/Grid toggler buttons
+
 import { type ReactNode} from "react";
 import { Item } from "@/elements/item.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 
-type OptionDefinition = {
+export type OptionDefinition = {
     buttonElement: ReactNode;
 }
 type ButtonSelectorProps<T extends Record<string, OptionDefinition>> = {
