@@ -158,7 +158,7 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
     }
 });
 
-app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
+app.put("/api/uploadContent/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -252,7 +252,7 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
 });
 
 
-app.put("/api/upload/:id", requiresAuth(), async (req, res) => {
+app.put("/api/uploadEmployee/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
