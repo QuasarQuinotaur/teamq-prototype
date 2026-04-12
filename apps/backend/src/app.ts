@@ -153,25 +153,56 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
     }
 });
 
-/*
-app.put("/api/upload-photo", requiresAuth(), upload.single("file"), async (req, res) => {
-    const employee = await getEmployeeFromRequest(req);
+app.post("/api/upload-photo", requiresAuth(), upload.single("file"), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
 
-    if (!employee) {
-        res.status(404).json({ error: "No linked employee account found" });
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        if (!req.file) {
+            res.status(400).json({ error: "Photo file is required" });
+            return;
+        }
+
+        if (!req.file.mimetype.startsWith("image/")) {
+            res.status(400).json({ error: "Only image files are allowed" });
+            return;
+        }
+
+        const uploaded = await uploadBuffer(
+            req.file.buffer,
+            req.file.originalname,
+            req.file.mimetype
+        );
+
+        const photo = await prisma.userPhoto.upsert({
+            where: { ownerId: employee.id },
+            update: {
+                path: uploaded.path,
+            },
+            create: {
+                ownerId: employee.id,
+                path: uploaded.path,
+            },
+            include: {
+                owner: true,
+            },
+        });
+
+        res.json({
+            success: true,
+            photo,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Photo upload failed",
+        });
     }
-
-    const created = await prisma.UserPhoto.create({
-        data: {
-            ownerId: employee.id,
-        },
-        include: {
-          owner: true
-        },
-    })
-
-})
-*/
+});
 
 app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
