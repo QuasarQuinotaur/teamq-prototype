@@ -12,14 +12,13 @@ import Form, {
     type FormState
 } from "@/components/forms/Form.tsx";
 
-type EmployeeFields = {
+export type EmployeeFields = {
     firstName: string;
     lastName: string;
     email: string;
     dateOfBirth: Date | undefined;
     jobPosition: string;
 }
-
 const DEFAULT_EMPLOYEE_FIELDS: EmployeeFields = {
     firstName: "",
     lastName: "",

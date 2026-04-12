@@ -9,11 +9,12 @@ import {
     InputGroupInput
 } from "@/elements/input-group.tsx";
 import {
-    FILTER_KEY_SEARCH, type FuseFilter
+    FILTER_KEY_SEARCH,
 } from "@/components/paging/EntryPage.tsx";
 import {
     MagnifyingGlassIcon
 } from "@phosphor-icons/react";
+import type {FuseFilter} from "@/components/paging/entry-page-filter.tsx";
 
 
 export type SearchBarProps = {
@@ -22,7 +23,7 @@ export type SearchBarProps = {
 }
 export default function SearchBar({
                                       setFuseFilter
-                                  }: SearchBarProps) {
+}: SearchBarProps) {
     function setFilter(phrase: string) {
         setFuseFilter(
             FILTER_KEY_SEARCH,

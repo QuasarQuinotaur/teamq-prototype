@@ -5,14 +5,27 @@ import {FunnelSimpleIcon} from "@phosphor-icons/react";
 import * as React from "react";
 import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
-import Form from "@/components/forms/Form.tsx";
-import type {WhitelistFilter, WhitelistFilters} from "@/components/paging/EntryPage.tsx";
 import FilterForm, {type FilterFormProps} from "@/components/forms/FilterForm.tsx";
+import Form, {type FormState} from "@/components/forms/Form.tsx";
 
 
-export type FilterButtonProps = FilterFormProps
-export default function FilterButton(props: FilterButtonProps) {
+export type FilterButtonProps<T> = FilterFormProps<T>
+export default function FilterButton<T extends object>({
+                                                           state,
+                                                           ...props
+}: FilterButtonProps<T>) {
     const [filterOpen, setFilterOpen] = useState(false)
+
+    const formState: FormState = {
+        ...state,
+        onCancel: () => {
+            // Makes it so on cancel, the window closes
+            setFilterOpen(false);
+            if (state.onCancel) {
+                state.onCancel()
+            }
+        }
+    }
 
     return (
         <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
@@ -23,7 +36,10 @@ export default function FilterButton(props: FilterButtonProps) {
             </DialogTrigger>
             <DialogContent className="w-80">
                 <h2>Filter Search</h2>
-                <FilterForm {...props}/>
+                <FilterForm
+                    {...props}
+                    state={formState}
+                />
             </DialogContent>
         </Dialog>
     )

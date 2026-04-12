@@ -16,7 +16,7 @@ import Form, {
 import type {Content} from "db";
 
 
-type DocumentFields = {
+export type DocumentFields = {
     name: string,
     link: string,
     jobPosition: string,

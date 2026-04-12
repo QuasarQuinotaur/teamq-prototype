@@ -16,20 +16,20 @@ import ViewSelectorButton, {type ViewSelectorButtonProps} from "@/components/pag
 import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
 
 
-type ToolbarProps = {
+type ToolbarProps<T> = {
     searchBarProps: SearchBarProps;
-    filterButtonProps: FilterButtonProps;
+    filterButtonProps: FilterButtonProps<T>;
     sortButtonProps: object;//SortButtonProps;
     viewSelectorButtonProps: ViewSelectorButtonProps;
     extraElements?: React.ReactNode[];
 };
-export default function Toolbar({
+export default function Toolbar<T extends object>({
                                     searchBarProps,
                                     filterButtonProps,
                                     sortButtonProps,
                                     viewSelectorButtonProps,
                                     extraElements,
-}: ToolbarProps) {
+}: ToolbarProps<T>) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
         <FilterButton {...filterButtonProps}/>,

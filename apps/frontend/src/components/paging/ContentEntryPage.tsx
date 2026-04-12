@@ -6,11 +6,13 @@ import {useEffect, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import * as React from "react";
-import EntryPage, {FILTER_KEY_CONTENT_TYPE} from "@/components/paging/EntryPage.tsx";
+import EntryPage from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
+import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-filter.tsx";
+import type {DocumentFields} from "@/components/forms/DocumentForm.tsx";
 
 
 type ContentEntryPageProps = {
@@ -76,6 +78,15 @@ export default function ContentEntryPage({
             })
         )
 
+    // Add content type filter to only include specified content type
+    const keyFilters: KeyFilters<DocumentFields> | null = (
+        contentType ? {contentType: [contentType]} : null
+    )
+    const filterOptions: FilterOptions<KeyFilters<DocumentFields>> = {
+        initFieldFilters: keyFilters,
+        createFieldsElement: (props) => (<p>Document filter stuff here</p>)
+    }
+
     return (
         <EntryPage
             entries={entries}
@@ -91,15 +102,7 @@ export default function ContentEntryPage({
                 )),
             }}
             extraToolbarElements={[formAddButton]}
-            initWhitelistFilters={contentType ? {
-                // Add content type filter to only include specified content type
-                [FILTER_KEY_CONTENT_TYPE]: (
-                    (entry) => {
-                        const c = entry.item as Content
-                        return c.contentType === contentType
-                    }
-                )
-            } : null}
+            filterOptions={filterOptions}
         />
     )
 }

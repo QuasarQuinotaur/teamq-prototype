@@ -61,36 +61,37 @@ export type FormState = {
     defaultItem?: object;
     onCancel?: () => void;
 }
-export type FormFieldsProps<TFields> = {
-    fields: TFields,
+export type FormFieldsProps<T> = {
+    fields: T,
     // Changes fields key to new value
-    setKey: <TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) => void;
+    setKey: <K extends keyof T>(key: K, value: T[K]) => void;
 }
+export type CreateFieldsElement<T> = (props: FormFieldsProps<T>) => React.ReactNode
 
-type FormProps<TFields> = {
+type FormProps<T> = {
     state?: FormState;
-    initialFields: TFields;
-    createFieldsElement: (props: FormFieldsProps<TFields>) => React.ReactNode;
-    submit: (fields: TFields) => Promise<void>;
+    initialFields: T;
+    createFieldsElement: CreateFieldsElement<T>;
+    submit: (fields: T) => Promise<void>;
     reset?: () => void;
     // Return an error to display + prevent submitting
-    getFieldsError?: (fields: TFields) => boolean | string | null | undefined;
+    getFieldsError?: (fields: T) => boolean | string | null | undefined;
 }
-export default function Form<TFields extends object>({
+export default function Form<T extends object>({
                                                          state = {},
-                                                         initialFields = {} as TFields,
+                                                         initialFields = {} as T,
                                                          createFieldsElement,
                                                          submit,
                                                          reset,
                                                          getFieldsError,
                                                          ...actionsProps
-}: FormProps<TFields> & FormActionsProps) {
-    const [fields, setFields] = useState<TFields>(initialFields);
+}: FormProps<T> & FormActionsProps) {
+    const [fields, setFields] = useState<T>(initialFields);
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [confirmOpen, setConfirmOpen] = useState(false)
 
     // Sets a key within the field to be updated
-    function setKey<TKey extends keyof TFields>(key: TKey, value: TFields[TKey]) {
+    function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
         handleKeyChange(setFields, key, value)
     }
 

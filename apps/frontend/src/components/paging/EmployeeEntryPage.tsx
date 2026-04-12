@@ -10,6 +10,9 @@ import EntryPage from "@/components/paging/EntryPage.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
+import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-filter.tsx";
+import type {DocumentFields} from "@/components/forms/DocumentForm.tsx";
+import type {EmployeeFields} from "@/components/forms/EmployeeForm.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -78,6 +81,11 @@ export default function EmployeeEntryPage() {
             })
         )
 
+    // Add content type filter to only include specified content type
+    const filterOptions: FilterOptions<KeyFilters<EmployeeFields>> = {
+        createFieldsElement: (props) => (<p>Employee filter stuff here</p>)
+    }
+
     return (
         <EntryPage
             entries={entries}
@@ -92,6 +100,7 @@ export default function EmployeeEntryPage() {
                 )),
             }}
             extraToolbarElements={[formAddButton]}
+            filterOptions={filterOptions}
         />
     )
 }
