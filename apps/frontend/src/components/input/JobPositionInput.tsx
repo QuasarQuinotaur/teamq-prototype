@@ -7,6 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/elements/select.tsx"
+import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 
 type JobPositionProps = {
     jobPosition: string;
@@ -22,15 +23,9 @@ function JobPositionInput(
             </SelectTrigger>
             <SelectContent position={"popper"}>
                 <SelectGroup>
-                    <SelectItem value="admin">
-                        Admin
-                    </SelectItem>
-                    <SelectItem value="underwriter">
-                        Underwriter
-                    </SelectItem>
-                    <SelectItem value="business-analyst">
-                        Business Analyst
-                    </SelectItem>
+                    {Object.entries(JOB_POSITION_TYPE_MAP).map(([key, value]) => (
+                        <SelectItem value={key}>{value}</SelectItem>
+                    ))}
                 </SelectGroup>
             </SelectContent>
         </Select>
