@@ -93,6 +93,11 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
             status,
         } = req.body;
 
+        //if employee pos does not match doc pos, do not allow make
+        if (jobPosition !== employee.jobPosition && employee.jobPosition !== "admin") {
+            return res.status(403).json({ error: "You can only upload content for your own position." });
+        }
+
         if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
             res.status(400).json({ error: "Missing required fields" });
             return;
@@ -168,6 +173,13 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
             return;
         }
 
+        const existingContent = await contentRepo.getById(id);
+
+        if(employee.jobPosition !== "admin" && employee.jobPosition !== existingContent.jobPosition) {
+            return res.status(403).json({ error: "Invalid job position: You cannot modify this content" });
+        }
+
+
         const {
             name,
             link,
@@ -176,6 +188,7 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
             contentType,
             status,
         } = req.body;
+
 
         if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
             res.status(400).json({ error: "Missing required fields" });
@@ -311,15 +324,36 @@ app.get("/api/content/:id/download", requiresAuth(), async (req, res) => {
     }
 });
 
+// app.get("/api/content", requiresAuth(), async (req, res) => {
+//     const employee = await getEmployeeFromRequest(req);
+//     const jobPosition = employee?.jobPosition;
+//
+//     const contents = jobPosition === 'admin'
+//         ? await contentRepo.getAll()
+//         : await contentRepo.getByJobPosition(jobPosition ?? '');
+//
+//     res.json(contents);
+// });
+
+//from ali :
 app.get("/api/content", requiresAuth(), async (req, res) => {
-    const employee = await getEmployeeFromRequest(req);
-    const jobPosition = employee?.jobPosition;
-
-    const contents = jobPosition === 'admin'
-        ? await contentRepo.getAll()
-        : await contentRepo.getByJobPosition(jobPosition ?? '');
-
+    const contents = await contentRepo.getAll();
     res.json(contents);
+});
+
+//grouped if wanted
+app.get("/api/content-grouped", requiresAuth(), async (req, res) => {
+    const contents = await contentRepo.getAll();
+
+    const grouped = contents.reduce((acc, item) => {
+        if (!acc[item.jobPosition]) {
+            acc[item.jobPosition] = [];
+        }
+        acc[item.jobPosition].push(item);
+        return acc;
+    }, {} as Record<string, typeof contents>);
+
+    res.json(grouped);
 });
 
 app.get("/api/servicereqs/:flag", async (req, res) => {
@@ -430,8 +464,21 @@ app.delete("/api/content/:id", requiresAuth(), async (req, res) => {
         return;
     }
     try {
-        await contentRepo.delete(id);
-        res.json({ success: true });
+        //ali:
+        const employee = await getEmployeeFromRequest(req);
+        const employeeJobPosition = employee?.jobPosition;
+
+        const content = await contentRepo.getById(id);
+        const contentJobPosition = content.jobPosition;
+        if (!employee || !content) {
+            return res.status(404).json({ error: "Not found" });
+        }
+        if(contentJobPosition === employeeJobPosition ||  employeeJobPosition === "admin") {
+            await contentRepo.delete(id);
+            res.json({ success: true });
+        }else {
+            res.status(403).json({ error: "You do not have permission to delete this file." });
+        }
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
     }
