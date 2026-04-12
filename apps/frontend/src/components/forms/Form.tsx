@@ -96,6 +96,7 @@ export default function Form<T extends object>({
     const [fields, setFields] = useState<T>(initialFields);
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [confirmOpen, setConfirmOpen] = useState(false)
+    const [submitError, setSubmitError] = useState<string | null>(null)
 
     // Sets a key within the field to be updated
     function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
@@ -105,6 +106,7 @@ export default function Form<T extends object>({
     // Resets fields back to their initial fields
     function handleReset() {
         setFields(resetFields ?? initialFields)
+        setSubmitError(null)
         if (reset) {
             reset()
         }
@@ -123,7 +125,7 @@ export default function Form<T extends object>({
                 state.onCancel();
             }
         } catch (error) {
-            console.error("Submit failed:", error);
+            setSubmitError(error instanceof Error ? error.message : "An unexpected error occurred.");
         } finally {
             setIsSubmitting(false);
         }
@@ -175,6 +177,9 @@ export default function Form<T extends object>({
                         </FieldSet>
                     </FieldGroup>
                 </ScrollArea>
+                {submitError && (
+                    <p className={"text-sm text-destructive mb-2"}>{submitError}</p>
+                )}
                 <FormActions
                     {...actionsProps}
                     {...state}

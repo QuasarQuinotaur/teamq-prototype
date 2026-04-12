@@ -4,7 +4,8 @@ import {Input} from "@/elements/input.tsx";
 import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
-import DocumentStatusInput from "@/components/input/DocumentStatusInput.tsx";
+import {Button} from "@/elements/buttons/button.tsx";
+import {FileIcon, LinkIcon} from "lucide-react";
 
 export type ContentFields = {
     name: string,
@@ -15,21 +16,34 @@ export type ContentFields = {
     contentType: string,
     status: string,
     file: File | null,
+    sourceType: "file" | "link",
 }
 export type DocumentDateStrings = {
-    lastModified: string,
-    setLastModified: (lastModified: string) => void,
     expiration: string,
     setExpiration: (expirationDate: string) => void,
 }
 type DocumentFormFieldsProps = {
     dateStrings: DocumentDateStrings
+    isUpdate: boolean
+    existingFileName: string | null
 } & FormFieldsProps<ContentFields>
 export default function DocumentFormFields({
                                 fields,
                                 setKey,
-                                dateStrings
+                                dateStrings,
+                                isUpdate,
+                                existingFileName,
 }: DocumentFormFieldsProps) {
+    function switchToFile() {
+        setKey("sourceType", "file")
+        setKey("link", "")
+    }
+
+    function switchToLink() {
+        setKey("sourceType", "link")
+        setKey("file", null)
+    }
+
     return (
         <>
             <FieldInput
@@ -47,32 +61,50 @@ export default function DocumentFormFields({
                 )}
             />
             <FieldInput
-                id={"document-add-form-file"}
-                label={"Document File"}
+                id={"document-add-form-source"}
+                label={fields.sourceType === "file"
+                    ? (isUpdate ? "Replace File (optional)" : "Document File")
+                    : "Document URL"}
                 createElement={(id) => (
-                    // TODO: Needs to clear when form is reset
-                    <Input
-                        id={id}
-                        type={"file"}
-                        onChange={(e) => {
-                            setKey("file", e.target.files?.[0] ?? null)
-                        }}
-                    />
-                )}
-            />
-            <FieldInput
-                id={"document-add-form-link"}
-                label={"Document Link"}
-                createElement={(id) => (
-                    <Input
-                        id={id}
-                        placeholder={"https://..."}
-                        type={"url"}
-                        value={fields.link}
-                        onChange={(e) => {
-                            setKey("link", e.target.value)
-                        }}
-                    />
+                    <div className={"flex flex-col gap-1"}>
+                        {fields.sourceType === "file" && existingFileName && (
+                            <p className={"text-xs text-muted-foreground"}>
+                                Current file: {existingFileName}
+                            </p>
+                        )}
+                        <div className={"flex items-center gap-1"}>
+                            {fields.sourceType === "file" ? (
+                                <Input
+                                    id={id}
+                                    type={"file"}
+                                    onChange={(e) => {
+                                        setKey("file", e.target.files?.[0] ?? null)
+                                    }}
+                                />
+                            ) : (
+                                <Input
+                                    id={id}
+                                    placeholder={"https://..."}
+                                    type={"url"}
+                                    value={fields.link}
+                                    onChange={(e) => {
+                                        setKey("link", e.target.value)
+                                    }}
+                                />
+                            )}
+                            <Button
+                                type={"button"}
+                                variant={"outline"}
+                                size={"icon"}
+                                title={fields.sourceType === "file" ? "Switch to URL" : "Switch to file upload"}
+                                onClick={fields.sourceType === "file" ? switchToLink : switchToFile}
+                            >
+                                {fields.sourceType === "file"
+                                    ? <LinkIcon size={16} />
+                                    : <FileIcon size={16} />}
+                            </Button>
+                        </div>
+                    </div>
                 )}
             />
             <FieldInput
@@ -85,22 +117,6 @@ export default function DocumentFormFields({
                         setJobPositions={(positions) => {
                             setKey("jobPosition", positions[0] ?? "")
                         }}
-                    />
-                )}
-            />
-            <FieldInput
-                id={"document-add-form-last-modified"}
-                label={"Last Modified Date"}
-                createElement={(id) => (
-                    <DateSelectInput
-                        id={id}
-                        placeholder={"Last Modified Date"}
-                        date={fields.lastModifiedDate}
-                        setDate={(date) => {
-                            setKey("lastModifiedDate", date)
-                        }}
-                        dateString={dateStrings.lastModified}
-                        setDateString={dateStrings.setLastModified}
                     />
                 )}
             />
@@ -129,19 +145,6 @@ export default function DocumentFormFields({
                         contentType={fields.contentType}
                         setContentType={(type) => {
                             setKey("contentType", type)
-                        }}
-                    />
-                )}
-            />
-            <FieldInput
-                id={"document-add-form-status"}
-                label={"Document Status"}
-                createElement={(id) => (
-                    <DocumentStatusInput
-                        id={id}
-                        status={fields.status}
-                        setStatus={(status) => {
-                            setKey("status", status)
                         }}
                     />
                 )}

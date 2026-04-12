@@ -22,6 +22,7 @@ const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
     contentType: "",
     status: "",
     file: null,
+    sourceType: "file",
 }
 
 
@@ -36,6 +37,7 @@ function itemAsDocumentFields(item: object): ContentFields {
         contentType: c.contentType,
         status: c.status,
         file: null,
+        sourceType: c.link.startsWith("http://") || c.link.startsWith("https://") ? "link" : "file",
     }
 }
 
@@ -50,10 +52,13 @@ function getDefaultDocumentFields(defaultItem: object = null): ContentFields {
     }
 }
 
-function hasRequiredDocumentFields(fields: ContentFields) {
+function hasRequiredDocumentFields(fields: ContentFields, isUpdate: boolean) {
+    const hasDocument = fields.sourceType === "file"
+        ? (fields.file != null || isUpdate)
+        : fields.link.trim() !== ""
     return fields.name.trim() && fields.jobPosition.trim()
         && fields.expirationDate && fields.contentType.trim()
-        && fields.status.trim() && (fields.file || fields.link.trim())
+        && hasDocument
 }
 
 
@@ -61,49 +66,60 @@ export default function DocumentForm(state: FormState) {
     const initialFields =
         state.baseItem ? itemAsDocumentFields(state.baseItem) :
             getDefaultDocumentFields(state.defaultItem)
-    const initialLastModifiedString =
-        initialFields.lastModifiedDate ? formatDate(initialFields.lastModifiedDate) : ""
     const initialExpirationString =
         initialFields.expirationDate ? formatDate(initialFields.expirationDate) : ""
 
-    const [lastModifiedString, setLastModifiedString] = useState(initialLastModifiedString)
     const [expirationString, setExpirationString] = useState(initialExpirationString)
     const dateStrings: DocumentDateStrings = {
-        lastModified: lastModifiedString,
-        setLastModified: setLastModifiedString,
         expiration: expirationString,
         setExpiration: setExpirationString,
     };
 
     // Reset date strings
     function reset() {
-        setLastModifiedString(initialLastModifiedString)
         setExpirationString(initialExpirationString)
     }
 
+    const isUpdate = state.baseItem != null;
+    const existingFileName = isUpdate && initialFields.sourceType === "file"
+        ? initialFields.link.split("/").pop() ?? initialFields.link
+        : null
+
     // Create Content on backend from fields
     async function doSubmit(documentFields: ContentFields) {
-        const isUpdate = state.baseItem != null;
         const url = isUpdate
             ? `${import.meta.env.VITE_BACKEND_URL}/api/upload/${state.baseItem!.id}`
             : `${import.meta.env.VITE_BACKEND_URL}/api/upload`;
-        const body = {
-            name: documentFields.name,
-            jobPosition: documentFields.jobPosition,
-            expirationDate: documentFields.expirationDate!.toISOString(),
-            contentType: documentFields.contentType,
-            status: documentFields.status,
-            file: documentFields.file && !documentFields.link ? documentFields.file : null,
-            link: documentFields.link && !documentFields.file ? documentFields.link : null,
+
+        const formData = new FormData();
+        formData.append("name", documentFields.name);
+        formData.append("jobPosition", documentFields.jobPosition);
+        formData.append("expirationDate", documentFields.expirationDate!.toISOString());
+        formData.append("contentType", documentFields.contentType);
+        formData.append("status", isUpdate ? documentFields.status : "to-do");
+
+        if (documentFields.sourceType === "file") {
+            if (documentFields.file) {
+                formData.append("file", documentFields.file);
+            } else {
+                // No new file chosen — preserve the original stored path
+                // Use initialFields.link as it may have been cleared by a mode toggle
+                formData.append("link", documentFields.link || initialFields.link);
+            }
+        } else {
+            formData.append("link", documentFields.link.trim());
         }
+
         const res = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+            body: formData,
         });
 
         const result = await res.json();
+        if (res.status === 409) {
+            throw new Error("Upload failed: a file with that name already exists in the database. Change the file name or request access.");
+        }
         if (!res.ok) {
             throw new Error(result.error || (isUpdate ? "Update failed" : "Upload failed"));
         }
@@ -118,13 +134,15 @@ export default function DocumentForm(state: FormState) {
                 <DocumentFormFields
                     {...props}
                     dateStrings={dateStrings}
+                    isUpdate={isUpdate}
+                    existingFileName={existingFileName}
                 />
             )}
             submit={doSubmit}
             reset={reset}
             getFieldsError={(fields) => {
                 // Show an error if missing fields
-                if (!hasRequiredDocumentFields(fields)) {
+                if (!hasRequiredDocumentFields(fields, isUpdate)) {
                     return "Missing required fields."
                 }
             }}
