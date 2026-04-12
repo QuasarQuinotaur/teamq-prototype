@@ -5,7 +5,7 @@
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import * as React from "react";
 import {useState} from "react";
-import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,7 +22,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger
 } from "@/components/dialog/AlertDialog.tsx";
-import {ArrowsClockwiseIcon, TrashIcon} from "@phosphor-icons/react";
+import {PencilIcon, TrashIcon} from "@phosphor-icons/react";
 import type {FormState} from "@/components/forms/Form.tsx";
 import {
     FormOfType,
@@ -55,6 +55,7 @@ export default function ModifyDropdown({
     const formState: FormState = {
         ...state,
         baseItem: entry.item,
+        noFixedHeight: true,
         onCancel: () => {
             // Closes update form on cancel
             setUpdateFormOpen(false)
@@ -74,8 +75,8 @@ export default function ModifyDropdown({
                         <DropdownMenuGroup>
                             <DialogTrigger asChild>
                                 <DropdownMenuItem>
-                                    <ArrowsClockwiseIcon/>
-                                    Update
+                                    <PencilIcon/>
+                                    Edit
                                 </DropdownMenuItem>
                             </DialogTrigger>
                         </DropdownMenuGroup>
@@ -118,8 +119,16 @@ export default function ModifyDropdown({
             </AlertDialog>
 
             {/*Update dialog*/}
-            <DialogContent className={"sm:max-w-sm"}>
-                <h2>{DEFAULT_UPDATE_FORM_HEADERS[formType]}</h2>
+            <DialogContent
+                className={
+                    "w-full max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:max-w-xl sm:p-6 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
+                }
+            >
+                <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
+                    <DialogTitle className="text-base font-semibold sm:text-lg">
+                        {DEFAULT_UPDATE_FORM_HEADERS[formType]}
+                    </DialogTitle>
+                </DialogHeader>
                 <FormOfType
                     formType={formType}
                     {...formState}

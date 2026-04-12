@@ -18,9 +18,11 @@ export type ContentFieldsFilter = {
 export default function FilterDocumentFields({
                                                  fields,
                                                  setKey,
-}: FormFieldsProps<ContentFieldsFilter>) {
+                                                 hideContentType,
+}: FormFieldsProps<ContentFieldsFilter> & { hideContentType?: boolean }) {
     return (
         <>
+            {!hideContentType && (
             <FieldInput
                 id={"filter-documents-content-type"}
                 label={"By Content Type"}
@@ -34,6 +36,7 @@ export default function FilterDocumentFields({
                     />
                 )}
             />
+            )}
             <FieldInput
                 id={"filter-documents-job-position"}
                 label={"By Job Position"}

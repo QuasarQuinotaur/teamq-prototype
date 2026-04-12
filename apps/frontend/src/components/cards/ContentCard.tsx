@@ -10,7 +10,6 @@ import {
     type CardState,
     CardAction,
     CardContainer,
-    CardDescription,
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
@@ -55,12 +54,15 @@ async function viewItem(link: string, item: object & { id: number }) {
 
 type ContentCardProps = {
     onView?: (entry: CardEntry) => void;
+    /** When false, hides the entry's content-type badge (still shows extra `badges` from CardState). */
+    showContentTypeBadge?: boolean;
 } & CardState;
 export default function ContentCard({
                                  entry,
                                  badges,
                                  createOptionsElement,
                                  onView,
+                                 showContentTypeBadge = true,
 }: ContentCardProps) {
     // Favicon-based image (commented out in case you want to restore it)
     // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
@@ -111,17 +113,17 @@ export default function ContentCard({
 
     return (
         <CardContainer
-            className="relative w-full h-full flex flex-col justify-between gap-3 cursor-pointer"
+            className="relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
             onClick={handleCardClick}
         >
-            <CardHeader>
+            <CardHeader className="pb-3 shrink-0">
                 <div className="flex w-full items-start justify-between gap-2">
-                    <CardTitle className="line-clamp-3 break-normal flex-1">{entry.title}</CardTitle>
+                    <div className="overflow-hidden max-h-[1.4em] transition-[max-height] duration-300 ease-in-out group-hover/card:max-h-24 flex-1 min-w-0">
+                        <CardTitle className="break-words">{entry.title}</CardTitle>
+                    </div>
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                // Create the "..." button and pass it to make a surrounding element
-                                // This gives functionality to the button like showing a dropdown
                                 <Button variant="outline" size="icon" className="h-7 w-7 p-0">
                                     <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
@@ -129,35 +131,22 @@ export default function ContentCard({
                         </CardAction>
                     )}
                 </div>
-                <CardDescription>
-                    {entry.description ? (
-                        <>
-                            <p>{entry.description}</p>
-                        </>
-                    ) : null}
-                    {entry.subElement ?? undefined}
-                </CardDescription>
             </CardHeader>
-            <div className={"mt-2 relative z-20"}>
-                {/* Favicon-based image (commented out)
-                <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
-                <img
-                    src={linkFavicon}
-                    alt="Event cover"
-                    className="z-20 w-full aspect-video object-cover brightness-60 grayscale dark:brightness-40"
-                />
-                */}
+            <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
                 {thumbnail ? (
                     <img
                         src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
-                        className="w-full aspect-[4/3] object-cover"
+                        className="w-full h-full object-cover"
                     />
                 ) : (
-                    <div className={`w-full aspect-[4/3] ${cardColor}`} />
+                    <div className={`w-full h-full ${cardColor}`} />
                 )}
 
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    {[entry.badge, ...badges].filter((b) => b != null && b !== "").map((badgeString) => (
+                    {[
+                        ...(showContentTypeBadge ? [entry.badge] : []),
+                        ...badges,
+                    ].filter((b) => b != null && b !== "").map((badgeString) => (
                         <Badge variant="secondary">
                             {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
                         </Badge>
