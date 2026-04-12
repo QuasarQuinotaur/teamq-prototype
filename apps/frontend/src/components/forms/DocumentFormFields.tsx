@@ -83,7 +83,7 @@ export default function DocumentFormFields({
                         id={id}
                         jobPositions={fields.jobPosition.trim() ? [fields.jobPosition] : []}
                         setJobPositions={(positions) => {
-                            setKey("jobPosition", positions[0])
+                            setKey("jobPosition", positions[0] ?? "")
                         }}
                     />
                 )}
