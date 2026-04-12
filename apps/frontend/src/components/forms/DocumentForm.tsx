@@ -7,19 +7,12 @@ import Form, {
     type FormState
 } from "@/components/forms/Form.tsx";
 import type {Content} from "db";
-import DocumentFormFields, {type DocumentDateStrings} from "@/components/forms/DocumentFormFields.tsx";
+import DocumentFormFields, {
+    type ContentFields,
+    type DocumentDateStrings
+} from "@/components/forms/DocumentFormFields.tsx";
 
 
-export type ContentFields = {
-    name: string,
-    link: string,
-    jobPosition: string,
-    lastModifiedDate: Date | undefined,
-    expirationDate: Date | undefined,
-    contentType: string,
-    status: string,
-    file: File | null,
-}
 const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
     name: "",
     link: "",

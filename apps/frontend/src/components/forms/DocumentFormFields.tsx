@@ -5,8 +5,17 @@ import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import DocumentStatusInput from "@/components/input/DocumentStatusInput.tsx";
-import type {ContentFields} from "@/components/forms/DocumentForm.tsx";
 
+export type ContentFields = {
+    name: string,
+    link: string,
+    jobPosition: string,
+    lastModifiedDate: Date | undefined,
+    expirationDate: Date | undefined,
+    contentType: string,
+    status: string,
+    file: File | null,
+}
 export type DocumentDateStrings = {
     lastModified: string,
     setLastModified: (lastModified: string) => void,

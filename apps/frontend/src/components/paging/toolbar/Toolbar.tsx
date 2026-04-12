@@ -15,26 +15,27 @@ import SortButton from "@/components/paging/toolbar/SortButton.tsx";
 import ViewSelectorButton, {type ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
 
+export type QueryProps<T> = {
+    searchBarProps?: SearchBarProps,
+    filterButtonProps?: FilterButtonProps<T>,
+    sortButtonProps?: object
+}
 
 type ToolbarProps<T> = {
-    searchBarProps: SearchBarProps;
-    filterButtonProps: FilterButtonProps<T>;
-    sortButtonProps: object;//SortButtonProps;
+    queryProps: QueryProps<T>;
     viewSelectorButtonProps: ViewSelectorButtonProps;
     extraElements?: React.ReactNode[];
 };
 export default function Toolbar<T extends object>({
-                                    searchBarProps,
-                                    filterButtonProps,
-                                    sortButtonProps,
-                                    viewSelectorButtonProps,
-                                    extraElements,
+                                                      queryProps,
+                                                      viewSelectorButtonProps,
+                                                      extraElements,
 }: ToolbarProps<T>) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
-        <FilterButton {...filterButtonProps}/>,
-        <SortButton {...sortButtonProps}/>,
-        <ViewSelectorButton {...viewSelectorButtonProps}/>
+        queryProps.filterButtonProps && <FilterButton {...queryProps.filterButtonProps} />,
+        queryProps.sortButtonProps && <SortButton {...queryProps.sortButtonProps} />,
+        <ViewSelectorButton {...viewSelectorButtonProps} />,
     )
 
     return (
@@ -47,9 +48,11 @@ export default function Toolbar<T extends object>({
                 <Separator
                     orientation="vertical"
                     className="mr-2 data-[orientation=vertical]"/>
-                <NavigationMenuItem>
-                    <SearchBar {...searchBarProps}/>
-                </NavigationMenuItem>
+                {queryProps.searchBarProps && (
+                    <NavigationMenuItem>
+                        <SearchBar {...queryProps.searchBarProps}/>
+                    </NavigationMenuItem>
+                )}
             </NavigationMenuList>
             <div className="flex-1"/>
             {/*Right Bar*/}

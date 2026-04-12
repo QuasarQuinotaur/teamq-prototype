@@ -15,13 +15,13 @@ import {
 } from "@/components/dialog/AlertDialog.tsx";
 import {ScrollArea} from "@/elements/scroll-area.tsx";
 import {FieldGroup, FieldSet} from "@/components/forms/Field.tsx";
-import {handleKeyChange} from "@/lib/utils.ts";
+import {cn, handleKeyChange} from "@/lib/utils.ts";
 import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 
 
 type FormActionsProps = {
-    submitText?: (isSubmitting: boolean) => string;
+    submitText?: string | ((isSubmitting: boolean) => string);
     hideReset?: boolean;
     hideCancel?: boolean;
 }
@@ -45,7 +45,7 @@ function FormActions({
                 </Button>}
                 {!hideReset && <Button type={"reset"}>Reset</Button>}
                 <Button type={"submit"} disabled={isSubmitting}>
-                    {submitText ? submitText(isSubmitting) :
+                    {submitText ? (typeof(submitText) == "string" ? submitText : submitText(isSubmitting)) :
                         isSubmitting ? "Uploading..." : "Submit"}
                 </Button>
             </div>
@@ -74,17 +74,22 @@ type FormProps<T> = {
     createFieldsElement: CreateFieldsElement<T>;
     submit: (fields: T) => Promise<void>;
     reset?: () => void;
+    // If specified will be set on reset instead of initial fields
+    resetFields?: T;
     // Return an error to display + prevent submitting
     getFieldsError?: (fields: T) => boolean | string | null | undefined;
+    noFixedHeight?: boolean;
 }
 export default function Form<T extends object>({
-                                                         state = {},
-                                                         initialFields = {} as T,
-                                                         createFieldsElement,
-                                                         submit,
-                                                         reset,
-                                                         getFieldsError,
-                                                         ...actionsProps
+                                                   state = {},
+                                                   initialFields = {} as T,
+                                                   createFieldsElement,
+                                                   submit,
+                                                   reset,
+                                                   resetFields,
+                                                   getFieldsError,
+                                                   noFixedHeight,
+                                                   ...actionsProps
 }: FormProps<T> & FormActionsProps) {
     const [fields, setFields] = useState<T>(initialFields);
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -97,7 +102,7 @@ export default function Form<T extends object>({
 
     // Resets fields back to their initial fields
     function handleReset() {
-        setFields(initialFields)
+        setFields(resetFields ?? initialFields)
         if (reset) {
             reset()
         }
@@ -154,7 +159,8 @@ export default function Form<T extends object>({
                 }}
                 onSubmit={handleSubmit}
             >
-                <ScrollArea className={"h-96 w-full pr-4 mb-4"}>
+                <ScrollArea className={cn(noFixedHeight ? "" : "h-96", "w-full pr-4 mb-4")}>
+                    {/*TODO: Form can cut off if you shrink your window height*/}
                     <FieldGroup className={"p-1"}>
                         <FieldSet>
                             <FieldGroup>

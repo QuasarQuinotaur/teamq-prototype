@@ -4,55 +4,34 @@
 import * as React from "react";
 import Form, {type CreateFieldsElement, type FormState} from "@/components/forms/Form.tsx";
 
-
-
-// type FilterFieldsProps = {} & FormFieldsProps<FilterFields>
-// function FilterFields({
-//                           fields,
-//                           setKey
-// }: FilterFieldsProps) {
-//     return (
-//         <>
-//             <FieldInput
-//                 id={"filter-content-type"}
-//                 label={"Content Type"}
-//                 createElement={(id) => (
-//                     <ContentTypeInput
-//                         id={id}
-//                         contentType={fields.contentType}
-//                         setContentType={(type) => {
-//                             setKey("contentType", type)
-//                         }}
-//                     />
-//                 )}
-//             />
-//         </>
-//     )
-// }
-
-
 export type FilterFormProps<T> = {
     state?: FormState;
-    fieldFilters: T
-    setFieldFilters: (fieldFilters: T) => void;
+    defaultFieldsFilter: T;
+    fieldsFilter: T;
+    setFieldsFilter: (fieldFilters: T) => void;
     createFieldsElement: CreateFieldsElement<T>;
 }
 export default function FilterForm<T extends object>({
                                                          state,
-                                                         fieldFilters,
-                                                         setFieldFilters,
+                                                         defaultFieldsFilter,
+                                                         fieldsFilter,
+                                                         setFieldsFilter,
                                                          createFieldsElement,
 }: FilterFormProps<T>) {
     async function handleSubmit(fields: T) {
-        setFieldFilters(fields);
+        setFieldsFilter(fields);
     }
 
     return (
         <Form
             state={state}
-            initialFields={fieldFilters}
+            resetFields={defaultFieldsFilter}
+            initialFields={fieldsFilter}
             createFieldsElement={createFieldsElement}
             submit={handleSubmit}
+            submitText={"Search"}
+            noFixedHeight
+            hideCancel
         />
     )
 }

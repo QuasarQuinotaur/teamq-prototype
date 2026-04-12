@@ -10,8 +10,9 @@ import EntryPage from "@/components/paging/EntryPage.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
-import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-query.tsx";
-import type {EmployeeFields} from "@/components/forms/EmployeeFormFields.tsx";
+import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
+import useEmployeeQueryEntries from "@/components/paging/hooks/employee-query-entries.tsx";
+import FilterEmployeeFields, {type EmployeeFieldsFilter} from "@/components/paging/toolbar/FilterEmployeeFields.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -80,15 +81,34 @@ export default function EmployeeEntryPage() {
             })
         )
 
-    // Filtering for employee
-    const filterOptions: FilterOptions<KeyFilters<EmployeeFields>> = {
-        // This makes the Toolbar filter button display options to filter employees
-        createFieldsElement: (props) => (<p>Employee filter stuff here</p>)
+    // Filtering using search and key matching
+    const defaultFieldsFilter: EmployeeFieldsFilter = {}
+    const [fieldsFilter, setFieldsFilter] = useState<EmployeeFieldsFilter>(defaultFieldsFilter)
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const queryEntries = useEmployeeQueryEntries({
+        entries,
+        searchPhrase,
+        fieldsFilter,
+    })
+
+    // Track properties to update querying
+    const queryProps: QueryProps<EmployeeFieldsFilter> = {
+        searchBarProps: {
+            setFilter: setSearchPhrase
+        },
+        filterButtonProps: {
+            defaultFieldsFilter,
+            fieldsFilter,
+            setFieldsFilter,
+            createFieldsElement: FilterEmployeeFields
+        },
+        sortButtonProps: {}
     }
+
 
     return (
         <EntryPage
-            entries={entries}
+            entries={queryEntries}
             createOptionsElement={createOptionsElement}
             cardGridProps={{
                 renderCard: ((state) => (
@@ -100,7 +120,7 @@ export default function EmployeeEntryPage() {
                 )),
             }}
             extraToolbarElements={[formAddButton]}
-            filterOptions={filterOptions}
+            queryProps={queryProps}
         />
     )
 }

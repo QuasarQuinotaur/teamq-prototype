@@ -11,8 +11,9 @@ import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
-import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-query.tsx";
-import type {ContentFields} from "@/components/forms/DocumentForm.tsx";
+import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
+import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
+import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
 
 
 type ContentEntryPageProps = {
@@ -78,20 +79,36 @@ export default function ContentEntryPage({
             })
         )
 
-    // Filtering for content
-    const keyFilters: KeyFilters<ContentFields> | null = (
-        // Set initial filter to only show items of content type
-        contentType ? {contentType: [contentType]} : null
-    )
-    const filterOptions: FilterOptions<KeyFilters<ContentFields>> = {
-        initFieldFilters: keyFilters,
-        // This makes the Toolbar filter button display options to filter content
-        createFieldsElement: (props) => (<p>Document filter stuff here</p>)
+    // Filtering using search and key matching
+    const defaultFieldsFilter: ContentFieldsFilter = contentType ? {
+        contentTypes: [contentType],
+        jobPositions: [],
+    } : {}
+    const [fieldsFilter, setFieldsFilter] = useState(defaultFieldsFilter)
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const queryEntries = useContentQueryEntries({
+        entries,
+        searchPhrase,
+        fieldsFilter,
+    })
+
+    // Track properties to update querying
+    const queryProps: QueryProps<ContentFieldsFilter> = {
+        searchBarProps: {
+            setFilter: setSearchPhrase
+        },
+        filterButtonProps: {
+            defaultFieldsFilter,
+            fieldsFilter,
+            setFieldsFilter,
+            createFieldsElement: FilterDocumentFields
+        },
+        sortButtonProps: {}
     }
 
     return (
         <EntryPage
-            entries={entries}
+            entries={queryEntries}
             createOptionsElement={createOptionsElement}
             cardGridProps={{
                 renderCard: ((state) => (
@@ -104,7 +121,7 @@ export default function ContentEntryPage({
                 )),
             }}
             extraToolbarElements={[formAddButton]}
-            filterOptions={filterOptions}
+            queryProps={queryProps}
         />
     )
 }
