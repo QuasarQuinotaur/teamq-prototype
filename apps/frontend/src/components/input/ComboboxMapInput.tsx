@@ -19,12 +19,12 @@ export type ComboboxMapInputProps<T extends string> = {
     emptyText?: string;
 } & ComponentProps<typeof ComboboxChipsInput>
 export default function ComboboxMapInput<T extends string>({
-                                             map,
-                                             values,
-                                             setValues,
-                                             placeholder,
-                                             emptyText,
-                                             ...props
+                                                               map,
+                                                               values,
+                                                               setValues,
+                                                               placeholder,
+                                                               emptyText,
+                                                               ...props
 }: ComboboxMapInputProps<T>) {
     const anchor = useComboboxAnchor()
     const allItems = Object.keys(map) as T[]

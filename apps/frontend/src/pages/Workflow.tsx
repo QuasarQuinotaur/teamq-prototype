@@ -1,9 +1,9 @@
 import ContentEntryPage from "@/components/paging/ContentEntryPage.tsx";
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
 
 export default function Workflow() {
     return (
-        // <JobPositionInput/>
+        // <JobPositionMultiInput/>
         <ContentEntryPage
             contentType={"workflow"}
         />

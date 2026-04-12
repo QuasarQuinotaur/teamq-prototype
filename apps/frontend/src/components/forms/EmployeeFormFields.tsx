@@ -2,8 +2,8 @@
 import {FieldInput} from "@/components/forms/Field.tsx";
 import {Input} from "@/elements/input.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
+import JobPositionInput from "@/components/input/JobPositionInput.tsx";
 
 export type EmployeeFields = {
     firstName: string;
@@ -24,7 +24,7 @@ export default function EmployeeFormFields({
                                 fields,
                                 setKey,
                                 dateStrings
-                            }: EmployeeFormFieldsProps) {
+}: EmployeeFormFieldsProps) {
     return (
         <>
             <FieldInput

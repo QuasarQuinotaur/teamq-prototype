@@ -10,7 +10,7 @@ export const JOB_POSITION_TYPE_MAP = {
     ["business-analyst"]: "Business Analyst",
 }
 export const DOCUMENT_STATUS_TYPE_MAP = {
-    ["to-do"]: "Todo",
+    ["to-do"]: "To-Do",
     ["in-progress"]: "In Progress",
     completed: "Completed",
 }

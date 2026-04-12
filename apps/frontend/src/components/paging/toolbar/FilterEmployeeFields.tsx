@@ -4,9 +4,12 @@ import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import {FieldInput} from "@/components/forms/Field.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import {Input} from "@/elements/input.tsx";
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
+import * as React from "react";
 
-export type EmployeeFieldsFilter = object
+export type EmployeeFieldsFilter = {
+    jobPositions?: string[];
+}
 
 export default function FilterEmployeeFields({
                                                  fields,
@@ -14,19 +17,19 @@ export default function FilterEmployeeFields({
 }: FormFieldsProps<EmployeeFieldsFilter>) {
     return (
         <>
-            {/*<FieldInput*/}
-            {/*    id={"filter-documents-content-type"}*/}
-            {/*    label={"By Content Type"}*/}
-            {/*    createElement={(id) => (*/}
-            {/*        <ContentTypeInput*/}
-            {/*            id={id}*/}
-            {/*            contentType={fields.contentTypes[0]}*/}
-            {/*            setContentType={(type) => {*/}
-            {/*                setKey("contentTypes", [type])*/}
-            {/*            }}*/}
-            {/*        />*/}
-            {/*    )}*/}
-            {/*/>*/}
+            <FieldInput
+                id={"filter-employees-job-position"}
+                label={"By Job Position"}
+                createElement={(id) => (
+                    <JobPositionMultiInput
+                        id={id}
+                        jobPositions={fields.jobPositions ?? []}
+                        setJobPositions={(positions) => {
+                            setKey("jobPositions", positions)
+                        }}
+                    />
+                )}
+            />
         </>
     )
 }

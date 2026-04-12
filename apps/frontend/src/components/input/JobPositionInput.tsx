@@ -1,22 +1,26 @@
-import * as React from "react";
-import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
-import ComboboxMapInput, {type ComboboxMapInputProps} from "@/components/input/ComboboxMapInput.tsx";
-import type {ComponentProps} from "react";
-import {ComboboxChipsInput} from "@/components/Combobox.tsx";
 
+
+import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import * as React from "react";
+import type {ComponentProps} from "react";
+import {SelectTrigger} from "@/elements/select.tsx";
+import SelectMapInput from "@/components/input/SelectMapInput.tsx";
 
 type JobPositionInputProps = {
-    jobPositions: string[];
-    setJobPositions: (jobPositions: string[]) => void;
-} & ComponentProps<typeof ComboboxChipsInput>
-export default function JobPositionInput(props: JobPositionInputProps) {
+    jobPosition: string;
+    setJobPosition: (jobPosition: string) => void;
+} & ComponentProps<typeof SelectTrigger>
+export default function JobPositionInput({
+                                             jobPosition,
+                                             setJobPosition,
+                                             ...props
+}: JobPositionInputProps) {
     return (
-        <ComboboxMapInput
+        <SelectMapInput
             map={JOB_POSITION_TYPE_MAP}
-            values={props.jobPositions}
-            setValues={props.setJobPositions}
-            placeholder={"Job Position"}
-            emptyText={"No positions found."}
+            initValue={jobPosition}
+            setValue={setJobPosition}
+            placeholder={"Choose job position"}
             {...props}
         />
     )

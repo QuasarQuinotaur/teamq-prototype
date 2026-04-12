@@ -22,17 +22,19 @@ import {Button} from "@/elements/buttons/button.tsx";
 
 type FormActionsProps = {
     submitText?: string | ((isSubmitting: boolean) => string);
+    cancelText?: string;
     hideReset?: boolean;
     hideCancel?: boolean;
 }
 function FormActions({
                          submitText,
+                         cancelText,
                          hideReset,
                          hideCancel,
                          isSubmitting,
                          onCancel,
 }: FormActionsProps & FormState & { isSubmitting: boolean }) {
-// Creates cancel-reset-submit buttons
+    // Creates cancel-reset-submit buttons
     return (
         <div className={"flex-col w-full"}>
             <Separator className={"mb-3"}/>
@@ -41,7 +43,7 @@ function FormActions({
                     type={"button"}
                     onClick={onCancel}
                 >
-                    Cancel
+                    {cancelText ?? "Cancel"}
                 </Button>}
                 {!hideReset && <Button type={"reset"}>Reset</Button>}
                 <Button type={"submit"} disabled={isSubmitting}>

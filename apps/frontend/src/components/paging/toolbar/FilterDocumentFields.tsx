@@ -3,7 +3,7 @@
 import * as React from "react";
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import {FieldInput} from "@/components/forms/Field.tsx";
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
 import ContentTypeMultiInput from "@/components/input/ContentTypeMultiInput.tsx";
 import DocumentTypeInput from "@/components/input/DocumentTypeInput.tsx";
 import type {DocumentType} from "@/components/input/constants.tsx";
@@ -19,8 +19,6 @@ export default function FilterDocumentFields({
                                                  fields,
                                                  setKey,
 }: FormFieldsProps<ContentFieldsFilter>) {
-    console.log("Fields for document filter:", fields)
-
     return (
         <>
             <FieldInput
@@ -40,7 +38,7 @@ export default function FilterDocumentFields({
                 id={"filter-documents-job-position"}
                 label={"By Job Position"}
                 createElement={(id) => (
-                    <JobPositionInput
+                    <JobPositionMultiInput
                         id={id}
                         jobPositions={fields.jobPositions ?? []}
                         setJobPositions={(positions) => {

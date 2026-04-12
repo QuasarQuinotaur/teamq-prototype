@@ -1,7 +1,8 @@
 import {CONTENT_TYPE_MAP} from "@/components/input/constants.tsx";
 import * as React from "react";
 import type {ComponentProps} from "react";
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/elements/select.tsx";
+import {SelectTrigger} from "@/elements/select.tsx";
+import SelectMapInput from "@/components/input/SelectMapInput.tsx";
 
 type ContentTypeInputProps = {
     contentType: string;
@@ -13,17 +14,12 @@ export default function ContentTypeInput({
                                              ...props
 }: ContentTypeInputProps) {
     return (
-        <Select value={contentType} onValueChange={setContentType}>
-            <SelectTrigger {...props}>
-                <SelectValue placeholder="Choose content type" />
-            </SelectTrigger>
-            <SelectContent position={"popper"}>
-                <SelectGroup>
-                    {Object.entries(CONTENT_TYPE_MAP).map(([key, value]) => (
-                        <SelectItem value={key}>{value}</SelectItem>
-                    ))}
-                </SelectGroup>
-            </SelectContent>
-        </Select>
+        <SelectMapInput
+            map={CONTENT_TYPE_MAP}
+            initValue={contentType}
+            setValue={setContentType}
+            placeholder={"Choose content type"}
+            {...props}
+        />
     )
 }

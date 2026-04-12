@@ -22,7 +22,7 @@ export default function FilterButton<T extends object>({
         onCancel: () => {
             // Makes it so on cancel, the window closes
             setFilterOpen(false);
-            if (state.onCancel) {
+            if (state && state.onCancel) {
                 state.onCancel()
             }
         }

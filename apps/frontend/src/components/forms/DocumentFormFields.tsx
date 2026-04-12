@@ -1,7 +1,7 @@
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import {FieldInput} from "@/components/forms/Field.tsx";
 import {Input} from "@/elements/input.tsx";
-import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import DocumentStatusInput from "@/components/input/DocumentStatusInput.tsx";
@@ -79,7 +79,7 @@ export default function DocumentFormFields({
                 id={"document-add-form-job-positions"}
                 label={"Job Positions"}
                 createElement={(id) => (
-                    <JobPositionInput
+                    <JobPositionMultiInput
                         id={id}
                         jobPositions={fields.jobPosition.trim() ? [fields.jobPosition] : []}
                         setJobPositions={(positions) => {
