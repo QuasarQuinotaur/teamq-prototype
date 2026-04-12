@@ -96,7 +96,8 @@ export default function DocumentForm(state: FormState) {
         formData.append("jobPosition", documentFields.jobPosition);
         formData.append("expirationDate", documentFields.expirationDate!.toISOString());
         formData.append("contentType", documentFields.contentType);
-        formData.append("status", isUpdate ? documentFields.status : "to-do");
+        const isStatusLocked = ["tool", "reference"].includes(documentFields.contentType);
+        formData.append("status", (isUpdate && !isStatusLocked) ? documentFields.status : "to-do");
 
         if (documentFields.sourceType === "file") {
             if (documentFields.file) {

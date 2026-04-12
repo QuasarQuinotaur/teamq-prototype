@@ -40,11 +40,13 @@ type ModifyDropdownProps = {
     entry: CardEntry;
     trigger: React.ReactNode;
     handleDelete: (entry: CardEntry) => void;
+    extraMenuItems?: React.ReactNode;
 } & FormOfTypeProps
 export default function ModifyDropdown({
                                            entry,
                                            trigger,
                                            handleDelete,
+                                           extraMenuItems,
                                            formType,
                                            ...state
 }: ModifyDropdownProps) {
@@ -68,7 +70,7 @@ export default function ModifyDropdown({
                 {/*Dropdown with options*/}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuGroup>
                             <DialogTrigger asChild>
                                 <DropdownMenuItem>
@@ -77,6 +79,14 @@ export default function ModifyDropdown({
                                 </DropdownMenuItem>
                             </DialogTrigger>
                         </DropdownMenuGroup>
+                        {extraMenuItems && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    {extraMenuItems}
+                                </DropdownMenuGroup>
+                            </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                             <AlertDialogTrigger asChild>

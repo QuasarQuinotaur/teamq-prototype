@@ -528,6 +528,25 @@ app.delete("/api/content/:id", requiresAuth(), async (req, res) => {
     }
 });
 
+app.patch("/api/content/:id/status", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    const { status } = req.body;
+    if (!status || typeof status !== "string") {
+        res.status(400).json({ error: "Missing or invalid status" });
+        return;
+    }
+    try {
+        const updated = await contentRepo.update(id, { status });
+        res.json({ success: true, content: updated });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Status update failed" });
+    }
+});
+
 app.get('/api/me', async (req, res) => {
   if (!req.oidc.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });

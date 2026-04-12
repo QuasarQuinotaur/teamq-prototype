@@ -11,7 +11,6 @@ import {
     CardAction,
     CardContainer,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
@@ -55,11 +54,9 @@ async function viewItem(link: string, item: object & { id: number }) {
 }
 
 type ContentCardProps = {
-    action: string;
     onView?: (entry: CardEntry) => void;
 } & CardState;
 export default function ContentCard({
-                                 action,
                                  entry,
                                  badges,
                                  createOptionsElement,
@@ -104,13 +101,24 @@ export default function ContentCard({
         fetchThumbnail();
     }, [entry]);
 
+    function handleCardClick() {
+        if (onView && isSupabasePath(entry.link)) {
+            onView(entry);
+        } else {
+            viewItem(entry.link, entry.item);
+        }
+    }
+
     return (
-        <CardContainer className="relative w-full h-full flex flex-col justify-between gap-3">
+        <CardContainer
+            className="relative w-full h-full flex flex-col justify-between gap-3 cursor-pointer"
+            onClick={handleCardClick}
+        >
             <CardHeader>
                 <div className="flex w-full items-start justify-between gap-2">
                     <CardTitle className="line-clamp-3 break-normal flex-1">{entry.title}</CardTitle>
                     {createOptionsElement != null && (
-                        <CardAction className="shrink-0">
+                        <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
                                 // Create the "..." button and pass it to make a surrounding element
                                 // This gives functionality to the button like showing a dropdown
@@ -156,20 +164,6 @@ export default function ContentCard({
                     ))}
                 </div>
             </div>
-            <CardFooter>
-                <Button
-                    onClick={() => {
-                        if (onView && isSupabasePath(entry.link)) {
-                            onView(entry);
-                        } else {
-                            viewItem(entry.link, entry.item);
-                        }
-                    }}
-                    className="w-full"
-                >
-                    {action}
-                </Button>
-            </CardFooter>
         </CardContainer>
     )
 }
