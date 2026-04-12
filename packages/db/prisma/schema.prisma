@@ -79,7 +79,7 @@ model Favorites {
 }
 
 model NewNotifications {
-  id @id @defualt(autoincrement())
+  id               Int       @id @defualt(autoincrement())
   type             String
   dateSent         DateTime  @default(now())
   employeeNotified Employee
@@ -87,7 +87,7 @@ model NewNotifications {
 }
 
 model OldNotificiations {
-  id @id @defualt(autoincrement())
+  id               Int       @id @defualt(autoincrement())
   type             String
   dateSent         DateTime
   dateRead         DateTime  @default(now())
