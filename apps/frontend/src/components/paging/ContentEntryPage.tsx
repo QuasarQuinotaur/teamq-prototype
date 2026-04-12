@@ -98,6 +98,7 @@ export default function ContentEntryPage({
             setFilter: setSearchPhrase
         },
         filterButtonProps: {
+            emptyFieldsFilter: {},
             defaultFieldsFilter,
             fieldsFilter,
             setFieldsFilter,

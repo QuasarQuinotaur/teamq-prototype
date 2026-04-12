@@ -97,6 +97,7 @@ export default function EmployeeEntryPage() {
             setFilter: setSearchPhrase
         },
         filterButtonProps: {
+            emptyFieldsFilter: {},
             defaultFieldsFilter,
             fieldsFilter,
             setFieldsFilter,

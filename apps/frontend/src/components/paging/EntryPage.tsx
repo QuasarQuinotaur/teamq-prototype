@@ -63,13 +63,14 @@ export default function EntryPage<T extends object>({
     }
 
     return (
-        <>
+        <div className={"bg-muted/50 flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2"}>
             {/*Toolbar for querying*/}
             <Toolbar
                 extraElements={extraToolbarElements}
                 viewSelectorButtonProps={viewSelectorButtonProps}
                 queryProps={queryProps}
             />
+            <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2">
             {view === "Grid" ?
                 (
                     <CardGrid
@@ -89,6 +90,7 @@ export default function EntryPage<T extends object>({
                         </div>
                     </>
                 )}
-        </>
+            </div>
+        </div>
     )
 }
