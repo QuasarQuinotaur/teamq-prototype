@@ -8,39 +8,48 @@ datasource db {
 }
 
 model Employee {
-  id          Int         @id @default(autoincrement())
-  auth0Id     String?     @unique
-  email       String      @unique
+  id          Int      @id @default(autoincrement())
+  auth0Id     String?  @unique
+  email       String   @unique
   firstName   String
   lastName    String
   dateOfBirth DateTime
   jobPosition String
-  contents    Content[]
-  favorites   Favorites[] // relation("favorited contents") // relationship list
 
-  createdRequests  ServiceRequest[] @relation("CreatedRequests")
-  assignedRequests ServiceRequest[] @relation("AssignedRequests")
-  // favoritedContent Favorites[]      @relation("added content to favorites") redundent
+  contentsOwned Content[] @relation("ownedContents") // relationship list
+
+  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table)
+
+  createdRequests  ServiceRequest[] @relation("OwnedRequests")
+  assignedRequests ServiceRequest[] @relation("EmployeeRequests")
+
+  notifications NewNotifications[] @relation("NotificationEmployees")
 }
 
 model Content {
-  id             Int         @id @default(autoincrement())
-  title          String
-  link           String
-  ownerName      String
-  jobPositions   String[] // scalar list
-  contentType    String
-  status         String
-  dateAdded      DateTime    @default(now())
-  dateUpdated    DateTime    @updatedAt
-  expirationDate DateTime
-  favorites      Favorites[] // one content can have many favorites from dif people
-  ownerId        Int
-  owner          Employee    @relation(fields: [ownerId], references: [id])
+  id                 Int              @id @default(autoincrement())
+  title              String
+  link               String
+  jobPositions       String[] // scalar list
+  contentType        String
+  status             String
+  dateAdded          DateTime         @default(now())
+  dateUpdated        DateTime         @updatedAt
+  expirationDate     DateTime
+  employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
+  ownerId            Int
+  owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequests    ServiceRequest[] @relation("ContentRequests")
+  notifications      Notification[]   @relation("NotificationContents")
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([contentType])
+  @@index([expirationDate])
 }
 
 // Service Request:
-// one to ????? do we need the buffer tables????
+
 model ServiceRequest {
   id          Int       @id @default(autoincrement())
   description String?
@@ -48,74 +57,59 @@ model ServiceRequest {
   dateDue     DateTime?
   priority    String?
   status      String    @default("to-do")
-  // employees   Employee[] // one service can have many employees/contents
-  // contents    Content[] //i dont think these are needed
 
-  serviceRequestToEmployees ServiceRequestToEmployees[] // relation("employees requested")
-  serviceRequestToContents  ServiceRequestToContents[] // relation("contents used in request")
+  ownerId Int
+  owner   Employee @relation("OwnedRequests", fields: [ownerId], references: [id])
+
+  employees Employee[] @relation("EmployeeRequests")
+  contents  Content[]  @relation("ContentRequests")
 }
 
-// ServiceRequestToEmployee: Buffer table to link all employees
-// needed in a service request
-// one per employee per service request
-// one to one relationship with service request
-// one to one relationship with employee
-model ServiceRequestToEmployees {
-  id          Int            @id @default(autoincrement())
-  serviceID   Int
-  service     ServiceRequest @relation("service requested to", fields: [serviceID], references: [id])
-  requestedID Int
-  requested   Employee       @relation("employee requested", fields: [requestedID], references: [id])
-}
+model Notification {
+  id       Int      @id @default(autoincrement())
+  type     String
+  dateSent DateTime
 
-// ServiceRequestToContents: Buffer table to link all contents
-// needed in a service request
-// one per content per service request
-// one to one relationship with service request
-// one to one relationship with content
-model ServiceRequestToContents {
-  id        Int            @id @default(autoincrement())
-  serviceID Int
-  service   ServiceRequest @relation("service requested to", fields: [serviceID], references: [id])
-  contentID Int
-  content   Content        @relation("content requested", fields: [contentID], references: [id])
-}
+  dateRead DateTime? @default(now())
 
-// Favorites: stores all favorited content
-// one per employee/content favorited
-// one to one relationship with employee
-// one to one relatiosnhip with content
-model Favorites {
-  id         Int      @id @default(autoincrement())
-  employeeID Int
-  employee   Employee @relation("employee who favorites", fields: [employeeID], references: [id])
-  contentID  Int
-  content    Content  @relation("content favorited", fields: [contentID], references: [id])
-}
-
-// NewNotification table: stores all unread notifications
-// one to one relationship with employee
-//(if need to send to multiple just make a bunch of notifications)
-// 0/1 to many relationship with content
-model NewNotifications {
-  id                 Int       @id @default(autoincrement())
-  type               String
-  dateSent           DateTime  @default(now())
   employeeNotifiedID Int
-  employeeNotified   Employee  @relation(fields: [employeeNotifiedID], references: [id])
-  contentsUsed       Content[] // relation("contents a part of notification (can be none)") //can be empty array
+
+  employeeNotified Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
+  contentsUsed     Content[] @relation("NotificationContents") //"contents a part of notification (can be none)"
+
+  @@index([employeeNotifiedID, dateRead]) // index for O(log(n)) time
 }
 
-// one to one relationship with employee
+/*
+// when making a notification, it will get added to both tables
+// when making a notification
+// PopUp: for quickl polling
+// holds less data and just acts as an alert?
+//
+model PopUpNotifications {
+  id                 Int      @id @default(autoincrement())
+  dateSent           DateTime @default(now())
+  employeeNotifiedID Int
+  employeeNotified   Employee @relation("NewNotificationEmployees", fields: [employeeNotifiedID], references: [id])
+}
+
+// many to one relationship with employee
 //(if need to send to multiple just make a bunch of notifications)
-// 0/1 to many relationship with content
+// list to many relationship with content
 // notifications become old when read by employee
-model OldNotifications {
-  id                 Int        @id @defualt(autoincrement())
-  type               String
-  dateSent           DateTime
-  dateRead           DateTime   @default(now())
+model TotalNotifications {
+  id       Int      @id @default(autoincrement())
+  type     String
+  dateSent DateTime
+
+  dateRead DateTime? @default(now())
+
   employeeNotifiedID Int
-  employeeNotified   Employee   @relation(fields: [employeeNotifiedID], references: [id])
-  contentsUsed       Content[]? //"contents a part of notification (can be none)"
+  employeeNotified   Employee  @relation("OldNotificationEmployees", fields: [employeeNotifiedID], references: [id])
+  contentsUsed       Content[] @relation("OldNotificationContents") //"contents a part of notification (can be none)"
 }
+// on a note tho, the contentsused might become terrible
+// if this gets scaled a whole bunch
+ */
+
+// Settings
