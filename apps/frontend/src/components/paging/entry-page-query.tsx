@@ -1,4 +1,7 @@
-// Hook for entry page filtering, which also returns properties to use for filtering elements
+// Hook for entry page querying, which also returns properties to use for query elements
+// Can add Fuse filters to limit the scope of entries, such as searching
+// Can add field filters to filter for specific field keys
+// Moved here so EntryPage isn't so massive
 
 import {useCallback, useEffect, useMemo, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
@@ -27,7 +30,7 @@ export type FilterOptions<T> = {
 }
 
 
-function passesFieldFilters<T extends KeyFilters<object>>(entry: CardEntry, fieldFilters: T): boolean {
+function passesFieldFilters<T>(entry: CardEntry, fieldFilters: T): boolean {
     // Has all required keys if not missing any key
     const item = entry.item
     const missingAnyKey =
@@ -47,12 +50,11 @@ function passesWhitelistFilters(entry: CardEntry, whitelistFilters: WhitelistFil
 }
 
 
-// export type Filter
 type EntryPageFilterProps<T> = {
     entries: CardEntry[];
     setFilterEntries: React.Dispatch<React.SetStateAction<CardEntry[]>>;
 } & FilterOptions<T>
-export default function useEntryPageFilter<T extends KeyFilters<object>>({
+export default function useEntryPageFilter<T>({
                                                   entries, 
                                                   setFilterEntries,
                                                   initWhitelistFilters,
@@ -61,14 +63,6 @@ export default function useEntryPageFilter<T extends KeyFilters<object>>({
 }: EntryPageFilterProps<T>): UseFilterProps<T> {
     // Store key filters where items need matching keys
     const [fieldFilters, setFieldFilters] = useState<T>(initFieldFilters ?? ({} as T))
-    // function setKeyFilter(key: string, keyFilter: KeyFilters<T> | undefined) {
-    //     // handleKeyChangeOrDelete(
-    //     //     keyFilter,
-    //     //     setKeyFilters,
-    //     //     key,
-    //     //     keyFilter
-    //     // )
-    // }
     
     // Store many different whitelist filters from multiple sources
     const [whitelistFilters, setWhitelistFilters] = useState(initWhitelistFilters ?? {})
@@ -126,6 +120,7 @@ export default function useEntryPageFilter<T extends KeyFilters<object>>({
     }
     const filterButtonProps: FilterButtonProps<T> = {
         fieldFilters,
+        setFieldFilters,
         createFieldsElement
     }
     const sortButtonProps = {}

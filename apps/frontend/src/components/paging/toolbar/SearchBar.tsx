@@ -14,7 +14,7 @@ import {
 import {
     MagnifyingGlassIcon
 } from "@phosphor-icons/react";
-import type {FuseFilter} from "@/components/paging/entry-page-filter.tsx";
+import type {FuseFilter} from "@/components/paging/entry-page-query.tsx";
 
 
 export type SearchBarProps = {

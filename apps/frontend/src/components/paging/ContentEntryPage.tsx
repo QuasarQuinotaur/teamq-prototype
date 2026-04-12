@@ -11,8 +11,8 @@ import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
-import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-filter.tsx";
-import type {DocumentFields} from "@/components/forms/DocumentForm.tsx";
+import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-query.tsx";
+import type {ContentFields} from "@/components/forms/DocumentForm.tsx";
 
 
 type ContentEntryPageProps = {
@@ -65,7 +65,7 @@ export default function ContentEntryPage({
     }
 
     // Create toolbar button for Add Document Form
-    const formAddButton = FormAddButton(formOfTypeProps)
+    const formAddButton = <FormAddButton {...formOfTypeProps}/>
 
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
@@ -78,12 +78,14 @@ export default function ContentEntryPage({
             })
         )
 
-    // Add content type filter to only include specified content type
-    const keyFilters: KeyFilters<DocumentFields> | null = (
+    // Filtering for content
+    const keyFilters: KeyFilters<ContentFields> | null = (
+        // Set initial filter to only show items of content type
         contentType ? {contentType: [contentType]} : null
     )
-    const filterOptions: FilterOptions<KeyFilters<DocumentFields>> = {
+    const filterOptions: FilterOptions<KeyFilters<ContentFields>> = {
         initFieldFilters: keyFilters,
+        // This makes the Toolbar filter button display options to filter content
         createFieldsElement: (props) => (<p>Document filter stuff here</p>)
     }
 

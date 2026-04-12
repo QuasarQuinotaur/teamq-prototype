@@ -11,10 +11,9 @@ import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import CardList, {type CardListProps} from "@/components/cards/CardList.tsx";
 import type {ViewSelectorButtonProps, ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
-import useEntryPageFilter, {type FilterOptions, type KeyFilters} from "@/components/paging/entry-page-filter.tsx";
+import useEntryPageFilter, {type FilterOptions, type KeyFilters} from "@/components/paging/entry-page-query.tsx";
 
 export const FILTER_KEY_SEARCH = "SearchFilter";
-export const FILTER_KEY_CONTENT_TYPE = "ContentTypeFilter";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
@@ -22,16 +21,16 @@ export type EntryProps = {
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
 }
 
+// T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
 type EntryPageProps<T> = {
     cardGridProps: CardGridProps;
         // currently unused (uncomment if used in future)
         // cardListProps?: CardListProps;
     // These elements get added to top right toolbar
     extraToolbarElements?: React.ReactNode[];
-    // Filtering
     filterOptions: FilterOptions<T>;
 }
-export default function EntryPage<T extends KeyFilters<object>>({
+export default function EntryPage<T extends object>({
                                       // cardListProps,
                                       cardGridProps,
                                       extraToolbarElements,
@@ -59,7 +58,7 @@ export default function EntryPage<T extends KeyFilters<object>>({
         setPageEntries(filterEntries.slice(first, last))
     }
 
-    // Filtering props
+    // Create properties to describe filtering elements on toolbar
     const useProps = useEntryPageFilter({
         entries, setFilterEntries, ...filterOptions
     })
@@ -76,10 +75,11 @@ export default function EntryPage<T extends KeyFilters<object>>({
             {/*Toolbar for querying*/}
             <Toolbar
                 extraElements={extraToolbarElements}
+                viewSelectorButtonProps={viewSelectorButtonProps}
+                // These props are created from this EntryPage's filter options
                 searchBarProps={useProps.searchBarProps}
                 filterButtonProps={useProps.filterButtonProps}
                 sortButtonProps={useProps.sortButtonProps}
-                viewSelectorButtonProps={viewSelectorButtonProps}
             />
             {view === "Grid" ?
                 (

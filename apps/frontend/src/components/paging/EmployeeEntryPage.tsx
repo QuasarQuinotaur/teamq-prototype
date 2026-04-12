@@ -10,9 +10,8 @@ import EntryPage from "@/components/paging/EntryPage.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
-import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-filter.tsx";
-import type {DocumentFields} from "@/components/forms/DocumentForm.tsx";
-import type {EmployeeFields} from "@/components/forms/EmployeeForm.tsx";
+import type {FilterOptions, KeyFilters} from "@/components/paging/entry-page-query.tsx";
+import type {EmployeeFields} from "@/components/forms/EmployeeFormFields.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -68,7 +67,7 @@ export default function EmployeeEntryPage() {
     }
 
     // Create toolbar button for Add Employee Form
-    const formAddButton = FormAddButton(formOfTypeProps)
+    const formAddButton = <FormAddButton {...formOfTypeProps}/>
 
     // Make card "..." show dropdown to modify employees
     const createOptionsElement =
@@ -81,8 +80,9 @@ export default function EmployeeEntryPage() {
             })
         )
 
-    // Add content type filter to only include specified content type
+    // Filtering for employee
     const filterOptions: FilterOptions<KeyFilters<EmployeeFields>> = {
+        // This makes the Toolbar filter button display options to filter employees
         createFieldsElement: (props) => (<p>Employee filter stuff here</p>)
     }
 

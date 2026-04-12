@@ -1,4 +1,4 @@
-// Creates a button used to apply filtering
+// Creates a button used to apply filtering on entries
 
 import {Button} from "@/elements/buttons/button.tsx";
 import {FunnelSimpleIcon} from "@phosphor-icons/react";
@@ -6,7 +6,7 @@ import * as React from "react";
 import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import FilterForm, {type FilterFormProps} from "@/components/forms/FilterForm.tsx";
-import Form, {type FormState} from "@/components/forms/Form.tsx";
+import {type FormState} from "@/components/forms/Form.tsx";
 
 
 export type FilterButtonProps<T> = FilterFormProps<T>

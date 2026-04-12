@@ -1,6 +1,8 @@
+// Form used to fill out filtering options
+// On submission the new field filters will be updated and change which entries can show up
+
 import * as React from "react";
-import type {KeyFilters} from "@/components/paging/entry-page-filter.tsx";
-import Form, {type CreateFieldsElement, type FormFieldsProps, type FormState} from "@/components/forms/Form.tsx";
+import Form, {type CreateFieldsElement, type FormState} from "@/components/forms/Form.tsx";
 
 
 
@@ -31,31 +33,26 @@ import Form, {type CreateFieldsElement, type FormFieldsProps, type FormState} fr
 
 export type FilterFormProps<T> = {
     state?: FormState;
-    fieldFilters?: T
+    fieldFilters: T
+    setFieldFilters: (fieldFilters: T) => void;
     createFieldsElement: CreateFieldsElement<T>;
-    // setKeyFilter: (key: string, filter: KeyFilters<T>) => void;
 }
 export default function FilterForm<T extends object>({
                                                          state,
                                                          fieldFilters,
+                                                         setFieldFilters,
                                                          createFieldsElement,
 }: FilterFormProps<T>) {
-    console.log(fieldFilters);
+    async function handleSubmit(fields: T) {
+        setFieldFilters(fields);
+    }
 
     return (
         <Form
             state={state}
             initialFields={fieldFilters}
             createFieldsElement={createFieldsElement}
-            submit={null}
+            submit={handleSubmit}
         />
-        // <Form
-        //     state={state}
-        //     initialFields={DEFAULT_FILTER_FIELDS}
-        //     createFieldsElement={FilterFields}
-        //     submit={handleSubmit}
-        //     hideCancel
-        //     hideReset
-        // />
     )
 }
