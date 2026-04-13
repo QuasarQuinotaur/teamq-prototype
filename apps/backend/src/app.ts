@@ -347,6 +347,14 @@ app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
         return;
     }
 
+    const existingThumb = `./tmp/thumb-${id}.png`;
+
+    if (fs.existsSync(existingThumb)) {
+        return res.json({
+            thumbnailUrl: `/tmp/thumb-${id}.png`,
+        });
+    }
+
     try {
         const content = await contentRepo.getById(id);
         if (!content) {
