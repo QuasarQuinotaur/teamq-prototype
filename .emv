@@ -1,9 +1,0 @@
-SUPABASE_URL=https://hcsoypevqbjthmlhhffx.supabase.co/
-SUPABASE_SECRET_KEY=sb_secret_c5kXjhYGTlD4Dm1MzJP5Xg_3FTjSCQu
-DATABASE_URL=postgresql://postgres.hcsoypevqbjthmlhhffx:SoftwareEngineering2026D@aws-1-us-east-1.pooler.supabase.com:5432/postgres
-CLIENT_ID=3w5wvfDcVGySmKc76ijFuhtdR2Gk3S3Q
-SECRET=Lfuew9ijXF5IctekRVsb0oSwbEJxZDFx2MKdNOgWwM5DjmK5-GnB5oRqLcj2qb5f
-ISSUER_BASE_URL=https://ahhhhhhhhhh.us.auth0.com/
-BASE_URL=http://localhost:3000/
-VITE_BACKEND_URL=http://localhost:3000/
-FRONTEND_URL=http://localhost:5173/
