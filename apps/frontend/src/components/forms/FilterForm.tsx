@@ -10,33 +10,33 @@ import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 
 export type FilterFormProps<T> = {
-    emptyFieldsFilter?: T;
-    defaultFieldsFilter: T;
-    fieldsFilter: T;
-    setFieldsFilter: (fieldFilters: T) => void;
+    emptyFields?: T;
+    defaultFields: T;
+    fields: T;
+    setFields: (fieldFilters: T) => void;
     createFieldsElement: CreateFieldsElement<T>;
 }
 export default function FilterForm<T extends object>({
-                                                         emptyFieldsFilter,
-                                                         defaultFieldsFilter,
-                                                         fieldsFilter,
-                                                         setFieldsFilter,
+                                                         emptyFields,
+                                                         defaultFields,
+                                                         fields,
+                                                         setFields,
                                                          createFieldsElement,
 }: FilterFormProps<T>) {
 
     // Sets a key within the field to be updated
     function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
-        handleKeyChange(setFieldsFilter, key, value)
+        handleKeyChange(setFields, key, value)
     }
 
     // Resets all filters to default
     function handleResetFilters() {
-        setFieldsFilter(defaultFieldsFilter);
+        setFields(defaultFields);
     }
 
     // Removes all filters
     function handleRemoveFilters() {
-        setFieldsFilter(emptyFieldsFilter);
+        setFields(emptyFields);
     }
 
     return (
@@ -53,7 +53,7 @@ export default function FilterForm<T extends object>({
                         <FieldGroup>
                             {/*This makes all field elements (different based on type of form)*/}
                             {createFieldsElement({
-                                fields: fieldsFilter,
+                                fields,
                                 setKey,
                             })}
                         </FieldGroup>
@@ -63,7 +63,7 @@ export default function FilterForm<T extends object>({
             <div className={"flex-col w-full"}>
                 <Separator className={"mb-3"}/>
                 <div className={"flex gap-1"}>
-                    {emptyFieldsFilter && <Button
+                    {emptyFields && <Button
                         type={"button"}
                         onClick={handleRemoveFilters}
                     >

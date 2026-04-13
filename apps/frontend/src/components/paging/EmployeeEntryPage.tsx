@@ -13,6 +13,11 @@ import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useEmployeeQueryEntries from "@/components/paging/hooks/employee-query-entries.tsx";
 import FilterEmployeeFields, {type EmployeeFieldsFilter} from "@/components/paging/toolbar/FilterEmployeeFields.tsx";
+import type {SortFields} from "@/components/forms/SortForm.tsx";
+import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import useEmployeeSortFunction from "@/components/paging/hooks/employee-sort-function.tsx";
+import FilterDocumentFields from "@/components/paging/toolbar/FilterDocumentFields.tsx";
+import {EMPLOYEE_SORT_BY_MAP} from "@/components/input/constants.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -81,11 +86,15 @@ export default function EmployeeEntryPage() {
     // Filtering using search and key matching
     const defaultFieldsFilter: EmployeeFieldsFilter = {}
     const [fieldsFilter, setFieldsFilter] = useState<EmployeeFieldsFilter>(defaultFieldsFilter)
+    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const [sortFields, setSortFields] = useState(defaultSortFields)
+    const sortFunction = useEmployeeSortFunction({sortFields})
     const [searchPhrase, setSearchPhrase] = useState("")
     const queryEntries = useEmployeeQueryEntries({
         entries,
         searchPhrase,
         fieldsFilter,
+        sortFunction
     })
 
     // Track properties to update querying
@@ -94,13 +103,18 @@ export default function EmployeeEntryPage() {
             setFilter: setSearchPhrase
         },
         filterButtonProps: {
-            emptyFieldsFilter: {},
-            defaultFieldsFilter,
-            fieldsFilter,
-            setFieldsFilter,
-            createFieldsElement: FilterEmployeeFields
+            emptyFields: {},
+            defaultFields: defaultFieldsFilter,
+            fields: fieldsFilter,
+            setFields: setFieldsFilter,
+            createFieldsElement: FilterEmployeeFields,
         },
-        sortButtonProps: {}
+        sortButtonProps: {
+            sortByMap: EMPLOYEE_SORT_BY_MAP,
+            defaultSortFields,
+            sortFields,
+            setSortFields,
+        }
     }
 
 

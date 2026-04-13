@@ -11,22 +11,8 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popove
 
 
 export type FilterButtonProps<T> = FilterFormProps<T>
-export default function FilterButton<T extends object>({
-                                                           state,
-                                                           ...props
-}: FilterButtonProps<T>) {
+export default function FilterButton<T extends object>(props: FilterButtonProps<T>) {
     const [filterOpen, setFilterOpen] = useState(false)
-
-    const formState: FormState = {
-        ...state,
-        onCancel: () => {
-            // Makes it so on cancel, the window closes
-            setFilterOpen(false);
-            if (state && state.onCancel) {
-                state.onCancel()
-            }
-        }
-    }
 
     return (
         <Popover
@@ -39,9 +25,9 @@ export default function FilterButton<T extends object>({
                 </Button>
             </PopoverTrigger>
             <PopoverContent align={"end"} className="w-80">
+                {/*<h4>Filter</h4>*/}
                 <FilterForm
                     {...props}
-                    state={formState}
                 />
             </PopoverContent>
         </Popover>

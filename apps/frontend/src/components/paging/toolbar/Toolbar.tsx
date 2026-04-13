@@ -11,14 +11,14 @@ import { Separator } from "@/elements/separator.tsx"
 import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import FilterButton, {type FilterButtonProps} from "@/components/paging/toolbar/FilterButton.tsx";
-import SortButton from "@/components/paging/toolbar/SortButton.tsx";
+import SortButton, {type SortButtonProps} from "@/components/paging/toolbar/SortButton.tsx";
 import ViewSelectorButton, {type ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
 
 export type QueryProps<T> = {
     searchBarProps?: SearchBarProps,
     filterButtonProps?: FilterButtonProps<T>,
-    sortButtonProps?: object
+    sortButtonProps?: SortButtonProps,
 }
 
 type ToolbarProps<T> = {

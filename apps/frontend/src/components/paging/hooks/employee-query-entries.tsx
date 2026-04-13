@@ -1,37 +1,37 @@
 // From employee entries, applies a query to show employees searched for
 
 import {useCallback} from "react";
+import useQueryEntries, {type QueryEntriesProps} from "@/components/paging/hooks/query-entries.tsx";
 import type {CardEntry} from "@/components/cards/Card.tsx";
-import type {Content, Employee} from "db";
-import type {ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
-import useQueryEntries from "@/components/paging/hooks/query-entries.tsx";
+import type {Employee} from "db";
 import type {EmployeeFieldsFilter} from "@/components/paging/toolbar/FilterEmployeeFields.tsx";
+import type {SortFunction} from "@/components/paging/hooks/sort-function.tsx";
 
-type ContentQueryEntriesProps = {
-    entries: CardEntry[];
-    searchPhrase: string;
+type EmployeeQueryEntriesProps = {
     fieldsFilter: EmployeeFieldsFilter;
-}
+    sortFunction?: SortFunction;
+} & QueryEntriesProps;
 export default function useEmployeeQueryEntries({
-                                                    entries,
-                                                    searchPhrase,
                                                     fieldsFilter,
-}: ContentQueryEntriesProps) {
-    const getFieldsFilterEntries = useCallback((from: CardEntry[]) => {
-        return from.filter(entry => {
-            const e = entry.item as Employee
-            const matchJobPosition = (
-                !fieldsFilter.jobPositions || fieldsFilter.jobPositions.length === 0 ||
-                fieldsFilter.jobPositions.some((position) => e.jobPosition === position)
-            )
-            return matchJobPosition;
-        })
+                                                    sortFunction,
+                                                    ...props
+}: EmployeeQueryEntriesProps) {
+    const filterEntry = useCallback(entry => {
+        const e = entry.item as Employee
+        const matchJobPosition = (
+            !fieldsFilter.jobPositions || fieldsFilter.jobPositions.length === 0 ||
+            fieldsFilter.jobPositions.some((position) => e.jobPosition === position)
+        )
+        return matchJobPosition;
     }, [fieldsFilter])
+    const getFieldsFilterEntries = useCallback((from: CardEntry[]) => {
+        return (sortFunction ? sortFunction(from) : from).filter(filterEntry)
+    }, [sortFunction, filterEntry])
+
 
     // Track queried entries
     return useQueryEntries({
-        entries,
-        searchPhrase,
+        ...props,
         mapEntries: getFieldsFilterEntries
     })
 }

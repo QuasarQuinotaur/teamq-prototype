@@ -17,6 +17,10 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
 import {DropdownMenuItem} from "@/components/DropdownMenu.tsx";
 import {CheckCircleIcon, ClockIcon, CircleIcon} from "@phosphor-icons/react";
+import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
+import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
+import type {SortFields} from "@/components/forms/SortForm.tsx";
+import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
 
 type ViewerState = {
     url: string;
@@ -122,11 +126,20 @@ export default function ContentEntryPage({
             ? {}
             : (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
     ), [showContentTypeSelector, contentType]);
-
     const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(() => {
         if (showContentTypeSelector) return {};
         return contentType ? { contentTypes: [contentType], jobPositions: [] } : {};
     });
+    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const [sortFields, setSortFields] = useState(defaultSortFields)
+    const sortFunction = useContentSortFunction({sortFields})
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const queryEntries = useContentQueryEntries({
+        entries,
+        searchPhrase,
+        fieldsFilter,
+        sortFunction,
+    })
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
@@ -139,7 +152,6 @@ export default function ContentEntryPage({
                 : contentType,
         },
     };
-
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
     // Make card "..." show dropdown to modify documents
@@ -178,13 +190,6 @@ export default function ContentEntryPage({
             });
         }
 
-    const [searchPhrase, setSearchPhrase] = useState("")
-    const queryEntries = useContentQueryEntries({
-        entries,
-        searchPhrase,
-        fieldsFilter,
-    })
-
     const showContentTypeBadge = useMemo(() => {
         const types = new Set(
             queryEntries.map((e) => (e.item as Content).contentType),
@@ -198,15 +203,18 @@ export default function ContentEntryPage({
             setFilter: setSearchPhrase
         },
         filterButtonProps: {
-            emptyFieldsFilter: {},
-            defaultFieldsFilter,
-            fieldsFilter,
-            setFieldsFilter,
-            createFieldsElement: (props) => (
-                <FilterDocumentFields {...props} />
-            ),
+            emptyFields: {},
+            defaultFields: defaultFieldsFilter,
+            fields: fieldsFilter,
+            setFields: setFieldsFilter,
+            createFieldsElement: FilterDocumentFields,
         },
-        sortButtonProps: {}
+        sortButtonProps: {
+            sortByMap: CONTENT_SORT_BY_MAP,
+            defaultSortFields,
+            sortFields,
+            setSortFields,
+        }
     }
 
     if (viewerItem) {
