@@ -338,7 +338,7 @@ app.get("/api/content/:id/text", requiresAuth(), async (req, res) => {
 });
 
 
-// PDF PREVIEW GENERATION -
+// PDF PREVIEW GENERATION
 app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
 
@@ -361,6 +361,51 @@ app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
         // If already an image → just return it
         if (["png", "jpg", "jpeg", "webp"].includes(ext || "")) {
             res.json({ thumbnailUrl: signedUrl });
+            return;
+        }
+
+        // If DOCX → convert to PDF → generate thumbnail
+        if (ext === "docx") {
+
+            // define where files will live temporarily
+            const tempDocx = `./tmp/file-${id}.docx`;
+            const tempPdf = `./tmp/file-${id}.pdf`;
+            const outputBase = `./tmp/thumb-${id}`;
+
+            // download file
+            const response = await fetch(signedUrl);
+            const buffer = await response.arrayBuffer();
+            fs.writeFileSync(tempDocx, Buffer.from(buffer));
+
+            // convert DOCX → PDF
+            exec(
+                // uses LibreOffice to convert docx to pdf
+                `soffice --headless --convert-to pdf --outdir ./tmp ${tempDocx}`,
+                (err) => {
+                    if (err) {
+                        console.error("DOCX → PDF failed", err);
+                        res.json({ thumbnailUrl: null });
+                        return;
+                    }
+
+                    // now convert PDF → PNG (reuses existing logic for PDF thumbnails)
+                    exec(
+                        `pdftoppm -png -f 1 -singlefile ${tempPdf} ${outputBase}`,
+                        (err2) => {
+                            if (err2) {
+                                console.error("PDF → PNG failed", err2);
+                                res.json({ thumbnailUrl: null });
+                                return;
+                            }
+
+                            res.json({
+                                thumbnailUrl: `/tmp/thumb-${id}.png`,
+                            });
+                        }
+                    );
+                }
+            );
+
             return;
         }
 
