@@ -14,6 +14,9 @@ import {
     CardTitle
 } from "@/components/cards/Card.tsx";
 import { stringToAccentBgClass } from "@/lib/card-accent.ts"
+import type {Content} from "db";
+import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import BadgeList from "@/elements/badge-list.tsx";
 
 function isSupabasePath(link: string) {
     return !link.startsWith("http://") && !link.startsWith("https://");
@@ -40,14 +43,17 @@ type ContentCardProps = {
     onView?: (entry: CardEntry) => void;
     /** When false, hides the entry's content-type badge (still shows extra `badges` from CardState). */
     showContentTypeBadge?: boolean;
+    /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
+    showJobPositionBadge?: boolean;
 } & CardState;
 
 export default function ContentCard({
-                                 entry,
-                                 badges,
-                                 createOptionsElement,
-                                 onView,
-                                 showContentTypeBadge = true,
+                                        entry,
+                                        badges,
+                                        createOptionsElement,
+                                        onView,
+                                        showContentTypeBadge = true,
+                                        showJobPositionBadge = true,
 }: ContentCardProps) {
     // Favicon-based image
     const linkDomain = entry.link
@@ -164,6 +170,13 @@ export default function ContentCard({
         }
     }
 
+    const content = entry.item as Content;
+    const showBadges = [
+        ...(showJobPositionBadge ? [JOB_POSITION_TYPE_MAP[content.jobPosition]] : []),
+        ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
+        ...badges,
+    ]
+
     return (
         <CardContainer
             className="relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
@@ -230,14 +243,7 @@ export default function ContentCard({
                 )}
 
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    {[
-                        ...(showContentTypeBadge ? [entry.badge] : []),
-                        ...badges,
-                    ].filter((b) => b != null && b !== "").map((badgeString) => (
-                        <Badge variant="secondary">
-                            {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
-                        </Badge>
-                    ))}
+                    <BadgeList badges={showBadges}/>
                 </div>
             </div>
         </CardContainer>

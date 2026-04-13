@@ -196,6 +196,12 @@ export default function ContentEntryPage({
         );
         return types.size > 1;
     }, [queryEntries]);
+    const showJobPositionBadge = useMemo(() => {
+        const types = new Set(
+            queryEntries.map((e) => (e.item as Content).jobPosition),
+        );
+        return types.size > 1;
+    }, [queryEntries]);
 
     // Track properties to update querying
     const queryProps: QueryProps<ContentFieldsFilter> = {
@@ -245,6 +251,7 @@ export default function ContentEntryPage({
                         key={state.entry.item.id}
                         onView={handleView}
                         showContentTypeBadge={showContentTypeBadge}
+                        showJobPositionBadge={showJobPositionBadge}
                         {...state}
                     />
                 )),

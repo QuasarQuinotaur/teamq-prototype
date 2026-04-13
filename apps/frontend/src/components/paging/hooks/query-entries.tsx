@@ -21,7 +21,7 @@ export default function useQueryEntries({
         return new Fuse(entries, {
             keys: ["title"],
             useExtendedSearch: true,
-            // useTokenSearch: true,
+            threshold: 0.33,
         })
     }, [entries])
     const getSearchedEntries = useCallback(() => {

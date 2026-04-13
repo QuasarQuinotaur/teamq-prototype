@@ -22,6 +22,13 @@ export default function CardGrid({
                                      entries,
                                      createOptionsElement
 }: CardGridProps & EntryProps) {
+    if (entries.length === 0) {
+        return (
+            <div className={CARD_GRID_LAYOUT_CLASS}>
+                No results found.
+            </div>
+        )
+    }
     return (
         <div className={CARD_GRID_LAYOUT_CLASS}>
             {entries.map((entry) => {

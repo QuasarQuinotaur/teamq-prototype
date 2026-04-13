@@ -12,6 +12,9 @@ import {
 } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
 import { stringToAccentBgClass } from "@/lib/card-accent.ts"
+import type {Content} from "db";
+import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import BadgeList from "@/elements/badge-list.tsx";
 
 function initialsFromTitle(title: string): string {
   const parts = title.trim().split(/\s+/).filter(Boolean)
@@ -29,6 +32,9 @@ export default function EmployeeCard({
   const accentClass = stringToAccentBgClass(entry.title)
   const avatarFrame =
     "h-32 w-32 rounded-full border-4 border-white shadow-md"
+
+  const employee = entry.item as Content;
+  const badges: string[] = [JOB_POSITION_TYPE_MAP[employee.jobPosition]]
 
   return (
     <CardContainer className="relative mx-auto w-fit min-w-[250px] pb-6">
@@ -66,7 +72,7 @@ export default function EmployeeCard({
       <CardHeader className="text-center">
         <CardTitle>{entry.title}</CardTitle>
         <div className="mt-2 flex justify-center">
-          <Badge variant="secondary">{entry.badge}</Badge>
+          <BadgeList badges={badges}/>
         </div>
         <CardDescription>{entry.description}</CardDescription>
       </CardHeader>

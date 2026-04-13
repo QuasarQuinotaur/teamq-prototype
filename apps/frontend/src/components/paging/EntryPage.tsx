@@ -74,8 +74,8 @@ export default function EntryPage<T extends object>({
                 viewSelectorButtonProps={viewSelectorButtonProps}
                 queryProps={queryProps}
             />
-            <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2">
-            {view === "Grid" ?
+            <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8">
+                {view === "Grid" ?
                 (
                     gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
                         <div
