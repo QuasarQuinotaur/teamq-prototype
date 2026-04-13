@@ -8,7 +8,6 @@ import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import multer from "multer";
-import { uploadBuffer, getSignedUrl } from "./lib/supabase.ts";
 import pkg from 'express-openid-connect';
 const { auth, requiresAuth } = pkg;
 import cors from 'cors';
@@ -16,6 +15,7 @@ import { EmployeeRepository } from "./EmployeeRepository.ts";
 import { ContentRepository } from "./ContentRepository.ts";
 import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
+import { deleteFile, uploadBuffer, getSignedUrl } from "./lib/supabase.ts";
 
 const employeeRepo = new EmployeeRepository();
 const contentRepo = new ContentRepository();
@@ -203,6 +203,7 @@ app.post("/api/upload-photo", requiresAuth(), upload.single("file"), async (req,
         });
     }
 });
+
 
 app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
@@ -459,7 +460,33 @@ app.put("/api/employees/:id", requiresAuth(), async (req, res) => {
         res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
     }
 });
+app.delete("/api/me/photo", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
 
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const photo = await prisma.userPhoto.findUnique({
+            where: { ownerId: employee.id },
+        });
+        if (!photo) {
+            res.status(404).json({ error: "No profile photo found" });
+            return;
+        }
+        await deleteFile(photo.path);
+        await prisma.userPhoto.delete({
+            where: { ownerId: employee.id },
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Delete failed",
+        });
+    }
+});
 app.delete("/api/employees/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -480,11 +507,30 @@ app.delete("/api/content/:id", requiresAuth(), async (req, res) => {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
+
     try {
+        const content = await contentRepo.getById(id);
+
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        const isExternalLink =
+            content.link.startsWith("http://") || content.link.startsWith("https://");
+
+        if (!isExternalLink) {
+            await deleteFile(content.link);
+        }
+
         await contentRepo.delete(id);
+
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Delete failed",
+        });
     }
 });
 
