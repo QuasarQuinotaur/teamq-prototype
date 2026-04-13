@@ -1,3 +1,19 @@
+enum Role {
+  //???????? idk if we want kinda makes life easier but idk
+  ADMIN
+  UNDERWRITER
+  BUSINESS_ANALYST
+  OTHER
+}
+
+enum ContentType {
+  LINK
+  PDF
+  WORD
+  EXCEL
+  POWERPOINT
+}
+
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -8,31 +24,35 @@ datasource db {
 }
 
 model Employee {
-  id          Int      @id @default(autoincrement())
-  auth0Id     String?  @unique
-  email       String   @unique
-  firstName   String
-  lastName    String
-  dateOfBirth DateTime
-  jobPosition String
+  id              Int      @id @default(autoincrement())
+  auth0Id         String?  @unique
+  email           String   @unique
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  jobPosition     Role
+  profileImageUrl String? //??????????
 
   contentsOwned Content[] @relation("ownedContents") // relationship list
 
-  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table)
+  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table yippee)
 
   createdRequests  ServiceRequest[] @relation("OwnedRequests")
   assignedRequests ServiceRequest[] @relation("EmployeeRequests")
 
-  notifications NewNotifications[] @relation("NotificationEmployees")
+  notifications  Notification[] @relation("NotificationEmployees")
+  contentChecked Content[]      @relation("CheckedOutContent")
 }
 
 model Content {
   id                 Int              @id @default(autoincrement())
   title              String
-  link               String
-  jobPositions       String[] // scalar list
-  contentType        String
-  status             String
+  filePath           String? // path in Supabase bucket
+  fileName           String?
+  fileSize           Int?
+  jobPositions       Role[] // scalar list
+  contentType        ContentType
+  status             String //???????????????????????
   dateAdded          DateTime         @default(now())
   dateUpdated        DateTime         @updatedAt
   expirationDate     DateTime
@@ -41,6 +61,10 @@ model Content {
   owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
   serviceRequests    ServiceRequest[] @relation("ContentRequests")
   notifications      Notification[]   @relation("NotificationContents")
+
+  isCheckedOut   Boolean   @default(false)
+  checkedOutById Int?
+  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
   @@index([ownerId])
   @@index([status])
@@ -80,6 +104,7 @@ model Notification {
   @@index([employeeNotifiedID, dateRead]) // index for O(log(n)) time
 }
 
+// ignore:
 /*
 // when making a notification, it will get added to both tables
 // when making a notification
