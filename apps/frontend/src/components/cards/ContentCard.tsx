@@ -56,7 +56,7 @@ export default function ContentCard({
 
     const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494";
 
-    const linkFavicon = `https://favicon.vemetric.com/${linkDomain}?default=${imgDefault}`;
+    const linkFavicon = `https://www.google.com/s2/favicons?sz=128&domain=${linkDomain}`;
 
     const cardColor = stringToAccentBgClass(entry.title)
 
