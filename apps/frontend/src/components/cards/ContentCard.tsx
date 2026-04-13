@@ -48,14 +48,15 @@ export default function ContentCard({
                                  onView,
                                  showContentTypeBadge = true,
 }: ContentCardProps) {
-    // Favicon-based image (commented out in case you want to restore it)
-    // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
-    // const split = linkDomain.split('/');
-    // if (split.length > 0) {
-    //     linkDomain = split[0];
-    // }
-    // const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
-    // const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
+    // Favicon-based image
+    let linkDomain = entry.link
+        .replace('https://', '')
+        .replace('http://', '')
+        .split('/')[0];
+
+    const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494";
+
+    const linkFavicon = `https://favicon.vemetric.com/${linkDomain}?default=${imgDefault}`;
 
     const cardColor = stringToAccentBgClass(entry.title)
 
@@ -169,6 +170,11 @@ export default function ContentCard({
                     <img
                         src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
                         className="w-full h-full object-cover"
+                    />
+                ) : entry.link.startsWith("http") ? (
+                    <img
+                        src={linkFavicon}
+                        className="w-full h-full object-contain p-6"
                     />
                 ) : (
                     <div className={`w-full h-full ${cardColor}`} />
