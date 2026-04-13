@@ -51,7 +51,6 @@ model Content {
   fileSize           Int?
   jobPositions       String[] // scalar list
   contentType        String
-  status             String //???????????????????????
   dateAdded          DateTime         @default(now())
   dateUpdated        DateTime         @updatedAt
   expirationDate     DateTime
@@ -66,7 +65,6 @@ model Content {
   checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
   @@index([ownerId])
-  @@index([status])
   @@index([contentType])
   @@index([expirationDate])
 }
