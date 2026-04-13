@@ -21,6 +21,11 @@ function Home() {
           <Confetti ref={confettiRef}/>
           <Button size="lg" onClick={() => confettiRef.current?.fire()}>Yay!</Button>
         </div>
+        <div className='px-80 py-6 border-t border-gray-200'>
+            <p className='text-sm text-red-500 text-center'>
+                <strong>Disclaimer:</strong> This website has been created for WPI's CS 3733 Software Engineering as a class project and is not in use by Hanover Insurance.
+            </p>
+        </div>
     </div>
     )
 }
