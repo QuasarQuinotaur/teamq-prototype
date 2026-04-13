@@ -1,18 +1,18 @@
-enum Role {
-  //???????? idk if we want kinda makes life easier but idk
-  ADMIN
-  UNDERWRITER
-  BUSINESS_ANALYST
-  OTHER
-}
-
-enum ContentType {
-  LINK
-  PDF
-  WORD
-  EXCEL
-  POWERPOINT
-}
+// enum Role {
+//   //???????? idk if we want kinda makes life easier but idk (did not implement)
+//   ADMIN
+//   UNDERWRITER
+//   BUSINESS_ANALYST
+//   OTHER
+// }
+//
+// enum ContentType {
+//   LINK
+//   PDF
+//   WORD
+//   EXCEL
+//   POWERPOINT
+// }
 
 generator client {
   provider = "prisma-client"
@@ -30,7 +30,7 @@ model Employee {
   firstName       String
   lastName        String
   dateOfBirth     DateTime
-  jobPosition     Role
+  jobPosition     String
   profileImageUrl String? //??????????
 
   contentsOwned Content[] @relation("ownedContents") // relationship list
@@ -48,10 +48,9 @@ model Content {
   id                 Int              @id @default(autoincrement())
   title              String
   filePath           String? // path in Supabase bucket
-  fileName           String?
   fileSize           Int?
-  jobPositions       Role[] // scalar list
-  contentType        ContentType
+  jobPositions       String[] // scalar list
+  contentType        String
   status             String //???????????????????????
   dateAdded          DateTime         @default(now())
   dateUpdated        DateTime         @updatedAt
