@@ -41,6 +41,7 @@ type ContentCardProps = {
     /** When false, hides the entry's content-type badge (still shows extra `badges` from CardState). */
     showContentTypeBadge?: boolean;
 } & CardState;
+
 export default function ContentCard({
                                  entry,
                                  badges,
@@ -49,12 +50,10 @@ export default function ContentCard({
                                  showContentTypeBadge = true,
 }: ContentCardProps) {
     // Favicon-based image
-    let linkDomain = entry.link
+    const linkDomain = entry.link
         .replace('https://', '')
         .replace('http://', '')
         .split('/')[0];
-
-    const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494";
 
     const linkFavicon = `https://www.google.com/s2/favicons?sz=128&domain=${linkDomain}`;
 
@@ -120,6 +119,43 @@ export default function ContentCard({
         fetchThumbnail();
     }, [entry]);
 
+    // Get the discord-style link preview from the backend
+    const [preview, setPreview] = React.useState<{
+        title?: string;
+        description?: string;
+        image?: string | null;
+    } | null>(null);
+
+    React.useEffect(() => {
+        // wrap function bc useEffect can't be async
+        const fetchPreview = async () => {
+            try {
+                // only run for external links, not PDFs or other stored files
+                if (isSupabasePath(entry.link)) return;
+
+                // call backend route
+                const res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/link-preview?url=${encodeURIComponent(entry.link)}`
+                );
+
+                if (!res.ok) return;
+
+                // convert response in JS object
+                const data = await res.json();
+
+                // store data, triger re-render
+                setPreview(data);
+
+            } catch (err) {
+                // log errors but don't break UI
+                console.error("Preview fetch failed", err);
+            }
+        };
+
+        fetchPreview();
+    }, [entry]); //" run this code whenever entry changes (for new cards)"
+
+
     function handleCardClick() {
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
@@ -167,16 +203,29 @@ export default function ContentCard({
             </CardHeader>
             <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
                 {thumbnail ? (
+                    // PDFs
                     <img
                         src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
                         className="w-full h-full object-cover"
                     />
+                ) : preview?.image ? (
+                    // LINKS - discord style preview
+                    <div className="w-full h-full flex items-center justify-center">
+                        <img
+                            src={preview.image}
+                            className="max-w-full max-h-full object-contain"
+                        />
+                    </div>
                 ) : entry.link.startsWith("http") ? (
-                    <img
-                        src={linkFavicon}
-                        className="w-full h-full object-contain p-6"
-                    />
+                    // FALLBACK 1 -> FAVICON ICON
+                    <div className="w-full h-full flex items-center justify-center">
+                        <img
+                            src={linkFavicon}
+                            className="max-w-[60%] max-h-[60%] object-contain"
+                        />
+                    </div>
                 ) : (
+                    // FALLBACK 2 -> COLOR CARD
                     <div className={`w-full h-full ${cardColor}`} />
                 )}
 

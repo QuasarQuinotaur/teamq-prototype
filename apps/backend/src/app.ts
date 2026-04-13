@@ -19,6 +19,7 @@ import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
 import fs from "fs";
 import { exec } from "child_process";
+import * as cheerio from "cheerio";
 
 const employeeRepo = new EmployeeRepository();
 const contentRepo = new ContentRepository();
@@ -337,7 +338,7 @@ app.get("/api/content/:id/text", requiresAuth(), async (req, res) => {
 });
 
 
-// THUMBNAIL GENERATION
+// PDF PREVIEW GENERATION -
 app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
 
@@ -398,6 +399,41 @@ app.get("/api/content/:id/thumbnail", requiresAuth(), async (req, res) => {
         res.status(500).json({
             error: err instanceof Error ? err.message : "Thumbnail failed"
         });
+    }
+});
+
+// LINK PREVIEW GENERATION
+app.get("/api/link-preview", async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "Missing url" });
+    }
+
+    try {
+        const response = await fetch(url); // goes to url, downloads the page
+        const html = await response.text(); // converts the response into raw HTML
+
+        const $ = cheerio.load(html); // loads html in cheerio so we can query it
+
+        // extract the best title
+        const title =
+            $('meta[property="og:title"]').attr("content") ||
+            $("title").text();
+
+        // extract description
+        const description =
+            $('meta[property="og:description"]').attr("content") || "";
+
+        // extract image
+        const image =
+            $('meta[property="og:image"]').attr("content") || null;
+
+        // send data to front end
+        res.json({ title, description, image });
+    } catch (err) {
+        console.error("OG fetch failed", err);
+        res.status(500).json({ error: "Failed to fetch preview" });
     }
 });
 
