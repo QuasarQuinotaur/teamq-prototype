@@ -136,6 +136,50 @@ export default function ContentCard({
         fetchThumbnail();
     }, [entry]);
 
+    // Get the discord-style link preview from the backend
+    const [preview, setPreview] = React.useState<{
+        title?: string;
+        description?: string;
+        image?: string | null;
+    } | null>(null);
+
+
+    React.useEffect(() => {
+        // wrap function bc useEffect can't be async
+        const fetchPreview = async () => {
+            try {
+                // only run for external links, not PDFs or other stored files
+                if (isSupabasePath(entry.link)) return;
+
+
+                // call backend route
+                const res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/link-preview?url=${encodeURIComponent(entry.link)}`
+                );
+
+
+                if (!res.ok) return;
+
+
+                // convert response in JS object
+                const data = await res.json();
+
+
+                // store data, triger re-render
+                setPreview(data);
+
+
+            } catch (err) {
+                // log errors but don't break UI
+                console.error("Preview fetch failed", err);
+            }
+        };
+
+
+        fetchPreview();
+    }, [entry]); //" run this code whenever entry changes (for new cards)"
+
+
     function handleCardClick() {
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
@@ -209,12 +253,23 @@ export default function ContentCard({
                     )}
                 >
                     {thumbnail ? (
+                        // PDFs
                         <img
                             src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
                             className="w-full h-full object-cover"
                             alt=""
                         />
+                    ) : preview?.image ? (
+                        // LINKS - discord style preview
+                        <div className="w-full h-full flex items-center justify-center">
+                            <img
+                                src={preview.image}
+                                className="max-w-full max-h-full object-contain"
+                            />
+                        </div>
+
                     ) : entry.link.startsWith("http") ? (
+                        // FALLBACK 1 ->  FAVICON
                         <div className="w-full h-full flex items-center justify-center bg-muted/30">
                             <img
                                 src={linkFavicon}
@@ -223,6 +278,7 @@ export default function ContentCard({
                             />
                         </div>
                     ) : (
+                        // FALLBACK 2 -> COLOR CARD
                         <div className={`w-full h-full ${cardColor}`} />
                     )}
                 </div>
