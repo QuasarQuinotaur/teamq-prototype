@@ -14,6 +14,7 @@ import contentRoutes from "./routes/content.ts";
 import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";
 import photoRoutes from "./routes/photos.ts";
+import employeeRouter from "./routes/employee.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -50,6 +51,7 @@ app.use(morgan("dev"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
+app.use("/api/employee", employeeRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
 app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);
