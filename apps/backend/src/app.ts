@@ -17,6 +17,8 @@ import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
 
 import contentRoutes from "./routes/content.ts";
+import serviceRequestsRouter from "./routes/serviceRequests.ts";
+import authRouter from "./routes/auth.ts";
 
 const employeeRepo = new EmployeeRepository();
 const contentRepo = new ContentRepository();
@@ -55,6 +57,8 @@ app.use(morgan("dev"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
+app.use('/api/servicereqs', serviceRequestsRouter);
+app.use('/api', authRouter);
 
 const upload = multer();
 
