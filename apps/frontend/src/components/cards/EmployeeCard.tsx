@@ -12,8 +12,8 @@ import {
 } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
 import { stringToAccentBgClass } from "@/lib/card-accent.ts"
-import type {Content} from "db";
-import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import type { Employee } from "db";
+import { JOB_POSITION_TYPE_MAP } from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
 
 function initialsFromTitle(title: string): string {
@@ -33,8 +33,11 @@ export default function EmployeeCard({
   const avatarFrame =
     "h-32 w-32 rounded-full border-4 border-white shadow-md"
 
-  const employee = entry.item as Content;
-  const badges: string[] = [JOB_POSITION_TYPE_MAP[employee.jobPosition]]
+  const employee = entry.item as Employee;
+  const badges: string[] = [
+    JOB_POSITION_TYPE_MAP[employee.jobPosition as keyof typeof JOB_POSITION_TYPE_MAP] ??
+      employee.jobPosition,
+  ];
 
   return (
     <CardContainer className="relative mx-auto w-fit min-w-[250px] pb-6">
