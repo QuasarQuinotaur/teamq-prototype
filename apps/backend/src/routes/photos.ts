@@ -130,3 +130,5 @@ router.get("/me/photo", requiresAuth(), async (req, res) => {
         });
     }
 });
+
+export default router;

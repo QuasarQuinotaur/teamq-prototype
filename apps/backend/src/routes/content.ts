@@ -12,6 +12,35 @@ const contentRepo = new ContentRepository();
 const router = Router();
 const upload = multer();
 
+/** Multipart bodies send strings; accept JSON array, comma-separated, or legacy single `jobPosition`. */
+function parseJobPositions(body: Record<string, unknown>): string[] | null {
+    const raw = body.jobPositions;
+    if (typeof raw === "string" && raw.trim()) {
+        try {
+            const parsed: unknown = JSON.parse(raw);
+            if (
+                Array.isArray(parsed) &&
+                parsed.every((x) => typeof x === "string" && x.trim())
+            ) {
+                return parsed.map((x: string) => x.trim()).filter(Boolean);
+            }
+        } catch {
+            return raw
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+        }
+    }
+    if (Array.isArray(raw) && raw.every((x) => typeof x === "string")) {
+        return raw.map((s) => String(s).trim()).filter(Boolean);
+    }
+    const single = body.jobPosition;
+    if (typeof single === "string" && single.trim()) {
+        return [single.trim()];
+    }
+    return null;
+}
+
 // ===================================
 // GET ===============================
 // ===================================
@@ -39,7 +68,16 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "Not found" });
             return;
         }
-        const signedUrl = await getSignedUrl(content.link);
+        const path = content.filePath;
+        if (!path?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            res.json({ url: path });
+            return;
+        }
+        const signedUrl = await getSignedUrl(path);
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
@@ -60,16 +98,15 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
             return;
         }
 
-        const {
-            name,
-            link,
-            jobPosition,
-            expirationDate,
-            contentType,
-            status,
-        } = req.body;
+        const { name, link, expirationDate, contentType } = req.body;
 
-        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
+        const jobPositions = parseJobPositions(req.body as Record<string, unknown>);
+        if (
+            !name?.trim() ||
+            !jobPositions?.length ||
+            !expirationDate ||
+            !contentType?.trim()
+        ) {
             res.status(400).json({ error: "Missing required fields" });
             return;
         }
@@ -103,14 +140,13 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
 
         const created = await prisma.content.create({
             data: {
-                title: name,
-                link: finalLink,
-                ownerName: `${employee.firstName} ${employee.lastName}`,
-                ownerId: employee.id,
-                jobPosition,
-                contentType,
-                status,
+                title: name.trim(),
+                filePath: finalLink,
+                fileSize: req.file?.size,
+                jobPositions,
+                contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
+                ownerId: employee.id,
             },
             include: {
                 owner: true,
@@ -148,16 +184,15 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return;
         }
 
-        const {
-            name,
-            link,
-            jobPosition,
-            expirationDate,
-            contentType,
-            status,
-        } = req.body;
+        const { name, link, expirationDate, contentType } = req.body;
 
-        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
+        const jobPositions = parseJobPositions(req.body as Record<string, unknown>);
+        if (
+            !name?.trim() ||
+            !jobPositions?.length ||
+            !expirationDate ||
+            !contentType?.trim()
+        ) {
             res.status(400).json({ error: "Missing required fields" });
             return;
         }
@@ -189,16 +224,15 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             finalLink = link.trim();
         }
 
-        const created = await prisma.content.update({
+        const updated = await prisma.content.update({
             where: { id: id },
             data: {
-                title: name,
-                link: finalLink,
-                ownerName: `${employee.firstName} ${employee.lastName}`,
+                title: name.trim(),
+                filePath: finalLink,
+                fileSize: req.file?.size ?? undefined,
                 ownerId: employee.id,
-                jobPosition,
-                contentType,
-                status,
+                jobPositions,
+                contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
             },
             include: {
@@ -208,7 +242,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 
         res.json({
             success: true,
-            content: created,
+            content: updated,
         });
     } catch (err) {
         console.error(err);
@@ -238,11 +272,13 @@ router.delete("/:id", requiresAuth(), async (req, res) => { // delete content
             return;
         }
 
+        const path = content.filePath;
         const isExternalLink =
-            content.link.startsWith("http://") || content.link.startsWith("https://");
+            !!path &&
+            (path.startsWith("http://") || path.startsWith("https://"));
 
-        if (!isExternalLink) {
-            await deleteFile(content.link);
+        if (path && !isExternalLink) {
+            await deleteFile(path);
         }
 
         await contentRepo.delete(id);

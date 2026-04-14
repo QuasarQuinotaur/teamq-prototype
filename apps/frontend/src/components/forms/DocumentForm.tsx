@@ -216,8 +216,8 @@ export default function DocumentForm(state: FormState) {
         const isUpdate = state.baseItem != null;
 
         const url = isUpdate
-            ? `${import.meta.env.VITE_BACKEND_URL}/api/upload/${state.baseItem!.id}`
-            : `${import.meta.env.VITE_BACKEND_URL}/api/upload`;
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/content/upload/${state.baseItem!.id}`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/content/upload`;
 
         const formData = new FormData();
 
