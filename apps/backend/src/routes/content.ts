@@ -225,6 +225,87 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
     }
 });
 
+//for manual check in incase some one forgets (maybe after like a week?)
+//or if you want to check in without upload
+router.post("/checkin/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        return res.status(404).json({ error: "No linked employee account found" });
+    }
+
+    const content = await contentRepo.getById(id);
+
+    if (!content) {
+        return res.status(404).json({ error: "Not found" });
+    }
+
+    //allow if owner or admin
+    const isJobPosition = content.jobPositions.includes(employee.jobPosition);
+    const isAdmin = employee.jobPosition === "admin";
+
+    if (!isJobPosition && !isAdmin) {
+        return res.status(403).json({ error: "Not authorized to check in this content" });
+    }
+
+    await prisma.content.update({
+        where: { id },
+        data: {
+            isCheckedOut: false,
+            checkedOutById: null,
+        },
+    });
+
+    res.json({ success: true });
+});
+
+router.post("/checkout/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+
+    const employee = await getEmployeeFromRequest(req);
+    if (!employee) {
+        res.status(404).json({ error: "No linked employee account found" });
+        return;
+    }
+
+    const content = await contentRepo.getById(id);
+    if (!content) {
+        res.status(404).json({ error: "Not found" });
+        return;
+    }
+
+    const isJobPosition = content.jobPositions.includes(employee.jobPosition);
+    const isAdmin = employee.jobPosition === "admin";
+    if (!isJobPosition && !isAdmin) {
+        res.status(403).json({ error: "Not authorized to check out this content" });
+        return;
+    }
+
+    if (content.isCheckedOut && content.checkedOutById !== employee.id) {
+        res.status(409).json({ error: "Content is already checked out by another user" });
+        return;
+    }
+
+    const updated = await prisma.content.update({
+        where: { id },
+        data: {
+            isCheckedOut: true,
+            checkedOutById: employee.id,
+        },
+        include: {
+            owner: true,
+            checkedOutBy: true,
+        },
+    });
+
+    res.json({ success: true, content: updated });
+});
+
 // ===================================
 // PUT ===============================
 // ===================================
@@ -242,6 +323,16 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
             return;
+        }
+
+        const content = await contentRepo.getById(id);
+
+        if (!content) {
+            return res.status(404).json({ error: "Content not found" });
+        }
+
+        if (content.isCheckedOut && content.checkedOutById !== employee.id) {
+            return res.status(403).json({ error: "Content is checked out by another user" });
         }
 
         const { name, link, expirationDate, contentType } = req.body;
