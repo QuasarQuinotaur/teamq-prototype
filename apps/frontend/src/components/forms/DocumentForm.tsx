@@ -83,9 +83,21 @@ export default function DocumentForm(state: FormState) {
         setExpiration: setExpirationString,
     };
 
+    const [fileResetter, setFileResetter] = useState<(() => void) | null>( null)
+
     // Reset date strings
     function reset() {
         setExpirationString(initialExpirationString)
+        if (fileResetter) {
+            fileResetter()
+        }
+    }
+
+    // This lets the document file field clear when reset button is clicked
+    function updateFileResetter(resetter: () => void) {
+        if (fileResetter == null) {
+            setFileResetter(() => resetter)
+        }
     }
 
     const isUpdate = state.baseItem != null;
@@ -151,6 +163,7 @@ export default function DocumentForm(state: FormState) {
                     dateStrings={dateStrings}
                     isUpdate={isUpdate}
                     existingFileName={existingFileName}
+                    updateFileResetter={updateFileResetter}
                 />
             )}
             submit={doSubmit}

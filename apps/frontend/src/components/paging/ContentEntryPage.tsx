@@ -15,6 +15,8 @@ import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
+import {DropdownMenuCheckboxItem} from "@/components/DropdownMenu.tsx";
+import {StarIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
@@ -28,9 +30,9 @@ type ViewerState = {
 
 
 type ContentEntryPageProps = {
+    /** Leave empty to show all documents: category filter starts empty (show all); use filter panel for categories. */
     contentType?: string;
-    /** All-documents page (`/documents/all`): category filter starts empty (show all); use filter panel for categories. */
-    showContentTypeSelector?: boolean;
+    onlyFavorites?: boolean;
 }
 type Employee = {
     id: number;
@@ -43,7 +45,7 @@ const SKELETON_GRID_SLOTS = 25;
 
 export default function ContentEntryPage({
                                              contentType,
-                                             showContentTypeSelector,
+                                             onlyFavorites
 }: ContentEntryPageProps) {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -110,14 +112,9 @@ export default function ContentEntryPage({
     }
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
-        showContentTypeSelector
-            ? {}
-            : (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
-    ), [showContentTypeSelector, contentType]);
-    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(() => {
-        if (showContentTypeSelector) return {};
-        return contentType ? { contentTypes: [contentType], jobPositions: [] } : {};
-    });
+        (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
+    ), [contentType]);
+    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(defaultFieldsFilter);
     const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const sortFunction = useContentSortFunction({sortFields})
@@ -126,6 +123,7 @@ export default function ContentEntryPage({
         entries,
         searchPhrase,
         fieldsFilter,
+        onlyFavorites,
         sortFunction,
     })
 
@@ -133,11 +131,7 @@ export default function ContentEntryPage({
         formType: "Document",
         onCancel: fetchContent,
         defaultItem: {
-            contentType: showContentTypeSelector
-                ? (fieldsFilter.contentTypes?.length === 1
-                    ? fieldsFilter.contentTypes[0]
-                    : undefined)
-                : contentType,
+            contentType: contentType,
         },
     };
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
@@ -145,11 +139,53 @@ export default function ContentEntryPage({
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
         (entry: CardEntry, trigger: React.ReactNode) => {
+            const item = entry.item as Content & { ownerId: number };
+            const favorited = false;
+            const extraMenuItems = <>
+                <DropdownMenuCheckboxItem
+                    checked={favorited}
+                    onCheckedChange={(newFavorited) => {
+                        console.log("Favorite", item.title, "?", newFavorited)
+                    }}
+                >
+                    <StarIcon weight={favorited ? "fill" : "regular"}/>
+                    Favorite
+                </DropdownMenuCheckboxItem>
+            </>
+            // const extraMenuItems = <>
+            //
+            //     {
+            //         item.contentType === "workflow" ? (
+            //         <>
+            //             <DropdownMenuSeparator />
+            //             {item.status !== "to-do" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "to-do")}>
+            //                     <CircleIcon />
+            //                     Mark Todo
+            //                 </DropdownMenuItem>
+            //             )}
+            //             {item.status !== "in-progress" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "in-progress")}>
+            //                     <ClockIcon />
+            //                     Mark In Progress
+            //                 </DropdownMenuItem>
+            //             )}
+            //             {item.status !== "completed" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "completed")}>
+            //                     <CheckCircleIcon />
+            //                     Mark Complete
+            //                 </DropdownMenuItem>
+            //             )}
+            //         </> ) : undefined
+            //     }
+            // </>
+
             return ModifyDropdown({
                 entry,
                 trigger,
                 ...formOfTypeProps,
                 handleDelete: handleDelete,
+                extraMenuItems,
             });
         }
 

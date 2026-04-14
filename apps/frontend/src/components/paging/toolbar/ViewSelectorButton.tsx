@@ -3,8 +3,8 @@
 import ButtonSelector, {type OptionDefinition} from "@/elements/buttons/button-selector.tsx";
 import {GridFourIcon, ListBulletsIcon} from "@phosphor-icons/react";
 import * as React from "react";
+import type {ViewType} from "@/components/auth/hooks/create-main-context.tsx";
 
-export type ViewType = "List" | "Grid";
 const VIEW_TYPE_OPTIONS: Record<ViewType, OptionDefinition> = {
     Grid: {
         buttonElement: <GridFourIcon/>

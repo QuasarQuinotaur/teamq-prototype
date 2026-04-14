@@ -81,12 +81,9 @@ export default function ModifyDropdown({
                             </DialogTrigger>
                         </DropdownMenuGroup>
                         {extraMenuItems && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    {extraMenuItems}
-                                </DropdownMenuGroup>
-                            </>
+                            <DropdownMenuGroup>
+                                {extraMenuItems}
+                            </DropdownMenuGroup>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>

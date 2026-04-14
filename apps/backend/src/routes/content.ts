@@ -54,13 +54,7 @@ function parseJobPositions(body: Record<string, unknown>): string[] | null {
 // ===================================
 
 router.get("/", requiresAuth(), async (req, res) => { // get all contents
-    const employee = await getEmployeeFromRequest(req);
-    const jobPosition = employee?.jobPosition;
-
-    const contents = jobPosition === 'admin'
-        ? await contentRepo.getAll()
-        : await contentRepo.getByJobPosition(jobPosition ?? '');
-
+    const contents = await contentRepo.getAll();
     res.json(contents);
 });
 

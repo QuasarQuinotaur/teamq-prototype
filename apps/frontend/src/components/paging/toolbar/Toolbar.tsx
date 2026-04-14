@@ -40,37 +40,40 @@ export default function Toolbar<T extends object>({
 
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4 w-full">
-        <NavigationMenu className={"max-w-full"}>
-            {/*Left Bar*/}
-            <SidebarTrigger className="-ml-1" />
-            <NavigationMenuList>
-                <Separator
-                    orientation="vertical"
-                    className="mr-2 data-[orientation=vertical]"/>
-                {queryProps.searchBarProps && (
-                    <NavigationMenuItem>
-                        <SearchBar {...queryProps.searchBarProps}/>
-                    </NavigationMenuItem>
-                )}
-            </NavigationMenuList>
-            <div className="flex-1"/>
-            {/*Right Bar*/}
-            <NavigationMenuList>
-                <ButtonGroup className={"gap-1 overflow-hidden"}>
-                    {/*Todo: Overflow Handling?*/}
-                    {topRightElements.map((item) => {
-                        // Make all elements in the top right
-                        return (
-                            <NavigationMenuItem>
-                                {item}
+            <div className="flex items-center gap-2 px-4 w-full">
+                <NavigationMenu className={"max-w-full"}>
+                    {/*Sidebar Trigger Button*/}
+                    <>
+                        <SidebarTrigger className="-ml-1" />
+                        <Separator
+                            orientation="vertical"
+                            className="mr-2 data-[orientation=vertical]"/>
+                    </>
+                    {/*Left Bar*/}
+                    <NavigationMenuList>
+                        {queryProps.searchBarProps && (
+                            <NavigationMenuItem className={"flex flex-col gap-2"}>
+                                <SearchBar {...queryProps.searchBarProps}/>
                             </NavigationMenuItem>
-                        )
-                    })}
-                </ButtonGroup>
-            </NavigationMenuList>
-        </NavigationMenu>
-        </div>
+                        )}
+                    </NavigationMenuList>
+                    <div className="flex-1"/>
+                    {/*Right Bar*/}
+                    <NavigationMenuList>
+                        <ButtonGroup className={"gap-1 overflow-hidden"}>
+                            {/*Todo: Overflow Handling?*/}
+                            {topRightElements.map((item) => {
+                                // Make all elements in the top right
+                                return (
+                                    <NavigationMenuItem>
+                                        {item}
+                                    </NavigationMenuItem>
+                                )
+                            })}
+                        </ButtonGroup>
+                    </NavigationMenuList>
+                </NavigationMenu>
+            </div>
         </header>
     )
 }

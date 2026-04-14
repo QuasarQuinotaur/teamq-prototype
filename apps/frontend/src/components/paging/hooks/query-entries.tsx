@@ -8,6 +8,7 @@ export type QuerySortFunction = (from: CardEntry[]) => CardEntry[]
 export type QueryEntriesProps = {
     entries: CardEntry[];
     searchPhrase: string;
+    onlyFavorites?: boolean;
 }
 type UseQueryEntriesProps = {
     mapEntries?: (entries: CardEntry[]) => CardEntry[];
@@ -15,15 +16,23 @@ type UseQueryEntriesProps = {
 export default function useQueryEntries({
                                             entries,
                                             searchPhrase,
+                                            onlyFavorites,
                                             mapEntries
 }: UseQueryEntriesProps) {
+    const toSearchEntries = useMemo(() => {
+        if (onlyFavorites) {
+            return []
+        }
+        return entries
+    }, [entries, onlyFavorites]);
+
     const searchFuse = useMemo(() => {
-        return new Fuse(entries, {
+        return new Fuse(toSearchEntries, {
             keys: ["title"],
             useExtendedSearch: true,
             threshold: 0.33,
         })
-    }, [entries])
+    }, [toSearchEntries])
     const getSearchedEntries = useCallback(() => {
         return searchFuse.search(searchPhrase).map(entry => entry.item)
     }, [searchFuse, searchPhrase])

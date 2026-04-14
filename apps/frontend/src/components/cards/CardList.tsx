@@ -21,7 +21,7 @@ export default function CardList({
 
     return (
         <div className="container mx-auto py-4 px-4">
-            <DataTable columns={columns} data={entries} onRowClick={onRowClick} />
+            <DataTable columns={columns} data={entries ?? []} onRowClick={onRowClick} />
         </div>
     )
 }

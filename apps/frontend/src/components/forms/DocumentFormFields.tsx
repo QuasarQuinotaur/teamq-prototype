@@ -9,6 +9,7 @@ import {Item} from "@/elements/item.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import {FileIcon, LinkIcon} from "lucide-react";
 import {cn} from "@/lib/utils.ts";
+import {useEffect, useRef, useState} from "react";
 
 export type ContentFields = {
     name: string,
@@ -28,13 +29,15 @@ type DocumentFormFieldsProps = {
     dateStrings: DocumentDateStrings
     isUpdate: boolean
     existingFileName: string | null
+    updateFileResetter: (resetter: () => void) => void
 } & FormFieldsProps<ContentFields>
 export default function DocumentFormFields({
-                                fields,
-                                setKey,
-                                dateStrings,
-                                isUpdate,
-                                existingFileName,
+                                               fields,
+                                               setKey,
+                                               dateStrings,
+                                               isUpdate,
+                                               existingFileName,
+                                               updateFileResetter
 }: DocumentFormFieldsProps) {
     function switchToFile() {
         setKey("sourceType", "file")
@@ -46,13 +49,25 @@ export default function DocumentFormFields({
         setKey("file", null)
     }
 
+    // Reference input file to reset the text
+    const inputFile = useRef(null);
+    useEffect(() => {
+        updateFileResetter(() => {
+            if (inputFile.current) {
+                inputFile.current.value = "";
+                inputFile.current.type = "text";
+                inputFile.current.type = "file";
+            }
+        })
+    }, [updateFileResetter]);
+
     const compact = isUpdate
     const inputReadable = cn(compact ? "h-8 text-sm" : "h-9 md:text-base", "min-h-8 w-full min-w-0")
 
     return (
         <div
             className={cn(
-                "max-w-full min-w-0",
+                "max-w-full min-w-0 pl-1 pr-1",
                 compact
                     ? "text-sm [&_[data-slot=field]]:gap-2 [&_[data-slot=field-label]]:text-sm [&_[data-slot=field-label]]:font-medium"
                     : "text-base [&_[data-slot=field]]:gap-3 [&_[data-slot=field-label]]:text-base [&_[data-slot=field-label]]:font-medium"
@@ -74,6 +89,7 @@ export default function DocumentFormFields({
                     <FieldInput
                         id={"document-add-form-name"}
                         label={"Document Name"}
+                        required
                         createElement={(id) => (
                             <Input
                                 id={id}
@@ -89,6 +105,7 @@ export default function DocumentFormFields({
                     <FieldInput
                         id={"document-add-form-content-type"}
                         label={"Content Type"}
+                        required
                         createElement={(id) => (
                             <ContentTypeInput
                                 id={id}
@@ -108,6 +125,7 @@ export default function DocumentFormFields({
                     <FieldInput
                         id={"document-add-form-source"}
                         label={"Document Source"}
+                        required
                         createElement={(id) => (
                             <div className={"flex min-w-0 flex-col gap-2.5 sm:gap-3.5"}>
                                 {isUpdate && existingFileName ? (
@@ -142,6 +160,7 @@ export default function DocumentFormFields({
                                                 id={id}
                                                 className={inputReadable}
                                                 type={"file"}
+                                                ref={inputFile}
                                                 onChange={(e) => {
                                                     setKey("file", e.target.files?.[0] ?? null)
                                                 }}
@@ -226,6 +245,7 @@ export default function DocumentFormFields({
                     <FieldInput
                         id={"document-add-form-job-positions"}
                         label={"Job Positions"}
+                        required
                         createElement={(id) => (
                             <JobPositionMultiInput
                                 id={id}
@@ -239,6 +259,7 @@ export default function DocumentFormFields({
                     <FieldInput
                         id={"document-add-form-expiration"}
                         label={"Expiration Date"}
+                        required
                         createElement={(id) => (
                             <DateSelectInput
                                 id={id}
