@@ -17,6 +17,8 @@ import { ContentRepository } from "./ContentRepository.ts";
 import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
 
+import contentRoutes from "./routes/content.ts";
+
 const employeeRepo = new EmployeeRepository();
 const contentRepo = new ContentRepository();
 const serviceRequestRepo = new ServiceRequestRepository();
@@ -34,7 +36,6 @@ console.log(process.env.BASE_URL);
 console.log(process.env.CLIENT_ID);
 console.log(process.env.ISSUER_BASE_URL);
 
-// Auth0 configuration
 const config = {
     authRequired: false,      // Allow public routes
     auth0Logout: true,        // Use Auth0 logout endpoint
@@ -49,12 +50,12 @@ const config = {
     },
 } as const;
 
-// Apply the auth middleware
 app.use(auth(config));
-
-// Middleware
 app.use(express.json());
 app.use(morgan("dev"));
+
+// HERE ARE THE ROUTES YOU HAVE TO ADD
+app.use("/api/content", contentRoutes);
 
 const upload = multer();
 
@@ -72,85 +73,6 @@ app.get('/api/logout', (req, res) => {
     res.oidc.logout({
         returnTo: process.env.FRONTEND_URL,
     });
-});
-
-// Upload route
-app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) => {
-    try {
-        const employee = await getEmployeeFromRequest(req);
-
-        if (!employee) {
-            res.status(404).json({ error: "No linked employee account found" });
-            return;
-        }
-
-        const {
-            name,
-            link,
-            jobPosition,
-            expirationDate,
-            contentType,
-            status,
-        } = req.body;
-
-        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
-            res.status(400).json({ error: "Missing required fields" });
-            return;
-        }
-
-        const hasFile = !!req.file;
-        const hasLink = !!link?.trim();
-
-        if (!hasFile && !hasLink) {
-            res.status(400).json({ error: "Provide either a file or an external link." });
-            return;
-        }
-
-        if (hasFile && hasLink) {
-            res.status(400).json({ error: "Provide only one: file or external link." });
-            return;
-        }
-
-        let finalLink = "";
-
-        if (req.file) {
-            const uploaded = await uploadBuffer(
-                req.file.buffer,
-                req.file.originalname,
-                req.file.mimetype
-            );
-
-            finalLink = uploaded.path;
-        } else {
-            finalLink = link.trim();
-        }
-
-        const created = await prisma.content.create({
-            data: {
-                title: name,
-                link: finalLink,
-                ownerName: `${employee.firstName} ${employee.lastName}`,
-                ownerId: employee.id,
-                jobPosition,
-                contentType,
-                status,
-                expirationDate: new Date(expirationDate),
-            },
-            include: {
-                owner: true,
-            },
-        });
-
-        res.json({
-            success: true,
-            content: created,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            error: err instanceof Error ? err.message : "Upload failed",
-        });
-    }
 });
 
 app.post("/api/upload-photo", requiresAuth(), upload.single("file"), async (req, res) => {
@@ -514,7 +436,7 @@ app.post('/api/me/link', requiresAuth(), async (req, res) => {
     res.json(employee);
 });
 
-async function getEmployeeFromRequest(req: express.Request) {
+export async function getEmployeeFromRequest(req: express.Request) {
     if (!req.oidc.isAuthenticated()) return null;
     const sub = req.oidc.user!.sub as string;
     return employeeRepo.getByAuth0Id(sub);
