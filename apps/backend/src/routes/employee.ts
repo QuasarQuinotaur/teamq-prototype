@@ -48,7 +48,7 @@ router.get("/:id/:flag", async (req, res) => {
 //! ====================================
 
 // Creates/post a new employee (requires auth, validates input, saves to DB)
-router.post("/", requiresAuth(), async (req, res) => {
+router.post("/upload", requiresAuth(), async (req, res) => {
     const { firstName, lastName, email, dateOfBirth, jobPosition } = req.body;
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !dateOfBirth || !jobPosition?.trim()) {
         res.status(400).json({ error: "Missing required fields" });
@@ -74,7 +74,7 @@ router.post("/", requiresAuth(), async (req, res) => {
 //! ===================================
 
 //edits employee based on id
-router.put("/:id", requiresAuth(), async (req, res) => {
+router.put("/upload/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
