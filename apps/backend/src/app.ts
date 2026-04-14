@@ -15,7 +15,7 @@ import { EmployeeRepository } from "./EmployeeRepository.ts";
 import { ContentRepository } from "./ContentRepository.ts";
 import { ServiceRequestRepository } from "./ServiceRequestRepository.ts";
 import { prisma } from "db";
-
+import {deleteFile,uploadBuffer,getSignedUrl} from "./lib/supabase.ts";
 import contentRoutes from "./routes/content.ts";
 
 const employeeRepo = new EmployeeRepository();
@@ -125,7 +125,7 @@ app.post("/api/upload-photo", requiresAuth(), upload.single("file"), async (req,
     }
 });
 
-
+/*
 app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -144,13 +144,38 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
         const {
             name,
             link,
-            jobPosition,
             expirationDate,
             contentType,
             status,
         } = req.body;
 
-        if (!name?.trim() || !jobPosition?.trim() || !expirationDate || !contentType?.trim() || !status?.trim()) {
+        let { jobPositions } = req.body;
+
+        let parsedJobPositions: string[] = [];
+
+        if (Array.isArray(jobPositions)) {
+            parsedJobPositions = jobPositions.map((x) => String(x).trim()).filter(Boolean);
+        } else if (typeof jobPositions === "string") {
+            const trimmed = jobPositions.trim();
+            if (trimmed.startsWith("[")) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) {parsedJobPositions = parsed.map((x) => String(x).trim()).filter(Boolean);
+                    }
+                } catch {
+                    parsedJobPositions = [trimmed];
+                }
+            } else {
+                parsedJobPositions = [trimmed];
+            }
+        }
+
+        if (!name?.trim() ||
+            parsedJobPositions.length === 0 ||
+            !expirationDate ||
+            !contentType?.trim() ||
+            !status?.trim()
+        ) {
             res.status(400).json({ error: "Missing required fields" });
             return;
         }
@@ -185,13 +210,12 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
         const created = await prisma.content.update({
             where: { id: id },
             data: {
-                title: name,
+                title: name.trim(),
                 link: finalLink,
                 ownerName: `${employee.firstName} ${employee.lastName}`,
                 ownerId: employee.id,
-                jobPosition,
-                contentType,
-                status,
+                jobPositions: parsedJobPositions,
+                contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
             },
             include: {
@@ -210,7 +234,7 @@ app.put("/api/upload/:id", requiresAuth(), upload.single("file"), async (req, re
         });
     }
 });
-
+*/
 
 app.put("/api/upload/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
@@ -277,7 +301,7 @@ app.get("/api/content/:id/download", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "Not found" });
             return;
         }
-        const signedUrl = await getSignedUrl(content.link);
+        const signedUrl = await getSignedUrl(content.filePath);
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
@@ -438,10 +462,10 @@ app.delete("/api/content/:id", requiresAuth(), async (req, res) => {
         }
 
         const isExternalLink =
-            content.link.startsWith("http://") || content.link.startsWith("https://");
+            content.filePath.startsWith("http://") || content.filePath.startsWith("https://");
 
         if (!isExternalLink) {
-            await deleteFile(content.link);
+            await deleteFile(content.filePath);
         }
 
         await contentRepo.delete(id);
