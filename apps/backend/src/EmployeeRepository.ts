@@ -36,17 +36,18 @@ class EmployeeRepository {
     }
 
     async update(id: number, data: {
-        username?: string;
-        password?: string;
-        role?: string;
         email?: string;
         firstName?: string;
         lastName?: string;
         dateOfBirth?: Date;
         jobPosition?: string;
         auth0Id?: string;
+        profileImageUrl?: string;
     }) {
-        return prisma.employee.update({ where: { id }, data });
+        return prisma.employee.update({
+            where: { id },
+            data
+        });
     }
 
     async linkAuth0(email: string, auth0Id: string) {

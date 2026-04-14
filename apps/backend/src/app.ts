@@ -128,8 +128,8 @@ app.post("/api/upload", requiresAuth(), upload.single("file"), async (req, res) 
         const created = await prisma.content.create({
             data: {
                 title: name,
-                link: finalLink,
-                ownerName: `${employee.firstName} ${employee.lastName}`,
+                filePath: finalLink,
+                //owner: employee, //`${employee.firstName} ${employee.lastName}`,
                 ownerId: employee.id,
                 jobPosition,
                 contentType,

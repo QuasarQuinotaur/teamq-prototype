@@ -10,7 +10,23 @@ class ContentRepository {
 
     async getByJobPosition(jobPosition: string) {
         return prisma.content.findMany({
-            where: { jobPosition },
+            where: {
+                jobPositions: {
+                    has: jobPosition
+                }
+            },
+            orderBy: { id: "asc" },
+            include: { owner: true }
+        });
+    }
+
+    async getByMultJobPosition(jobPosition: string[]) {
+        return prisma.content.findMany({
+            where: {
+                jobPositions: {
+                    hasSome: jobPosition
+                }
+            },
             orderBy: { id: "asc" },
             include: { owner: true }
         });
@@ -33,29 +49,49 @@ class ContentRepository {
 
     async create(data: {
         title: string;
-        link: string;
-        ownerName: string;
-        jobPosition: string;
+        filePath?: string;
+        fileSize?: number;
+        jobPositions: string[];
         contentType: string;
-        status: string;
         expirationDate: Date;
         ownerId: number;
     }) {
-        return await prisma.content.create({ data });
+        return prisma.content.create({
+            data: {
+                title: data.title,
+                filePath: data.filePath,
+                fileSize: data.fileSize,
+                jobPositions: data.jobPositions,
+                contentType: data.contentType,
+                expirationDate: data.expirationDate,
+                owner: {
+                    connect: { id: data.ownerId }
+                }
+            }
+        });
     }
 
     async update(id: number, data: {
         title?: string;
-        link?: string;
-        ownerName?: string;
-        jobPosition?: string;
+        filePath?: string;
+        fileName?: string;
+        fileSize?: number;
+        jobPositions?: string[];
         contentType?: string;
-        status?: string;
+
         expirationDate?: Date;
+        ownerId?: number;
     }) {
+        const { ownerId, ...rest } = data;
+
         return prisma.content.update({
             where: { id },
-            data
+            data: {
+                ...rest,
+                owner: ownerId
+                    ? { connect: { id: ownerId } }
+                    : undefined
+            }
         });
     }
 
