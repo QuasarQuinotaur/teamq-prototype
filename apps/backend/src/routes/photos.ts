@@ -36,13 +36,20 @@ router.post("/upload-photo", requiresAuth(), upload.single("file"), async (req, 
             return;
         }
 
-        const uniqueName = `${Date.now()}-${req.file.originalname}`;
+        const uniqueName = `user-${employee.id}-${Date.now()}.png`;
 
-        const uploaded = await uploadBuffer(
-            req.file.buffer,
-            uniqueName,
-            req.file.mimetype
-        );
+        let uploaded;
+        try {
+            uploaded = await uploadBuffer(
+                req.file.buffer,
+                uniqueName,
+                req.file.mimetype
+            );
+            console.log("uploaded:", uploaded);
+        } catch (err) {
+            console.error("UPLOAD BUFFER ERROR:", err);
+            throw err;
+        }
 
         const photo = await prisma.userPhoto.upsert({
             where: { ownerId: employee.id },

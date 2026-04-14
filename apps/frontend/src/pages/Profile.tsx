@@ -60,7 +60,7 @@ export default function Profile(){
     async function fetchProfilePhoto() {
         try {
             const res = await fetch(
-                `${import.meta.env.VITE_BACKEND_URL}/api/photos/me/photo`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/photos/photo`,
                 { credentials: "include" }
             );
 
