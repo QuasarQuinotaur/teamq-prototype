@@ -76,8 +76,6 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "Not found" });
             return;
         }
-        const filePath = content.filePath;
-        if (!filePath?.trim()) {
 
         const employee = await getEmployeeFromRequest(req);
 
@@ -100,11 +98,12 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             });
         }
 
-        const path = content.filePath;
-        if (!path?.trim()) {
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
             res.status(404).json({ error: "No file or link" });
             return;
         }
+
         if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
             res.json({ url: filePath });
             return;
