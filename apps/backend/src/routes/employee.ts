@@ -2,6 +2,8 @@ import { Router } from "express";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 import { EmployeeRepository } from "../EmployeeRepository.ts";
+import {getSignedUrl} from "../lib/supabase.ts";
+import {prisma} from "db";
 const employeeRepo = new EmployeeRepository();
 
 const router = Router();
@@ -14,7 +16,28 @@ const router = Router();
 //gets all employees
 router.get("/", requiresAuth(), async (req, res) => {
     const employees = await employeeRepo.getAll();
-    res.json(employees);
+
+    const employeesWithPhotos = await Promise.all(
+        employees.map(async (e) => {
+            let image: string | undefined;
+
+            // find photo for this employee
+            const photo = await prisma.userPhoto.findUnique({
+                where: { ownerId: e.id },
+            });
+
+            if (photo?.path) {
+                image = await getSignedUrl(photo.path);
+            }
+
+            return {
+                ...e,
+                image, // 👈 THIS is what frontend needs
+            };
+        })
+    );
+
+    res.json(employeesWithPhotos);
 });
 
 //gets employee of id
