@@ -21,6 +21,9 @@ import {
 } from "@/elements/avatar.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { cn } from "@/lib/utils.ts";
+import type { ConfettiHandle } from "../Confetti";
+import { useRef } from "react";
+import Confetti from "../Confetti";
 
 const apiBase = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -86,6 +89,8 @@ export function ServiceRequestCard({
   const numericId = Number(id);
   const done = isDoneStatus(status);
 
+  const confettiRef = useRef<ConfettiHandle>(null);
+
   const descriptionText = description?.trim() ?? "";
   const dueLabel = formatDueDisplay(dateDue);
 
@@ -128,13 +133,17 @@ export function ServiceRequestCard({
         )}
       >
         <div className="flex min-h-14 items-stretch gap-2">
+          <Confetti ref={confettiRef}/>
           <button
             type="button"
             disabled={!onStatusUpdated || updating}
             aria-busy={updating}
             aria-pressed={done}
             aria-label={done ? "Mark request as to-do" : "Mark request as done"}
-            onClick={toggleDone}
+            onClick={(e) => {
+              toggleDone(e);
+              confettiRef.current?.fire();
+            }}
             onPointerDown={(e) => e.stopPropagation()}
             className={cn(
               "ml-3 size-5 shrink-0 self-center rounded-full border-2 transition-colors",
