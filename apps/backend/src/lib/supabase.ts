@@ -22,7 +22,7 @@ export async function getSignedUrl(path: string, expiresIn = 60) {
 }
 
 export async function deleteFile(path: string) {
-    const { error } = await supabase.storage.from("uploads").remove([path]);
+    const { error } = await getSupabase().storage.from("uploads").remove([path]);
     if (error) throw new Error(error.message);
 }
 

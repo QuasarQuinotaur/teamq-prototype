@@ -32,16 +32,17 @@ export default function useContentQueryEntries({
         }
         const matchJobPosition = (
             !fieldsFilter.jobPositions || fieldsFilter.jobPositions.length === 0 ||
-            fieldsFilter.jobPositions.some((position) => c.jobPosition === position)
+            fieldsFilter.jobPositions.some((position) => c.jobPositions.includes(position))
         )
         if (!matchJobPosition) {
             return false;
         }
+        const path = c.filePath ?? "";
         const matchDocumentTypes = (
             !fieldsFilter.documentTypes || fieldsFilter.documentTypes.length === 0 ||
             fieldsFilter.documentTypes.some((type) => (
-                (type == "links" && c.link && !isSupabasePath(c.link)) ||
-                (type == "files" && c.link && isSupabasePath(c.link))
+                (type == "links" && path && !isSupabasePath(path)) ||
+                (type == "files" && path && isSupabasePath(path))
             ))
         )
         return matchDocumentTypes;

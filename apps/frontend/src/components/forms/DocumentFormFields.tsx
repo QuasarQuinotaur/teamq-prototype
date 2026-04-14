@@ -13,11 +13,10 @@ import {cn} from "@/lib/utils.ts";
 export type ContentFields = {
     name: string,
     link: string,
-    jobPosition: string,
+    jobPositions: string[],
     lastModifiedDate: Date | undefined,
     expirationDate: Date | undefined,
     contentType: string,
-    status: string,
     file: File | null,
     sourceType: "file" | "link",
 }
@@ -230,9 +229,9 @@ export default function DocumentFormFields({
                         createElement={(id) => (
                             <JobPositionMultiInput
                                 id={id}
-                                jobPositions={fields.jobPosition.trim() ? [fields.jobPosition] : []}
+                                jobPositions={fields.jobPositions}
                                 setJobPositions={(positions) => {
-                                    setKey("jobPosition", positions[0] ?? "")
+                                    setKey("jobPositions", positions)
                                 }}
                             />
                         )}

@@ -14,7 +14,8 @@ export default function useContentSortFunction(props: ContentSortFunctionProps):
                 return (entry) => (entry.item as Content).contentType
             }
             else if (sortBy === "jobPosition") {
-                return (entry) => (entry.item as Content).jobPosition
+                return (entry) =>
+                    [...(entry.item as Content).jobPositions].sort().join(",")
             }
             else if (sortBy === "expirationDate") {
                 return (entry) => (entry.item as Content).expirationDate.toString()

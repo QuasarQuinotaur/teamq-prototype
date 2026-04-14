@@ -9,11 +9,9 @@ import DocumentViewer from "@/components/DocumentViewer.tsx";
 type ContentItem = {
     id: number;
     title: string;
-    link: string;
-    ownerName: string;
-    jobPosition: string;
+    filePath: string | null;
+    jobPositions: string[];
     contentType: string;
-    status: string;
     dateAdded: string;
     dateUpdated: string;
     expirationDate: string;
@@ -43,24 +41,25 @@ type ViewerState = {
     url: string;
     filename: string;
     title: string;
-    contentId?: number;
 };
 
 async function resolveDocumentViewer(item: ContentItem): Promise<ViewerState | null> {
-    const isStoragePath = !item.link.startsWith("http://") && !item.link.startsWith("https://");
+    const path = item.filePath ?? "";
+    if (!path.trim()) return null;
+    const isStoragePath =
+        !path.startsWith("http://") && !path.startsWith("https://");
     if (isStoragePath) {
         const res = await fetch(
             `${import.meta.env.VITE_BACKEND_URL}/api/content/${item.id}/download`,
-            { credentials: "include" }
+            { credentials: "include" },
         );
         if (!res.ok) return null;
         const { url } = await res.json();
-        const filename = item.link.split("/").pop() ?? item.title;
-        return { url, filename, title: item.title, contentId: item.id };
-    } else {
-        const filename = item.link.split("/").pop()?.split("?")[0] ?? item.title;
-        return { url: item.link, filename, title: item.title, contentId: item.id };
+        const filename = path.split("/").pop() ?? item.title;
+        return { url, filename, title: item.title };
     }
+    const filename = path.split("/").pop()?.split("?")[0] ?? item.title;
+    return { url: path, filename, title: item.title };
 }
 
 // --- Stat Tile ---
@@ -192,12 +191,8 @@ export default function Dashboard() {
         return exp >= today && exp <= sevenDays;
     });
 
-    const todoItems = items.filter(
-        (i) => i.status?.toLowerCase() === "todo" || i.status?.toLowerCase() === "to do"
-    );
-    const inProgressItems = items.filter(
-        (i) => i.status?.toLowerCase() === "in-progress" || i.status?.toLowerCase() === "in progress"
-    );
+    const dueThisWeekItems = dueSoon;
+    const overdueItems = overdue;
 
     if (viewerItem) {
         return (
@@ -205,7 +200,6 @@ export default function Dashboard() {
                 url={viewerItem.url}
                 filename={viewerItem.filename}
                 title={viewerItem.title}
-                contentId={viewerItem.contentId}
                 onClose={() => setViewerItem(null)}
             />
         );
@@ -240,38 +234,38 @@ export default function Dashboard() {
                     />
                 </div>
 
-                {/* Tabs: To Do / In Progress */}
-                <Tabs defaultValue="todo">
+                {/* Tabs by expiration urgency */}
+                <Tabs defaultValue="due">
                     <TabsList>
-                        <TabsTrigger value="todo">
-                            To Do
-                            {!loading && <TabCount n={todoItems.length} />}
+                        <TabsTrigger value="due">
+                            Due this week
+                            {!loading && <TabCount n={dueThisWeekItems.length} />}
                         </TabsTrigger>
-                        <TabsTrigger value="inprogress">
-                            In Progress
-                            {!loading && <TabCount n={inProgressItems.length} />}
+                        <TabsTrigger value="overdue">
+                            Overdue
+                            {!loading && <TabCount n={overdueItems.length} />}
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="todo">
+                    <TabsContent value="due">
                         <div className="flex flex-col gap-1.5 mt-3 max-h-[420px] overflow-y-auto pr-0.5">
                             {loading
                                 ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
-                                : todoItems.length === 0
-                                  ? <EmptyState label="to-do" />
-                                  : todoItems.map((item) => (
+                                : dueThisWeekItems.length === 0
+                                  ? <EmptyState label="due this week" />
+                                  : dueThisWeekItems.map((item) => (
                                         <DashboardCard key={item.id} item={item} onOpen={() => handleOpenDocument(item)} />
                                     ))}
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="inprogress">
+                    <TabsContent value="overdue">
                         <div className="flex flex-col gap-1.5 mt-3 max-h-[420px] overflow-y-auto pr-0.5">
                             {loading
                                 ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
-                                : inProgressItems.length === 0
-                                  ? <EmptyState label="in-progress" />
-                                  : inProgressItems.map((item) => (
+                                : overdueItems.length === 0
+                                  ? <EmptyState label="overdue" />
+                                  : overdueItems.map((item) => (
                                         <DashboardCard key={item.id} item={item} onOpen={() => handleOpenDocument(item)} />
                                     ))}
                         </div>

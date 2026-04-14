@@ -16,11 +16,10 @@ import DocumentFormFields, {
 const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
     name: "",
     link: "",
-    jobPosition: "",
+    jobPositions: [],
     lastModifiedDate: undefined,
     expirationDate: undefined,
     contentType: "",
-    status: "",
     file: null,
     sourceType: "file",
 }
@@ -28,16 +27,19 @@ const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
 
 function itemAsDocumentFields(item: object): ContentFields {
     const c = item as Content;
+    const path = c.filePath ?? "";
     return {
         name: c.title,
-        link: c.link,
-        jobPosition: c.jobPosition,
+        link: path,
+        jobPositions: [...c.jobPositions],
         lastModifiedDate: new Date(c.dateUpdated),
         expirationDate: new Date(c.expirationDate),
         contentType: c.contentType,
-        status: c.status,
         file: null,
-        sourceType: c.link.startsWith("http://") || c.link.startsWith("https://") ? "link" : "file",
+        sourceType:
+            path.startsWith("http://") || path.startsWith("https://")
+                ? "link"
+                : "file",
     }
 }
 
@@ -53,12 +55,18 @@ function getDefaultDocumentFields(defaultItem: object = null): ContentFields {
 }
 
 function hasRequiredDocumentFields(fields: ContentFields, isUpdate: boolean) {
-    const hasDocument = fields.sourceType === "file"
-        ? (fields.file != null || isUpdate)
-        : fields.link.trim() !== ""
-    return fields.name.trim() && fields.jobPosition.trim()
-        && fields.expirationDate && fields.contentType.trim()
-        && hasDocument
+    const hasDocument =
+        fields.sourceType === "file"
+            ? fields.file != null ||
+              (isUpdate && !!(fields.link?.trim()))
+            : fields.link.trim() !== "";
+    return (
+        fields.name.trim() &&
+        fields.jobPositions.length > 0 &&
+        fields.expirationDate &&
+        fields.contentType.trim() &&
+        hasDocument
+    );
 }
 
 
@@ -97,37 +105,37 @@ export default function DocumentForm(state: FormState) {
 
         // Required fields
         formData.append("name", documentFields.name);
-        formData.append("jobPosition", documentFields.jobPosition);
+        formData.append(
+            "jobPositions",
+            JSON.stringify(documentFields.jobPositions),
+        );
         formData.append(
             "expirationDate",
-            documentFields.expirationDate!.toISOString()
+            documentFields.expirationDate!.toISOString(),
         );
         formData.append("contentType", documentFields.contentType);
-        formData.append("status", documentFields.status);
-        if (documentFields.file && !documentFields.link) {
-            formData.append("file", documentFields.file); // <-- MUST match "file" in multer
-        } else if (documentFields.link && !documentFields.file) {
-            formData.append("link", documentFields.link);
+        if (documentFields.file) {
+            formData.append("file", documentFields.file);
+        } else if (documentFields.link.trim()) {
+            formData.append("link", documentFields.link.trim());
         }
 
         const res = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",
             body: formData,
-            body: formData, // <-- no JSON, no stringify
         });
 
         const result = await res.json();
         if (res.status === 409) {
-            throw new Error("Upload failed: a file with that name already exists in the database. Change the file name or request access.");
+            throw new Error(
+                "Upload failed: a file with that name already exists in the database. Change the file name or request access.",
+            );
         }
 
         if (!res.ok) {
             throw new Error(
-                result.error || (isUpdate ? "Update failed" : "Upload failed")
-            );
-            throw new Error(
-                result.error || (isUpdate ? "Update failed" : "Upload failed")
+                result.error || (isUpdate ? "Update failed" : "Upload failed"),
             );
         }
     }

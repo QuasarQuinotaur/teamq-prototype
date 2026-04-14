@@ -5,7 +5,6 @@ type ContentItem = {
     id: number;
     title: string;
     expirationDate: string;
-    status: string;
     [key: string]: unknown;
 };
 

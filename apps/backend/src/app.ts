@@ -9,7 +9,7 @@ import morgan from "morgan";
 import pkg from 'express-openid-connect';
 const { auth } = pkg;
 import cors from 'cors';
-import { EmployeeRepository } from "./EmployeeRepository.ts";\
+import { EmployeeRepository } from "./EmployeeRepository.ts";
 import contentRoutes from "./routes/content.ts";
 import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";

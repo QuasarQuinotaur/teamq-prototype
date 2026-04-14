@@ -26,7 +26,7 @@ export default function EmployeeEntryPage() {
 
     // Get all employees
     function fetchEmployees() {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employees`, { credentials: 'include' })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employee`, { credentials: 'include' })
             .then(res => res.json())
             .then((data: Employee[]) => {
                 const mapped: CardEntry[] = data.map((item) => ({
@@ -49,7 +49,7 @@ export default function EmployeeEntryPage() {
     async function handleDelete(entry: CardEntry) {
         try {
             const item = entry.item as { id: number };
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employees/${item.id}`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employee/${item.id}`, {
                 method: "DELETE",
                 credentials: "include",
             });
