@@ -1,9 +1,9 @@
 import ContentEntryPage from "@/components/paging/ContentEntryPage.tsx";
 
-export default function Workflow() {
+export default function Favorited() {
     return (
         <ContentEntryPage
-            contentType={"workflow"}
+            onlyFavorites
         />
     )
 }

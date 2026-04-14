@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/elements/sidebar-elements.tsx"
-import {ChartBarIcon, ClockIcon, StarIcon, PersonIcon, FilesIcon} from "@phosphor-icons/react"
+import {ChartBarIcon, ClockIcon, StarIcon, PersonIcon, FilesIcon, ListBulletsIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
@@ -40,10 +40,17 @@ const data = {
       ),
     },
     {
-      title: "Bookmarked",
-      url: "/documents/bookmarked", // not sure, needs only display the documents bookmarked by the user
+      title: "Favorited",
+      url: "/documents/favorited", // not sure, needs only display the documents bookmarked by the user
       icon: (
         <StarIcon/>
+      ),
+    },
+    {
+      title: "Service requests",
+      url: "/documents/service-requests",
+      icon: (
+        <ListBulletsIcon/>
       ),
     },
     {

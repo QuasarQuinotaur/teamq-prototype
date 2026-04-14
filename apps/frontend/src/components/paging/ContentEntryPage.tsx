@@ -2,7 +2,7 @@
 // It makes an EntryPage with Card + List view showing all content
 // A specific type can be specified (workflow, reference, tool) to only show that type of content
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import * as React from "react";
@@ -10,15 +10,22 @@ import EntryPage from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
+import {DropdownMenuCheckboxItem} from "@/components/DropdownMenu.tsx";
+import {StarIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import {
+    notifyContentCheckoutSync,
+    subscribeContentCheckoutSync,
+} from "@/lib/content-checkout-sync.ts";
 
 type ViewerState = {
     url: string;
@@ -28,9 +35,9 @@ type ViewerState = {
 
 
 type ContentEntryPageProps = {
+    /** Leave empty to show all documents: category filter starts empty (show all); use filter panel for categories. */
     contentType?: string;
-    /** All-documents page (`/documents/all`): category filter starts empty (show all); use filter panel for categories. */
-    showContentTypeSelector?: boolean;
+    onlyFavorites?: boolean;
 }
 type Employee = {
     id: number;
@@ -41,9 +48,21 @@ type Employee = {
 /** Fixed grid of placeholders while the first content request is in flight. */
 const SKELETON_GRID_SLOTS = 25;
 
+const apiBase = import.meta.env.VITE_BACKEND_URL;
+
+type ContentWithCheckout = Content & {
+    isCheckedOut?: boolean;
+    checkedOutById?: number | null;
+    checkedOutBy?: {
+        firstName: string;
+        lastName: string;
+        profileImageUrl?: string;
+    } | null;
+};
+
 export default function ContentEntryPage({
                                              contentType,
-                                             showContentTypeSelector,
+                                             onlyFavorites
 }: ContentEntryPageProps) {
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,7 +71,7 @@ export default function ContentEntryPage({
 
     async function handleView(entry: CardEntry) {
         const id = entry.item.id;
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/download`, {
+        const res = await fetch(`${apiBase}/api/content/${id}/download`, {
             credentials: "include",
         });
         if (!res.ok) return;
@@ -63,7 +82,7 @@ export default function ContentEntryPage({
     }
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employee`, { credentials: "include" })
+        fetch(`${apiBase}/api/employee`, { credentials: "include" })
             .then(res => res.json())
             .then((employees: Employee[]) => {
                 setEmployeeMap(new Map(employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])));
@@ -76,7 +95,7 @@ export default function ContentEntryPage({
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
 
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: "include" })
+        fetch(`${apiBase}/api/content`, { credentials: "include" })
             .then((res) => res.json())
             .then((data: Content[]) => {
                 const mapped: CardEntry[] = data.map((item) => ({
@@ -93,31 +112,36 @@ export default function ContentEntryPage({
                 if (isInitialLoad) setLoading(false);
             });
     }
+
+    const fetchContentRef = useRef(fetchContent);
+    fetchContentRef.current = fetchContent;
     useEffect(() => {
-        fetchContent()
+        return subscribeContentCheckoutSync(() => {
+            fetchContentRef.current();
+        });
+    }, []);
+
+    useEffect(() => {
+        fetchContent();
     }, [employeeMap]);
 
     // Delete content
     async function handleDelete(entry: CardEntry) {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}`, {
+        const res = await fetch(`${apiBase}/api/content/${entry.item.id}`, {
             method: "DELETE",
             credentials: "include",
         });
         if (!res.ok) {
             throw new Error("Delete failed");
         }
-        fetchContent()
+        fetchContent();
+        notifyContentCheckoutSync();
     }
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
-        showContentTypeSelector
-            ? {}
-            : (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
-    ), [showContentTypeSelector, contentType]);
-    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(() => {
-        if (showContentTypeSelector) return {};
-        return contentType ? { contentTypes: [contentType], jobPositions: [] } : {};
-    });
+        (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
+    ), [contentType]);
+    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(defaultFieldsFilter);
     const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const sortFunction = useContentSortFunction({sortFields})
@@ -126,6 +150,7 @@ export default function ContentEntryPage({
         entries,
         searchPhrase,
         fieldsFilter,
+        onlyFavorites,
         sortFunction,
     })
 
@@ -133,23 +158,109 @@ export default function ContentEntryPage({
         formType: "Document",
         onCancel: fetchContent,
         defaultItem: {
-            contentType: showContentTypeSelector
-                ? (fieldsFilter.contentTypes?.length === 1
-                    ? fieldsFilter.contentTypes[0]
-                    : undefined)
-                : contentType,
+            contentType: contentType,
         },
     };
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
+    const listColumnOptions = useMemo(
+        () => ({
+            renderTitleCell(entry: CardEntry) {
+                const item = entry.item as ContentWithCheckout;
+                if (!item.isCheckedOut) return entry.title;
+                const u = item.checkedOutBy;
+                const initials = u
+                    ? `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.trim() || "?"
+                    : "?";
+                return (
+                    <div className="flex min-w-0 items-center gap-2">
+                        <Avatar size="sm" className="shrink-0 ring-2 ring-background">
+                            {u?.profileImageUrl ? (
+                                <AvatarImage src={u.profileImageUrl} alt="" />
+                            ) : null}
+                            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{entry.title}</span>
+                    </div>
+                );
+            },
+        }),
+        [],
+    );
+
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
         (entry: CardEntry, trigger: React.ReactNode) => {
+            const item = entry.item as ContentWithCheckout;
+            const favorited = false;
+            const extraMenuItems = <>
+                <DropdownMenuCheckboxItem
+                    checked={favorited}
+                    onCheckedChange={(newFavorited) => {
+                        console.log("Favorite", item.title, "?", newFavorited)
+                    }}
+                >
+                    <StarIcon weight={favorited ? "fill" : "regular"}/>
+                    Favorite
+                </DropdownMenuCheckboxItem>
+            </>
+            // const extraMenuItems = <>
+            //
+            //     {
+            //         item.contentType === "workflow" ? (
+            //         <>
+            //             <DropdownMenuSeparator />
+            //             {item.status !== "to-do" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "to-do")}>
+            //                     <CircleIcon />
+            //                     Mark Todo
+            //                 </DropdownMenuItem>
+            //             )}
+            //             {item.status !== "in-progress" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "in-progress")}>
+            //                     <ClockIcon />
+            //                     Mark In Progress
+            //                 </DropdownMenuItem>
+            //             )}
+            //             {item.status !== "completed" && (
+            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "completed")}>
+            //                     <CheckCircleIcon />
+            //                     Mark Complete
+            //                 </DropdownMenuItem>
+            //             )}
+            //         </> ) : undefined
+            //     }
+            // </>
+
+            const checkoutBlocksActions = item.isCheckedOut === true;
+
             return ModifyDropdown({
                 entry,
                 trigger,
                 ...formOfTypeProps,
                 handleDelete: handleDelete,
+                extraMenuItems,
+                documentCheckout: {
+                    checkoutBlocksActions,
+                    onCheckout: async () => {
+                        const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
+                            method: "POST",
+                            credentials: "include",
+                        });
+                        const ok = res.ok;
+                        if (ok) notifyContentCheckoutSync();
+                        return ok;
+                    },
+                    onRelease: () => {
+                        void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
+                            method: "POST",
+                            credentials: "include",
+                        }).finally(() => {
+                            fetchContent();
+                            notifyContentCheckoutSync();
+                        });
+                    },
+                },
             });
         }
 
@@ -205,6 +316,7 @@ export default function ContentEntryPage({
             entries={queryEntries}
             gridSkeletonCount={gridSkeletonCount}
             createOptionsElement={createOptionsElement}
+            listColumnOptions={listColumnOptions}
             onListRowClick={handleView}
             cardGridProps={{
                 renderCard: ((state) => (

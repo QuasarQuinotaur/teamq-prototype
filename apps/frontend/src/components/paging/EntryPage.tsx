@@ -2,7 +2,7 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import * as React from "react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
@@ -11,15 +11,16 @@ import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {CARD_GRID_LAYOUT_CLASS, type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import ContentCardSkeleton from "@/components/cards/ContentCardSkeleton.tsx";
 import CardList from "@/components/cards/CardList.tsx";
-import type {ViewSelectorButtonProps, ViewType} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
+import type {ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
-
-export const FILTER_KEY_SEARCH = "SearchFilter";
+import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
+    listColumnOptions?: CreateColumnsOptions;
 }
 
 // T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
@@ -41,27 +42,21 @@ export default function EntryPage<T extends object>({
                                       gridSkeletonCount,
                                       ...entryProps
 }: EntryPageProps<T> & EntryProps) {
-    const { entries } = entryProps;
+    const { entries, createOptionsElement, listColumnOptions } = entryProps;
 
     // Pagination
-    const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const entriesPerPage = 10;
-
-    const pagedEntries: EntryProps = { entries: pageEntries, createOptionsElement: entryProps.createOptionsElement }
-
-    useEffect(() => {
-        setPageEntries(entries.slice(0, entriesPerPage))
-    }, [entries]);
-
-    const pageCallback = (pageNum: number)=> {
-        const first = entriesPerPage*(pageNum-1)
-        const last = entriesPerPage*(pageNum)
+    const [pageEntries, setPageEntries] = useState<CardEntry[]>()
+    const [pageNum, setPageNum] = useState<number>(1);
+    const updatePageEntries = useCallback((viewPageNum: number) => {
+        const first = entriesPerPage*(viewPageNum-1)
+        const last = entriesPerPage*(viewPageNum)
         setPageEntries(entries.slice(first, last))
-    }
+    }, [entries])
 
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
-    const [view, setView] = useState<ViewType>("Grid");
+    const { view, setView } = useMainContext()
     const viewSelectorButtonProps: ViewSelectorButtonProps = {
         view, setView
     }
@@ -75,38 +70,42 @@ export default function EntryPage<T extends object>({
                 queryProps={queryProps}
             />
             <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8">
-                {view === "Grid" ?
-                (
-                    gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
-                        <div
-                            className={CARD_GRID_LAYOUT_CLASS}
-                            aria-busy="true"
-                            aria-label="Loading documents"
-                        >
-                            {Array.from({ length: gridSkeletonCount }, (_, i) => (
-                                <ContentCardSkeleton key={i} />
-                            ))}
-                        </div>
-                    ) : (
-                        <CardGrid
-                            {...cardGridProps}
-                            {...entryProps}
-                            entries={entries}
-                        />
-                    )
-                ) :
-                (
+                {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
+                    <div
+                        className={CARD_GRID_LAYOUT_CLASS}
+                        aria-busy="true"
+                        aria-label="Loading documents"
+                    >
+                        {Array.from({ length: gridSkeletonCount }, (_, i) => (
+                            <ContentCardSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : (view === "Grid" ? (
+                    <CardGrid
+                        {...cardGridProps}
+                        entries={entries}
+                        createOptionsElement={createOptionsElement}
+                        isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
+                    />
+                ) : (
                     <>
                         <CardList
-                            {...pageEntries}
-                            {...pagedEntries}
+                            entries={pageEntries}
+                            createOptionsElement={createOptionsElement}
                             onRowClick={onListRowClick}
+                            listColumnOptions={listColumnOptions}
                         />
                         <div>
-                            <Pagination docNum={entries.length} entriesCallback={pageCallback} />
+                            <Pagination
+                                docNum={entries.length}
+                                docsPerPage={entriesPerPage}
+                                pageNum={pageNum}
+                                setPageNum={setPageNum}
+                                updatePageEntries={updatePageEntries}
+                            />
                         </div>
                     </>
-                )}
+                ))}
             </div>
         </div>
     )

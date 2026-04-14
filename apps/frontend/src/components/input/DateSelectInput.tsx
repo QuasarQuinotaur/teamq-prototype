@@ -22,9 +22,13 @@ type DateProps = {
     dateString: string;
     setDateString: (dateString: string) => void;
 } & ComponentProps<typeof InputGroupInput>
-function DateSelectInput(
-    { date, setDate, dateString, setDateString, ...props }: DateProps
-) {
+function DateSelectInput({
+                             date,
+                             setDate,
+                             dateString,
+                             setDateString,
+                             ...props
+}: DateProps) {
     const [dateOpen, setDateOpen] = useState(false)
 
     return (
@@ -57,17 +61,21 @@ function DateSelectInput(
                             <CalendarIcon /><span className="sr-only">Select date</span>
                         </InputGroupButton>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                    <PopoverContent
+                        className="z-50 w-auto overflow-hidden p-0"
+                        align="start"
+                    >
                         <Calendar
                             mode="single"
                             selected={date}
                             defaultMonth={date}
-                            // captionLayout="dropdown"
+                            fixedWeeks
                             onSelect={(date) => {
                                 setDate(date)
                                 setDateString(formatDate(date))
                                 setDateOpen(false)
                             }}
+                            className={"pointer-events-auto"}
                         />
                     </PopoverContent>
                 </Popover>

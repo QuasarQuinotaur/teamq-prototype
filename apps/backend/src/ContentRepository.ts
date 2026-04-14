@@ -4,7 +4,10 @@ class ContentRepository {
     async getAll() {
         return prisma.content.findMany({
             orderBy: { id: "asc" },
-            include: { owner: true }
+            include: {
+                owner: true,
+                checkedOutBy: { include: { userPhoto: true } },
+            },
         });
     }
 
@@ -35,7 +38,10 @@ class ContentRepository {
     async getById(id: number) {
         return prisma.content.findUnique({
             where: { id },
-            include: { owner: true }
+            include: {
+                owner: true,
+                checkedOutBy: { include: { userPhoto: true } },
+            },
         });
     }
 

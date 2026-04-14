@@ -15,6 +15,8 @@ import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";
 import photoRoutes from "./routes/photos.ts";
 import employeeRouter from "./routes/employee.ts";
+import favoritesRouter from "./routes/favorites.ts";
+import linkPreviewRouter from "./routes/linkPreview.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -56,6 +58,9 @@ app.use("/api/employee", employeeRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
 app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);
+app.use('/api', linkPreviewRouter);
+app.use("/api/favorites", favoritesRouter);
+
 
 export async function getEmployeeFromRequest(req: express.Request) {
     if (!req.oidc.isAuthenticated()) return null;

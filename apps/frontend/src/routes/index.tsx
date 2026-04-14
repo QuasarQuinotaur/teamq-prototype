@@ -6,10 +6,13 @@ import References from "@/pages/References";
 import Dashboard from "@/pages/Dashboard";
 import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
-import Bookmarked from "@/pages/Bookmarked.tsx";
+import Favorited from "@/pages/Favorited.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
 import Employees from "@/pages/Employees.tsx";
+import ServiceRequestsPage from "@/pages/ServiceRequestsPage.tsx";
+import NewServiceRequestPage from "@/pages/NewServiceRequestPage.tsx";
+import EditServiceRequestPage from "@/pages/EditServiceRequestPage.tsx";
 import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -45,8 +48,8 @@ export const router = createBrowserRouter([
                                 element: <Recent />,
                             },
                             {
-                                path: "bookmarked",
-                                element: <Bookmarked />,
+                                path: "favorited",
+                                element: <Favorited />,
                             },
                             {
                                 path: "all",
@@ -55,6 +58,18 @@ export const router = createBrowserRouter([
                             {
                                 path: "workflow",
                                 element: <Workflow />,
+                            },
+                            {
+                                path: "service-requests/new",
+                                element: <NewServiceRequestPage />,
+                            },
+                            {
+                                path: "service-requests/:id/edit",
+                                element: <EditServiceRequestPage />,
+                            },
+                            {
+                                path: "service-requests",
+                                element: <ServiceRequestsPage />,
                             },
                             {
                                 path: "reference",

@@ -9,8 +9,8 @@ class ServiceRequestRepository {
         return prisma.serviceRequest.findMany({
             orderBy: { id: "asc" },
             include: {
-                owner: true,
-                employees: true,
+                owner: { include: { userPhoto: true } },
+                employees: { include: { userPhoto: true } },
                 contents: true
             }
         });
@@ -20,8 +20,8 @@ class ServiceRequestRepository {
         return prisma.serviceRequest.findUnique({
             where: { id },
             include: {
-                owner: true,
-                employees: true,
+                owner: { include: { userPhoto: true } },
+                employees: { include: { userPhoto: true } },
                 contents: true
             }
         });
@@ -32,8 +32,8 @@ class ServiceRequestRepository {
             where: { ownerId },
             orderBy: { id: "asc" },
             include: {
-                owner: true,
-                employees: true,
+                owner: { include: { userPhoto: true } },
+                employees: { include: { userPhoto: true } },
                 contents: true
             }
         });
@@ -50,8 +50,8 @@ class ServiceRequestRepository {
             },
             orderBy: { id: "asc" },
             include: {
-                owner: true,
-                employees: true,
+                owner: { include: { userPhoto: true } },
+                employees: { include: { userPhoto: true } },
                 contents: true
             }
         });
@@ -59,21 +59,28 @@ class ServiceRequestRepository {
 
     async create(data: {
         ownerId: number;
+        title?: string;
         description?: string;
+        dateDue?: Date | null;
+        priority?: string | null;
         employeeIds?: number[];
         contentIds?: number[];
     }) {
+        const assigneeIds = Array.from(
+            new Set([...(data.employeeIds ?? []), data.ownerId])
+        );
         return prisma.serviceRequest.create({
             data: {
+                title: data.title,
                 description: data.description,
+                ...(data.dateDue !== undefined ? { dateDue: data.dateDue } : {}),
+                ...(data.priority !== undefined ? { priority: data.priority } : {}),
                 owner: {
                     connect: { id: data.ownerId }
                 },
-                employees: data.employeeIds
-                    ? {
-                        connect: data.employeeIds.map(id => ({ id }))
-                    }
-                    : undefined,
+                employees: {
+                    connect: assigneeIds.map((id) => ({ id })),
+                },
                 contents: data.contentIds
                     ? {
                         connect: data.contentIds.map(id => ({ id }))
@@ -91,7 +98,11 @@ class ServiceRequestRepository {
     // }
 
     async update(id: number, data: {
+        title?: string;
         description?: string;
+        dateDue?: Date | null;
+        priority?: string | null;
+        status?: string;
         ownerId?: number;
         employeeIds?: number[];
         contentIds?: number[];
@@ -99,7 +110,11 @@ class ServiceRequestRepository {
         return prisma.serviceRequest.update({
             where: { id },
             data: {
+                title: data.title,
                 description: data.description,
+                ...(data.dateDue !== undefined ? { dateDue: data.dateDue } : {}),
+                ...(data.priority !== undefined ? { priority: data.priority } : {}),
+                ...(data.status !== undefined ? { status: data.status } : {}),
                 owner: data.ownerId
                     ? { connect: { id: data.ownerId } }
                     : undefined,
