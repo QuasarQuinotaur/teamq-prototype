@@ -1,34 +1,22 @@
 // Displays information about content (workflow, reference, tool)
 
+import * as React from "react"
+import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { MoreHorizontalIcon } from "lucide-react";
 import {
+    type CardEntry,
     type CardState,
     CardAction,
     CardContainer,
-    CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
-
-const CARD_COLORS = [
-    "bg-blue-500",
-    "bg-violet-500",
-    "bg-emerald-500",
-    "bg-rose-500",
-    "bg-amber-500",
-    "bg-cyan-500",
-    "bg-pink-500",
-    "bg-indigo-500",
-];
-
-function stringToColor(str: string) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return CARD_COLORS[Math.abs(hash) % CARD_COLORS.length];
-}
+import { stringToAccentBgClass } from "@/lib/card-accent.ts"
+import type {Content} from "db";
+import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import BadgeList from "@/elements/badge-list.tsx";
 
 function isSupabasePath(link: string) {
     return !link.startsWith("http://") && !link.startsWith("https://");
@@ -52,79 +40,175 @@ async function viewItem(link: string, item: object & { id: number }) {
 }
 
 type ContentCardProps = {
-    action: string;
+    onView?: (entry: CardEntry) => void;
+    /** When false, hides the entry's content-type badge (still shows extra `badges` from CardState). */
+    showContentTypeBadge?: boolean;
+    /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
+    showJobPositionBadge?: boolean;
 } & CardState;
-export default function ContentCard({
-                                 action,
-                                 entry,
-                                 badges,
-                                 createOptionsElement
-}: ContentCardProps) {
-    // Favicon-based image (commented out in case you want to restore it)
-    // let linkDomain = entry.link.replace('https://', '').replace('http://', '');
-    // const split = linkDomain.split('/');
-    // if (split.length > 0) {
-    //     linkDomain = split[0];
-    // }
-    // const imgDefault = "https://companieslogo.com/img/orig/THG-679dc08a.png?t=1720244494"
-    // const linkFavicon = "https://favicon.vemetric.com/" + linkDomain + "?default=" + imgDefault
 
-    const cardColor = stringToColor(entry.title);
+export default function ContentCard({
+                                        entry,
+                                        badges,
+                                        createOptionsElement,
+                                        onView,
+                                        showContentTypeBadge = true,
+                                        showJobPositionBadge = true,
+}: ContentCardProps) {
+    // Favicon-based image
+    const linkDomain = entry.link
+        .replace('https://', '')
+        .replace('http://', '')
+        .split('/')[0];
+
+    const linkFavicon = `https://www.google.com/s2/favicons?sz=128&domain=${linkDomain}`;
+
+    const cardColor = stringToAccentBgClass(entry.title)
+
+    const [cardHovered, setCardHovered] = React.useState(false);
+    /** After collapse animation, restore single-line ellipsis; cleared on hover. */
+    const [titleCollapsedClamp, setTitleCollapsedClamp] = React.useState(true);
+    const titleCollapseTimerRef = React.useRef<number | null>(null);
+
+    const TITLE_COLLAPSE_MS = 500;
+
+    function handleCardPointerEnter() {
+        if (titleCollapseTimerRef.current != null) {
+            window.clearTimeout(titleCollapseTimerRef.current);
+            titleCollapseTimerRef.current = null;
+        }
+        setTitleCollapsedClamp(false);
+        setCardHovered(true);
+    }
+
+    function handleCardPointerLeave() {
+        setCardHovered(false);
+        titleCollapseTimerRef.current = window.setTimeout(() => {
+            setTitleCollapsedClamp(true);
+            titleCollapseTimerRef.current = null;
+        }, TITLE_COLLAPSE_MS);
+    }
+
+    React.useEffect(() => {
+        return () => {
+            if (titleCollapseTimerRef.current != null) {
+                window.clearTimeout(titleCollapseTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Get the pdf preview from the backend
+    const [thumbnail, setThumbnail] = React.useState<string | null>(null);
+    React.useEffect(() => {
+        const fetchThumbnail = async () => {
+            try {
+                // only for your stored files
+                if (!isSupabasePath(entry.link)) return;
+
+                const id = (entry.item as { id: number }).id;
+
+                const res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/thumbnail`,
+                    { credentials: "include" }
+                );
+
+                if (!res.ok) return;
+
+                const data = await res.json();
+
+                setThumbnail(data.thumbnailUrl);
+            } catch (err) {
+                console.error("Thumbnail fetch failed", err);
+            }
+        };
+
+        fetchThumbnail();
+    }, [entry]);
+
+    function handleCardClick() {
+        if (onView && isSupabasePath(entry.link)) {
+            onView(entry);
+        } else {
+            viewItem(entry.link, entry.item);
+        }
+    }
+
+    const content = entry.item as Content;
+    const jobPositionLabels = showJobPositionBadge
+        ? content.jobPositions.map(
+              (pos) =>
+                  JOB_POSITION_TYPE_MAP[
+                      pos as keyof typeof JOB_POSITION_TYPE_MAP
+                  ] ?? pos,
+          )
+        : [];
+    const showBadges = [
+        ...jobPositionLabels,
+        ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
+        ...badges,
+    ]
 
     return (
-        <CardContainer className="relative mx-auto w-full max-w-sm gap-0">
-            <CardHeader>
-                <div className={"flex w-full items-center"}>
-                    <CardTitle className={"w-full"}>{entry.title}</CardTitle>
-                    <div className={"w-full"}/>
+        <CardContainer
+            className="relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
+            onClick={handleCardClick}
+            onPointerEnter={handleCardPointerEnter}
+            onPointerLeave={handleCardPointerLeave}
+        >
+            <CardHeader className="pb-3 shrink-0">
+                <div className="flex w-full items-start justify-between gap-2">
+                    <div
+                        className={cn(
+                            "overflow-hidden flex-1 min-w-0 transition-[max-height] ease-in-out",
+                            cardHovered
+                                ? "max-h-24 duration-300"
+                                : "max-h-[1.4em] duration-500",
+                        )}
+                    >
+                        <CardTitle
+                            className={cn(
+                                "min-w-0 break-words",
+                                titleCollapsedClamp && "line-clamp-1",
+                            )}
+                        >
+                            {entry.title}
+                        </CardTitle>
+                    </div>
                     {createOptionsElement != null && (
-                        <CardAction>
+                        <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                // Create the "..." button and pass it to make a surrounding element
-                                // This gives functionality to the button like showing a dropdown
-                                <Button variant={"outline"}>
-                                    <MoreHorizontalIcon/>
+                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                    <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
                         </CardAction>
                     )}
                 </div>
-                <CardDescription>
-                    {entry.description ? (
-                        <>
-                            <p>{entry.description}</p>
-                            <br/>
-                        </>
-                    ) : null}
-                    {entry.subElement ?? undefined}
-                </CardDescription>
             </CardHeader>
-            <div className={"mt-2 relative z-20"}>
-                <div className={`w-full aspect-video ${cardColor}`} />
-                {/* Favicon-based image (commented out)
-                <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
-                <img
-                    src={linkFavicon}
-                    alt="Event cover"
-                    className="z-20 w-full aspect-video object-cover brightness-60 grayscale dark:brightness-40"
-                />
-                */}
+            <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
+                {thumbnail ? (
+                    // PDFs
+                    <img
+                        src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
+                        className="w-full h-full object-cover"
+                    />
+                ) : entry.link.startsWith("http") ? (
+                    // FALLBACK 1 -> FAVICON ICON
+                    <div className="w-full h-full flex items-center justify-center">
+                        <img
+                            src={linkFavicon}
+                            className="max-w-[60%] max-h-[60%] object-contain"
+                        />
+                    </div>
+                ) : (
+                    // FALLBACK 2 -> COLOR CARD
+                    <div className={`w-full h-full ${cardColor}`} />
+                )}
+
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    {[entry.badge, ...badges].filter((b) => b != null && b !== "").map((badgeString) => (
-                        <Badge variant="secondary">
-                            {badgeString!.charAt(0).toUpperCase() + badgeString!.slice(1)}
-                        </Badge>
-                    ))}
+                    <BadgeList badges={showBadges}/>
                 </div>
             </div>
-            <CardFooter>
-                <Button
-                    onClick={() => viewItem(entry.link, entry.item)}
-                    className="w-full"
-                >
-                    {action}
-                </Button>
-            </CardFooter>
         </CardContainer>
     )
 }

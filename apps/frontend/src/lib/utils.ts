@@ -27,10 +27,26 @@ export function isValidDate(date: Date | undefined): boolean {
   return !isNaN(date.getTime())
 }
 
+// For a state object T, sets a key to value using its setter (T[key] = value)
 export function handleKeyChange<T extends object, K extends keyof T>(
     setObject: React.Dispatch<React.SetStateAction<T>>,
     key: K,
     value: T[K]
 ) {
   setObject((prev) => ({ ...prev, [key]: value }))
+}
+
+// For a state object T, sets a key to value using its setter, or deletes if value is undefined/null
+export function handleKeyChangeOrDelete<T extends object, K extends keyof T>(
+    object: T,
+    setObject: React.Dispatch<React.SetStateAction<T>>,
+    key: K,
+    value: T[K] | undefined | null
+) {
+  if (value === undefined || value === null) {
+    const { [key]: _, ...withoutKey } = object;
+    setObject(withoutKey as T);
+    return;
+  }
+  handleKeyChange(setObject, key, value);
 }

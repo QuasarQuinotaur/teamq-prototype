@@ -1,40 +1,27 @@
-import type {ComponentProps} from "react";
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/elements/select.tsx"
 
-type JobPositionProps = {
+
+import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import * as React from "react";
+import type {ComponentProps} from "react";
+import {SelectTrigger} from "@/elements/select.tsx";
+import SelectMapInput from "@/components/input/SelectMapInput.tsx";
+
+type JobPositionInputProps = {
     jobPosition: string;
     setJobPosition: (jobPosition: string) => void;
 } & ComponentProps<typeof SelectTrigger>
-function JobPositionInput(
-    { jobPosition, setJobPosition, ...props }: JobPositionProps
-) {
+export default function JobPositionInput({
+                                             jobPosition,
+                                             setJobPosition,
+                                             ...props
+}: JobPositionInputProps) {
     return (
-        <Select value={jobPosition} onValueChange={setJobPosition}>
-            <SelectTrigger {...props}>
-                <SelectValue placeholder="Choose job position" />
-            </SelectTrigger>
-            <SelectContent position={"popper"}>
-                <SelectGroup>
-                    <SelectItem value="admin">
-                        Admin
-                    </SelectItem>
-                    <SelectItem value="underwriter">
-                        Underwriter
-                    </SelectItem>
-                    <SelectItem value="business-analyst">
-                        Business Analyst
-                    </SelectItem>
-                </SelectGroup>
-            </SelectContent>
-        </Select>
+        <SelectMapInput
+            map={JOB_POSITION_TYPE_MAP}
+            initValue={jobPosition}
+            setValue={setJobPosition}
+            placeholder={"Choose job position"}
+            {...props}
+        />
     )
 }
-
-export default JobPositionInput

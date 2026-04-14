@@ -21,3 +21,6 @@ dist/
 /packages/db/schema.sql
 
 /generated/prisma
+
+# Backend generated files (e.g. PDF thumbnails under tmp/thumbnails/)
+/apps/backend/tmp/

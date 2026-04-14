@@ -9,7 +9,7 @@ import morgan from "morgan";
 import pkg from 'express-openid-connect';
 const { auth } = pkg;
 import cors from 'cors';
-import { EmployeeRepository } from "./EmployeeRepository.ts";\
+import { EmployeeRepository } from "./EmployeeRepository.ts";
 import contentRoutes from "./routes/content.ts";
 import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";
@@ -48,6 +48,7 @@ const config = {
 app.use(auth(config));
 app.use(express.json());
 app.use(morgan("dev"));
+app.use("/tmp", express.static("tmp"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
