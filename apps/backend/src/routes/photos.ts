@@ -71,7 +71,7 @@ router.post("/upload-photo", requiresAuth(), upload.single("file"), async (req, 
 // ===================================
 // DELETE ===============================
 // ===================================
-router.delete("/me/photo/:id", requiresAuth(), async (req, res) => {
+router.delete("/photo/:id", requiresAuth(), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
 
@@ -103,7 +103,7 @@ router.delete("/me/photo/:id", requiresAuth(), async (req, res) => {
 // GET ===============================
 // ===================================
 
-router.get("/me/photo", requiresAuth(), async (req, res) => {
+router.get("/photo", requiresAuth(), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
         if (!employee) {
