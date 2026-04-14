@@ -14,11 +14,13 @@ import CardList from "@/components/cards/CardList.tsx";
 import type {ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
+    listColumnOptions?: CreateColumnsOptions;
 }
 
 // T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
@@ -40,7 +42,7 @@ export default function EntryPage<T extends object>({
                                       gridSkeletonCount,
                                       ...entryProps
 }: EntryPageProps<T> & EntryProps) {
-    const { entries } = entryProps;
+    const { entries, createOptionsElement, listColumnOptions } = entryProps;
 
     // Pagination
     const entriesPerPage = 10;
@@ -81,17 +83,17 @@ export default function EntryPage<T extends object>({
                 ) : (view === "Grid" ? (
                     <CardGrid
                         {...cardGridProps}
-                        {...entryProps}
                         entries={entries}
+                        createOptionsElement={createOptionsElement}
                         isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
                     />
                 ) : (
                     <>
                         <CardList
-                            {...pageEntries}
-                            {...entryProps}
                             entries={pageEntries}
+                            createOptionsElement={createOptionsElement}
                             onRowClick={onListRowClick}
+                            listColumnOptions={listColumnOptions}
                         />
                         <div>
                             <Pagination

@@ -17,6 +17,17 @@ import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 import type {Content} from "db";
 import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
+import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
+
+type ContentWithCheckout = Content & {
+    isCheckedOut?: boolean;
+    checkedOutById?: number | null;
+    checkedOutBy?: {
+        firstName: string;
+        lastName: string;
+        profileImageUrl?: string;
+    } | null;
+};
 
 function isSupabasePath(link: string) {
     return !link.startsWith("http://") && !link.startsWith("https://");
@@ -133,7 +144,12 @@ export default function ContentCard({
         }
     }
 
-    const content = entry.item as Content;
+    const content = entry.item as ContentWithCheckout;
+    const checkedOut = content.isCheckedOut === true;
+    const who = content.checkedOutBy;
+    const checkoutInitials = who
+        ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
+        : "?";
     const jobPositionLabels = showJobPositionBadge
         ? content.jobPositions.map(
               (pos) =>
@@ -186,24 +202,56 @@ export default function ContentCard({
                 </div>
             </CardHeader>
             <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
-                {thumbnail ? (
-                    // PDFs
-                    <img
-                        src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
-                        className="w-full h-full object-cover"
-                    />
-                ) : entry.link.startsWith("http") ? (
-                    // FALLBACK 1 -> FAVICON ICON
-                    <div className="w-full h-full flex items-center justify-center">
+                <div
+                    className={cn(
+                        "absolute inset-0 z-10 flex flex-col",
+                        checkedOut && "brightness-[0.45]",
+                    )}
+                >
+                    {thumbnail ? (
                         <img
-                            src={linkFavicon}
-                            className="max-w-[60%] max-h-[60%] object-contain"
+                            src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
+                            className="w-full h-full object-cover"
+                            alt=""
                         />
-                    </div>
-                ) : (
-                    // FALLBACK 2 -> COLOR CARD
-                    <div className={`w-full h-full ${cardColor}`} />
-                )}
+                    ) : entry.link.startsWith("http") ? (
+                        <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                            <img
+                                src={linkFavicon}
+                                className="max-w-[60%] max-h-[60%] object-contain"
+                                alt=""
+                            />
+                        </div>
+                    ) : (
+                        <div className={`w-full h-full ${cardColor}`} />
+                    )}
+                </div>
+
+                {checkedOut ? (
+                    <>
+                        <div className="pointer-events-none absolute inset-0 z-30 bg-black/35" aria-hidden />
+                        <div className="pointer-events-none absolute left-2 top-2 z-40">
+                            <Avatar size="sm" className="size-9 ring-2 ring-background shadow-sm">
+                                {who?.profileImageUrl ? (
+                                    <AvatarImage src={who.profileImageUrl} alt="" />
+                                ) : null}
+                                <AvatarFallback className="text-xs font-medium">
+                                    {checkoutInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                        </div>
+                        <div
+                            className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center"
+                            aria-label="Checked out"
+                        >
+                            <span className="flex items-end gap-0.5">
+                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+                            </span>
+                        </div>
+                    </>
+                ) : null}
 
                 <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
                     <BadgeList badges={showBadges}/>

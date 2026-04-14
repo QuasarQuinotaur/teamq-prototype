@@ -2,83 +2,136 @@
 // Includes Update option to update using form with pre-filled in data
 // Includes Delete option to delete
 
-import type {CardEntry} from "@/components/cards/Card.tsx";
+import type { CardEntry } from "@/components/cards/Card.tsx";
 import * as React from "react";
-import {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/dialog/Dialog.tsx";
+import { useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/dialog/Dialog.tsx";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
-    DropdownMenuItem, DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/DropdownMenu.tsx";
 import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
-    AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger
+    AlertDialogTrigger,
 } from "@/components/dialog/AlertDialog.tsx";
-import {PencilIcon, TrashIcon} from "@phosphor-icons/react";
-import type {FormState} from "@/components/forms/Form.tsx";
-import {
-    FormOfType,
-    type FormType,
-    type FormOfTypeProps
-} from "@/components/forms/FormOfType.tsx";
+import { PencilIcon, TrashIcon } from "@phosphor-icons/react";
+import type { FormState } from "@/components/forms/Form.tsx";
+import { FormOfType, type FormType, type FormOfTypeProps } from "@/components/forms/FormOfType.tsx";
 
-
-const DEFAULT_UPDATE_FORM_HEADERS: {[P in FormType]: string} = {
+const DEFAULT_UPDATE_FORM_HEADERS: { [P in FormType]: string } = {
     Document: "Update Document",
-    Employee: "Update Employee"
-}
+    Employee: "Update Employee",
+};
+
+/** When set (documents), Edit checks out on open and checks in when the update dialog closes. */
+export type DocumentCheckoutOptions = {
+    /** True if the document is checked out by anyone (including this user in another tab). */
+    checkoutBlocksActions: boolean;
+    onCheckout: () => Promise<boolean>;
+    onRelease: () => void;
+};
 
 type ModifyDropdownProps = {
     entry: CardEntry;
     trigger: React.ReactNode;
     handleDelete: (entry: CardEntry) => void;
     extraMenuItems?: React.ReactNode;
-} & FormOfTypeProps
+    documentCheckout?: DocumentCheckoutOptions;
+} & FormOfTypeProps;
+
 export default function ModifyDropdown({
-                                           entry,
-                                           trigger,
-                                           handleDelete,
-                                           extraMenuItems,
-                                           formType,
-                                           ...state
+    entry,
+    trigger,
+    handleDelete,
+    extraMenuItems,
+    formType,
+    documentCheckout,
+    ...state
 }: ModifyDropdownProps) {
-    const [updateFormOpen, setUpdateFormOpen] = useState(false)
+    const [updateFormOpen, setUpdateFormOpen] = useState(false);
+    const needsCheckinRef = useRef(false);
+
+    function releaseCheckoutIfHeld() {
+        if (documentCheckout && needsCheckinRef.current) {
+            needsCheckinRef.current = false;
+            documentCheckout.onRelease();
+        }
+    }
 
     const formState: FormState = {
         ...state,
         baseItem: entry.item,
         noFixedHeight: true,
         onCancel: () => {
-            // Closes update form on cancel
-            setUpdateFormOpen(false)
-            if (state.onCancel) {
-                state.onCancel()
+            if (documentCheckout && needsCheckinRef.current) {
+                needsCheckinRef.current = false;
+                documentCheckout.onRelease();
+            } else if (state.onCancel) {
+                state.onCancel();
             }
+            setUpdateFormOpen(false);
+        },
+    };
+
+    function handleDialogOpenChange(open: boolean) {
+        if (!open) {
+            releaseCheckoutIfHeld();
+        }
+        setUpdateFormOpen(open);
+    }
+
+    async function handleDocumentEditSelect(e: Event) {
+        e.preventDefault();
+        if (!documentCheckout || documentCheckout.checkoutBlocksActions) return;
+        const ok = await documentCheckout.onCheckout();
+        if (ok) {
+            needsCheckinRef.current = true;
+            setUpdateFormOpen(true);
         }
     }
 
     return (
-        <Dialog open={updateFormOpen} onOpenChange={setUpdateFormOpen}>
+        <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
             <AlertDialog>
                 {/*Dropdown with options*/}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuGroup>
-                            <DialogTrigger asChild>
-                                <DropdownMenuItem>
-                                    <PencilIcon/>
+                            {documentCheckout ? (
+                                <DropdownMenuItem
+                                    disabled={documentCheckout.checkoutBlocksActions}
+                                    title={
+                                        documentCheckout.checkoutBlocksActions
+                                            ? "This document is checked out. Finish editing in the other tab or wait until it is checked back in."
+                                            : undefined
+                                    }
+                                    onSelect={(e) => {
+                                        void handleDocumentEditSelect(e);
+                                    }}
+                                >
+                                    <PencilIcon />
                                     Edit
                                 </DropdownMenuItem>
-                            </DialogTrigger>
+                            ) : (
+                                <DialogTrigger asChild>
+                                    <DropdownMenuItem>
+                                        <PencilIcon />
+                                        Edit
+                                    </DropdownMenuItem>
+                                </DialogTrigger>
+                            )}
                         </DropdownMenuGroup>
                         {extraMenuItems && (
                             <DropdownMenuGroup>
@@ -88,7 +141,20 @@ export default function ModifyDropdown({
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem variant="destructive">
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    disabled={documentCheckout?.checkoutBlocksActions}
+                                    title={
+                                        documentCheckout?.checkoutBlocksActions
+                                            ? "Cannot delete while the document is checked out."
+                                            : undefined
+                                    }
+                                    onSelect={
+                                        documentCheckout?.checkoutBlocksActions
+                                            ? (e) => e.preventDefault()
+                                            : undefined
+                                    }
+                                >
                                     <TrashIcon />
                                     Delete
                                 </DropdownMenuItem>
@@ -126,11 +192,8 @@ export default function ModifyDropdown({
                         {DEFAULT_UPDATE_FORM_HEADERS[formType]}
                     </DialogTitle>
                 </DialogHeader>
-                <FormOfType
-                    formType={formType}
-                    {...formState}
-                />
+                <FormOfType formType={formType} {...formState} />
             </DialogContent>
         </Dialog>
-    )
+    );
 }

@@ -20,6 +20,26 @@ const contentRepo = new ContentRepository();
 const router = Router();
 const upload = multer();
 
+type EmployeeWithPhoto = {
+    id: number;
+    userPhoto: { path: string } | null;
+};
+
+async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
+    emp: T,
+): Promise<Omit<T, "userPhoto"> & { profileImageUrl?: string }> {
+    const { userPhoto, ...rest } = emp;
+    let profileImageUrl: string | undefined;
+    if (userPhoto?.path) {
+        try {
+            profileImageUrl = await getSignedUrl(userPhoto.path, 3600);
+        } catch (err) {
+            console.error("Profile image signed URL failed", emp.id, err);
+        }
+    }
+    return { ...rest, profileImageUrl };
+}
+
 /** Multipart bodies send strings; accept JSON array, comma-separated, or legacy single `jobPosition`. */
 function parseJobPositions(body: Record<string, unknown>): string[] | null {
     const raw = body.jobPositions;
@@ -53,9 +73,18 @@ function parseJobPositions(body: Record<string, unknown>): string[] | null {
 // GET ===============================
 // ===================================
 
-router.get("/", requiresAuth(), async (req, res) => { // get all contents
+router.get("/", requiresAuth(), async (req, res) => {
     const contents = await contentRepo.getAll();
-    res.json(contents);
+    const enriched = await Promise.all(
+        contents.map(async (c) => {
+            if (!c.checkedOutBy) {
+                return { ...c, checkedOutBy: null };
+            }
+            const mapped = await employeeWithProfileUrl(c.checkedOutBy);
+            return { ...c, checkedOutBy: mapped };
+        }),
+    );
+    res.json(enriched);
 });
 
 router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
@@ -293,11 +322,17 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         },
         include: {
             owner: true,
-            checkedOutBy: true,
+            checkedOutBy: { include: { userPhoto: true } },
         },
     });
 
-    res.json({ success: true, content: updated });
+    const checkedOutBy = updated.checkedOutBy
+        ? await employeeWithProfileUrl(updated.checkedOutBy)
+        : null;
+    res.json({
+        success: true,
+        content: { ...updated, checkedOutBy },
+    });
 });
 
 // ===================================
@@ -379,6 +414,8 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 jobPositions,
                 contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
+                isCheckedOut: false,
+                checkedOutById: null,
             },
             include: {
                 owner: true,
@@ -414,6 +451,11 @@ router.delete("/:id", requiresAuth(), async (req, res) => { // delete content
 
         if (!content) {
             res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        if (content.isCheckedOut) {
+            res.status(409).json({ error: "Cannot delete while document is checked out" });
             return;
         }
 
