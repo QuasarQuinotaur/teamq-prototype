@@ -115,6 +115,9 @@ export function ServiceRequestCard({
         typeof (body as { status: unknown }).status === "string"
           ? (body as { status: string }).status
           : next;
+      if (newStatus === "done") {
+        confettiRef.current?.fire();
+      }
       onStatusUpdated(numericId, newStatus);
     } catch (err) {
       console.error("Failed to update service request status", err);
@@ -140,10 +143,7 @@ export function ServiceRequestCard({
             aria-busy={updating}
             aria-pressed={done}
             aria-label={done ? "Mark request as to-do" : "Mark request as done"}
-            onClick={(e) => {
-              toggleDone(e);
-              confettiRef.current?.fire();
-            }}
+            onClick={toggleDone}
             onPointerDown={(e) => e.stopPropagation()}
             className={cn(
               "ml-3 size-5 shrink-0 self-center rounded-full border-2 transition-colors",
