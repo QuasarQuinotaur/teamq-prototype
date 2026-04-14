@@ -15,14 +15,16 @@ export const CARD_GRID_LAYOUT_CLASS =
 export type CardGridProps = {
     renderCard: (state: CardState) => React.ReactNode;
     defaultBadge?: string;
+    isLoading?: boolean;
 }
 export default function CardGrid({
                                      renderCard,
                                      defaultBadge,
+                                     isLoading,
                                      entries,
                                      createOptionsElement
 }: CardGridProps & EntryProps) {
-    if (entries.length === 0) {
+    if (!isLoading && entries.length === 0) {
         return (
             <div className={CARD_GRID_LAYOUT_CLASS}>
                 No results found.

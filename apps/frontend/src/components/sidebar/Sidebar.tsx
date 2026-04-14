@@ -40,8 +40,8 @@ const data = {
       ),
     },
     {
-      title: "Bookmarked",
-      url: "/documents/bookmarked", // not sure, needs only display the documents bookmarked by the user
+      title: "Favorited",
+      url: "/documents/favorited", // not sure, needs only display the documents bookmarked by the user
       icon: (
         <StarIcon/>
       ),

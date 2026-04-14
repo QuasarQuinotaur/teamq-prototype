@@ -6,7 +6,7 @@ import References from "@/pages/References";
 import Dashboard from "@/pages/Dashboard";
 import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
-import Bookmarked from "@/pages/Bookmarked.tsx";
+import Favorited from "@/pages/Favorited.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
 import Employees from "@/pages/Employees.tsx";
@@ -47,8 +47,8 @@ export const router = createBrowserRouter([
                                 element: <Recent />,
                             },
                             {
-                                path: "bookmarked",
-                                element: <Bookmarked />,
+                                path: "favorited",
+                                element: <Favorited />,
                             },
                             {
                                 path: "all",

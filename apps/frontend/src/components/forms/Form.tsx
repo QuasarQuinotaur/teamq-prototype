@@ -120,6 +120,7 @@ export default function Form<T extends object>({
     // Sets a key within the field to be updated
     function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
         handleKeyChange(setFields, key, value)
+        setValidationError(null)
     }
 
     // Resets fields back to their initial fields
@@ -134,7 +135,6 @@ export default function Form<T extends object>({
 
     // Calls callback to perform async submit request
     async function doSubmit() {
-        // TODO Display better error + success status
         try {
             setIsSubmitting(true);
 
@@ -145,6 +145,7 @@ export default function Form<T extends object>({
                 state.onCancel();
             }
         } catch (error) {
+            console.log("on submit,", error)
             setSubmitError(error instanceof Error ? error.message : "An unexpected error occurred.");
         } finally {
             setIsSubmitting(false);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import axios from 'axios';
 import Blocked from '@/pages/Blocked';
+import useMainContext from "@/components/auth/hooks/main-context.tsx";
 
 interface RoleGuardProps {
   allowedRole: string;
@@ -9,6 +10,10 @@ interface RoleGuardProps {
 
 export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
   const [status, setStatus] = useState<'loading' | 'unauthorized' | 'authorized'>('loading');
+
+  // Pass context down
+  const mainContext = useMainContext()
+  console.log("ROLE GUARD:", mainContext)
 
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
@@ -37,5 +42,5 @@ export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
     return <Blocked/>;
   }
 
-  return <Outlet />;
+  return <Outlet context={mainContext}/>;
 };

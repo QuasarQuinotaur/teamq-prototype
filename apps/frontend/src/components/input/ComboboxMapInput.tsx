@@ -54,7 +54,7 @@ export default function ComboboxMapInput<T extends string>({
                     </>
                 </ComboboxValue>
             </ComboboxChips>
-            <ComboboxContent anchor={anchor}>
+            <ComboboxContent anchor={anchor} className={"pointer-events-auto"}>
                 {emptyText && <ComboboxEmpty>{emptyText}</ComboboxEmpty>}
                 <ComboboxList>
                     {(item) => (

@@ -6,9 +6,13 @@ import {
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useUserLink } from "@/hooks/useUserLink";
+import useMainContext from "@/components/auth/hooks/main-context.tsx";
 
 export default function Documents() {
   useUserLink();
+
+  // Pass context down
+  const mainContext = useMainContext()
 
   return (
     <div className="flex flex-col h-screen">
@@ -17,7 +21,7 @@ export default function Documents() {
         <AppSidebar />
         <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <Outlet />
+              <Outlet context={mainContext} />
             </div>
         </SidebarInset>
       </SidebarProvider>

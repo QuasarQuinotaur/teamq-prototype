@@ -4,6 +4,8 @@ import {Input} from "@/elements/input.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
+import {Separator} from "@/elements/separator.tsx";
+import {cn} from "@/lib/utils.ts";
 
 export type EmployeeFields = {
     firstName: string;
@@ -21,15 +23,16 @@ type EmployeeFormFieldsProps = {
     dateStrings: EmployeeDateStrings,
 } & FormFieldsProps<EmployeeFields>
 export default function EmployeeFormFields({
-                                fields,
-                                setKey,
-                                dateStrings
+                                               fields,
+                                               setKey,
+                                               dateStrings
 }: EmployeeFormFieldsProps) {
     return (
-        <>
+        <div className="max-w-full min-w-0 pl-1 pr-1 flex flex-col gap-5">
             <FieldInput
                 id={"employee-form-first-name"}
                 label={"First Name"}
+                required
                 createElement={(id) => (
                     <Input
                         id={id}
@@ -44,6 +47,7 @@ export default function EmployeeFormFields({
             <FieldInput
                 id={"employee-form-last-name"}
                 label={"Last Name"}
+                required
                 createElement={(id) => (
                     <Input
                         id={id}
@@ -58,6 +62,7 @@ export default function EmployeeFormFields({
             <FieldInput
                 id={"employee-form-email"}
                 label={"Email"}
+                required
                 createElement={(id) => (
                     <Input
                         id={id}
@@ -73,6 +78,7 @@ export default function EmployeeFormFields({
             <FieldInput
                 id={"employee-form-dob"}
                 label={"Date of Birth"}
+                required
                 createElement={(id) => (
                     <DateSelectInput
                         id={id}
@@ -89,6 +95,7 @@ export default function EmployeeFormFields({
             <FieldInput
                 id={"employee-form-job-position"}
                 label={"Job Position"}
+                required
                 createElement={(id) => (
                     <JobPositionInput
                         id={id}
@@ -99,6 +106,6 @@ export default function EmployeeFormFields({
                     />
                 )}
             />
-        </>
+        </div>
     )
 }

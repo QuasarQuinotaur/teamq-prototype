@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils.ts"
 import { Button } from "@/elements/buttons/button.tsx"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
-import { useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 
 function PaginationContainer({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -119,28 +119,46 @@ function PaginationEllipsis({
   )
 }
 
-export default function Pagination(props: {docNum: number, entriesCallback: (x:number) => void}) {
-  const [pageNum, setPageNum] = useState<number>(1);
-  const entriesCallback = props.entriesCallback
-  const docNum = props.docNum
-  const docsPerPage = 10
-  const maxPages = Math.ceil(docNum/docsPerPage);
+type PaginationProps = {
+  docNum: number,
+  docsPerPage: number,
+  pageNum: number,
+  setPageNum: React.Dispatch<React.SetStateAction<number>>
+  updatePageEntries: (viewPageNum: number) => void;
+}
+export default function Pagination({
+                                     docNum,
+                                     docsPerPage,
+                                     pageNum,
+                                     setPageNum,
+                                     updatePageEntries
+}: PaginationProps) {
+  const maxPages = Math.max(1, Math.ceil(docNum/docsPerPage));
 
-  console.log(`maxPages: ${maxPages}`)
-  console.log(`docNum: ${docNum}`)
+  // Needed to remember page state without viewing over max pages
+  /**
+   * Ex:
+   * 1. on page 2 in list view
+   * 2. search for a result, only 1 page of results shows up
+   * 3. clear search, 2 pages again. remember user was on page 2
+   */
+  const clampedPageNum = useMemo(() => {
+    return Math.max(Math.min(pageNum, maxPages), 1)
+  }, [maxPages, pageNum])
+  useEffect(() => {
+    updatePageEntries(clampedPageNum)
+  }, [clampedPageNum, updatePageEntries])
 
-  const prevExists = pageNum-1===0 ? "hidden" : ""
-  const nextExists = pageNum===maxPages ? "hidden" : ""
-  const moreExists: "hidden" | "" = pageNum+1 >= maxPages ? "hidden" : ""
+  const prevExists = clampedPageNum-1===0 ? "hidden" : ""
+  const nextExists = clampedPageNum===maxPages ? "hidden" : ""
+  const moreExists: "hidden" | "" = clampedPageNum+1 >= maxPages ? "hidden" : ""
 
   function handlePrev(){
-    setPageNum(prev=> prev-1)
-    entriesCallback(pageNum-1)
+    setPageNum(prev=> Math.max(Math.min(prev, maxPages) - 1, 1))
   }
 
   function handleNext(){
-    setPageNum(prev=> prev+1)
-    entriesCallback(pageNum+1)
+    setPageNum(prev=> Math.min(Math.max(prev, 1) + 1, maxPages))
   }
 
   // function handleShowChange(value: string){
@@ -157,17 +175,17 @@ export default function Pagination(props: {docNum: number, entriesCallback: (x:n
               </PaginationItem>
               <PaginationItem className={prevExists}>
                 <PaginationLink href="#" onClick={handlePrev}>
-                  {pageNum - 1}
+                  {clampedPageNum - 1}
                 </PaginationLink>
               </PaginationItem>
               <PaginationItem>
                 <PaginationLink href="#" isActive>
-                  {pageNum}
+                  {clampedPageNum}
                 </PaginationLink>
               </PaginationItem>
               <PaginationItem className={nextExists}>
                 <PaginationLink href="#" onClick={handleNext}>
-                  {pageNum + 1}
+                  {clampedPageNum + 1}
                 </PaginationLink>
               </PaginationItem>
               <PaginationItem className={moreExists}>

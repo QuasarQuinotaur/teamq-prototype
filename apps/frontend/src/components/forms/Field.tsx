@@ -7,6 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils.ts"
 import { Label } from "@/elements/label.tsx"
 import { Separator } from "@/elements/separator.tsx"
+import {AsteriskIcon} from "@phosphor-icons/react";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -228,16 +229,24 @@ function FieldError({
 type FieldInputProps = {
   id: string;
   label: string;
+  required?: boolean;
   createElement: (id: string) => React.ReactNode;
 }
 function FieldInput({
                       id,
                       label,
+                      required = false,
                       createElement
 }: FieldInputProps) {
   return (
     <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel htmlFor={id}>
+        {required ? <div className={"flex gap-1"}>
+          {/*Add a little asterisk if required*/}
+          <p>{label}</p>
+          <p className={"text-red-600 text-[1rem]"}>*</p>
+        </div> : label}
+      </FieldLabel>
       {createElement(id)}
     </Field>
   )
