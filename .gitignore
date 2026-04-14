@@ -22,3 +22,6 @@ dist/
 
 /generated/prisma
 /apps/backend/tmp/*.*
+
+# Backend generated files (e.g. PDF thumbnails under tmp/thumbnails/)
+/apps/backend/tmp/

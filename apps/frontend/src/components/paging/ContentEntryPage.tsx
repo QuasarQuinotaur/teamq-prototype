@@ -15,8 +15,6 @@ import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
-import {DropdownMenuItem} from "@/components/DropdownMenu.tsx";
-import {CheckCircleIcon, ClockIcon, CircleIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
@@ -26,7 +24,6 @@ type ViewerState = {
     url: string;
     filename: string;
     title: string;
-    contentId?: number;
 };
 
 
@@ -60,12 +57,13 @@ export default function ContentEntryPage({
         });
         if (!res.ok) return;
         const { url } = await res.json();
-        const filename = entry.link.split("/").pop() ?? entry.title;
-        setViewerItem({ url, filename, title: entry.title, contentId: id });
+        const filename =
+            entry.link.split("/").pop()?.split("?")[0] ?? entry.title;
+        setViewerItem({ url, filename, title: entry.title });
     }
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employees`, { credentials: "include" })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employee`, { credentials: "include" })
             .then(res => res.json())
             .then((employees: Employee[]) => {
                 setEmployeeMap(new Map(employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])));
@@ -84,8 +82,9 @@ export default function ContentEntryPage({
                 const mapped: CardEntry[] = data.map((item) => ({
                     item: item,
                     title: item.title,
-                    link: item.link,
-                    description: employeeMap.get((item as Content & { ownerId: number }).ownerId) ?? item.ownerName,
+                    link: item.filePath ?? "",
+                    description:
+                        employeeMap.get(item.ownerId) ?? undefined,
                     badge: item.contentType,
                 }));
                 setEntries(mapped);
@@ -108,17 +107,6 @@ export default function ContentEntryPage({
             throw new Error("Delete failed");
         }
         fetchContent()
-    }
-
-    // Update status for workflow documents via PATCH
-    async function handleStatusChange(entry: CardEntry, status: string) {
-        await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}/status`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-        });
-        fetchContent();
     }
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
@@ -157,36 +145,11 @@ export default function ContentEntryPage({
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
         (entry: CardEntry, trigger: React.ReactNode) => {
-            const item = entry.item as Content & { ownerId: number };
-            const extraMenuItems = item.contentType === "workflow" ? (
-                <>
-                    {item.status !== "to-do" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(entry, "to-do")}>
-                            <CircleIcon />
-                            Mark Todo
-                        </DropdownMenuItem>
-                    )}
-                    {item.status !== "in-progress" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(entry, "in-progress")}>
-                            <ClockIcon />
-                            Mark In Progress
-                        </DropdownMenuItem>
-                    )}
-                    {item.status !== "completed" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(entry, "completed")}>
-                            <CheckCircleIcon />
-                            Mark Complete
-                        </DropdownMenuItem>
-                    )}
-                </>
-            ) : undefined;
-
             return ModifyDropdown({
                 entry,
                 trigger,
                 ...formOfTypeProps,
                 handleDelete: handleDelete,
-                extraMenuItems,
             });
         }
 
@@ -197,10 +160,10 @@ export default function ContentEntryPage({
         return types.size > 1;
     }, [queryEntries]);
     const showJobPositionBadge = useMemo(() => {
-        const types = new Set(
-            queryEntries.map((e) => (e.item as Content).jobPosition),
+        const positions = new Set(
+            queryEntries.flatMap((e) => (e.item as Content).jobPositions),
         );
-        return types.size > 1;
+        return positions.size > 1;
     }, [queryEntries]);
 
     // Track properties to update querying
@@ -229,7 +192,6 @@ export default function ContentEntryPage({
                 url={viewerItem.url}
                 filename={viewerItem.filename}
                 title={viewerItem.title}
-                contentId={viewerItem.contentId}
                 onClose={() => setViewerItem(null)}
             />
         );

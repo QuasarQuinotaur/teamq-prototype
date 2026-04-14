@@ -20,7 +20,6 @@ type DocumentViewerProps = {
     url: string;
     filename: string;
     title: string;
-    contentId?: number;
     onClose: () => void;
 };
 
@@ -36,7 +35,7 @@ function getFileType(filename: string): "pdf" | "docx" | "doc" | "pptx" | "ppt" 
     return "unknown";
 }
 
-export default function DocumentViewer({ url, filename, title, contentId, onClose }: DocumentViewerProps) {
+export default function DocumentViewer({ url, filename, title, onClose }: DocumentViewerProps) {
     const fileType = getFileType(filename);
 
     return (
@@ -60,8 +59,7 @@ export default function DocumentViewer({ url, filename, title, contentId, onClos
             <div className="flex-1 overflow-auto">
                 {fileType === "pdf" && <PdfViewer url={url} />}
                 {fileType === "docx" && <DocxViewer url={url} />}
-                {fileType === "doc" && contentId !== undefined && <DocViewer contentId={contentId} url={url} />}
-                {fileType === "doc" && contentId === undefined && <UnknownViewer url={url} />}
+                {fileType === "doc" && <DocViewer url={url} />}
                 {(fileType === "pptx" || fileType === "ppt") && <PptViewer url={url} />}
                 {(fileType === "xlsx" || fileType === "xls") && <ExcelViewer url={url} />}
                 {fileType === "unknown" && <UnknownViewer url={url} />}
@@ -157,40 +155,14 @@ function DocxViewer({ url }: { url: string }) {
     );
 }
 
-function DocViewer({ contentId, url }: { contentId: number; url: string }) {
-    const [text, setText] = React.useState<string | null>(null);
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState(false);
-
-    React.useEffect(() => {
-        setLoading(true);
-        setError(false);
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/text`, {
-            credentials: "include",
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error("Fetch failed");
-                return res.json();
-            })
-            .then((data) => {
-                setText(data.text ?? "");
-                setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-                setError(true);
-            });
-    }, [contentId]);
-
-    if (loading) return <LoadingState />;
-    if (error) return <ErrorState />;
-
+/** .doc has no server-side text extraction in the API; prompt opening the signed URL instead. */
+function DocViewer({ url }: { url: string }) {
     return (
         <div className="flex flex-col items-center py-6 px-4 gap-4">
             <div className="w-full max-w-4xl flex items-start gap-3 rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
                 <WarningIcon size={18} className="mt-0.5 shrink-0" />
                 <span>
-                    This is an older file format (.doc). Formatting may not display correctly.{" "}
+                    This is an older file format (.doc). Inline preview is not available.{" "}
                     <button
                         className="underline font-medium hover:text-yellow-900"
                         onClick={() => window.open(url, "_blank")}
@@ -199,11 +171,6 @@ function DocViewer({ contentId, url }: { contentId: number; url: string }) {
                     </button>{" "}
                     for the best experience.
                 </span>
-            </div>
-            <div className="w-full max-w-4xl bg-white shadow-sm rounded p-8">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-                    {text}
-                </pre>
             </div>
         </div>
     );

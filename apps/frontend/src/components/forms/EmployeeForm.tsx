@@ -64,8 +64,8 @@ export default function EmployeeForm(state: FormState) {
     async function doSubmit(fields: EmployeeFields) {
         const isUpdate = state.baseItem != null;
         const url = isUpdate
-            ? `${import.meta.env.VITE_BACKEND_URL}/api/employees/${state.baseItem.id}`
-            : `${import.meta.env.VITE_BACKEND_URL}/api/employees`;
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/employee/${state.baseItem.id}`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/employee`;
         const res = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",

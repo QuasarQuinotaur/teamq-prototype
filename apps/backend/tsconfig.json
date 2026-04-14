@@ -6,8 +6,6 @@
     "strict": false,
     //"preserveSymlinks": true,
     //"skipDefaultLibCheck": true,
-    "declaration": false,
-    "emitDeclarationOnly": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "esModuleInterop": true,
