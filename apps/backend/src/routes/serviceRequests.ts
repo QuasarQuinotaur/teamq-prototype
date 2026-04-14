@@ -1,10 +1,58 @@
 import { Router } from "express";
 import { ServiceRequestRepository } from "../ServiceRequestRepository.ts";
+import { getSignedUrl } from "../lib/supabase.ts";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 
 const router = Router();
 const serviceRequestRepo = new ServiceRequestRepository();
+
+function parseBodyDateDue(raw: unknown): Date | null | undefined {
+    if (raw === undefined) return undefined;
+    if (raw === null || raw === "") return null;
+    if (typeof raw !== "string") return undefined;
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function parseBodyPriority(raw: unknown): string | null | undefined {
+    if (raw === undefined) return undefined;
+    if (raw === null) return null;
+    if (typeof raw !== "string") return undefined;
+    const t = raw.trim();
+    return t === "" ? null : t;
+}
+
+/** Omitted/empty → no update. Invalid value → error message for 400. */
+function parseBodyServiceRequestStatus(raw: unknown): { value?: string; error?: string } {
+    if (raw === undefined) return {};
+    if (raw === null || raw === "") return {};
+    if (typeof raw !== "string") return { error: "Invalid status" };
+    const t = raw.trim();
+    if (t === "") return {};
+    if (t === "to-do" || t === "done") return { value: t };
+    return { error: 'Status must be "to-do" or "done"' };
+}
+
+type EmployeeWithPhoto = {
+    id: number;
+    userPhoto: { path: string } | null;
+};
+
+async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
+    emp: T
+): Promise<Omit<T, "userPhoto"> & { profileImageUrl?: string }> {
+    const { userPhoto, ...rest } = emp;
+    let profileImageUrl: string | undefined;
+    if (userPhoto?.path) {
+        try {
+            profileImageUrl = await getSignedUrl(userPhoto.path, 3600);
+        } catch (err) {
+            console.error("Profile image signed URL failed", emp.id, err);
+        }
+    }
+    return { ...rest, profileImageUrl };
+}
 
 // GET /api/servicereqs/:flag
 // flag=1 returns an HTML debug page, flag=0 returns JSON
@@ -29,8 +77,8 @@ router.get("/:flag", requiresAuth(), async (req, res) => {
     }
 });
 
-// GET /api/assigned/:flag
-// flag=1 returns an HTML debug page, flag=0 returns JSON with full details
+// GET /api/servicereqs/assigned/:flag
+// flag=1 returns an HTML debug page, flag=0 returns JSON with full details (profile image URLs for people)
 router.get("/assigned/:flag", requiresAuth(), async (req, res) => {
     const assigned = await serviceRequestRepo.getAllWithDetails();
 
@@ -48,7 +96,16 @@ router.get("/assigned/:flag", requiresAuth(), async (req, res) => {
         </html>
       `);
     } else {
-        res.json(assigned);
+        const withUrls = await Promise.all(
+            assigned.map(async (sr) => {
+                const owner = await employeeWithProfileUrl(sr.owner);
+                const employees = await Promise.all(
+                    sr.employees.map((e) => employeeWithProfileUrl(e))
+                );
+                return { ...sr, owner, employees };
+            })
+        );
+        res.json(withUrls);
     }
 });
 
@@ -75,13 +132,21 @@ router.get("/detail/:id", requiresAuth(), async (req, res) => {
 // POST /api/servicereqs
 // create a new service request
 router.post("/", requiresAuth(), async (req, res) => {
-    const { ownerId, description, employeeIds, contentIds } = req.body;
+    const { ownerId, title, description, dateDue, priority, employeeIds, contentIds } = req.body;
     if (!ownerId) {
         res.status(400).json({ error: "ownerId is required" });
         return;
     }
     try {
-        const request = await serviceRequestRepo.create({ ownerId, description, employeeIds, contentIds });
+        const request = await serviceRequestRepo.create({
+            ownerId,
+            title: typeof title === "string" ? title : undefined,
+            description: typeof description === "string" ? description : undefined,
+            dateDue: parseBodyDateDue(dateDue),
+            priority: parseBodyPriority(priority),
+            employeeIds,
+            contentIds,
+        });
         res.json(request);
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Create failed" });
@@ -96,9 +161,29 @@ router.put("/:id", requiresAuth(), async (req, res) => {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
-    const { description, ownerId, employeeIds, contentIds } = req.body;
+    const { title, description, dateDue, priority, status, ownerId, employeeIds, contentIds } = req.body;
+    const toIdList = (raw: unknown): number[] | undefined => {
+        if (!Array.isArray(raw)) return undefined;
+        return raw
+            .map((x) => Number(x))
+            .filter((n) => !Number.isNaN(n));
+    };
+    const statusParse = parseBodyServiceRequestStatus(status);
+    if (statusParse.error) {
+        res.status(400).json({ error: statusParse.error });
+        return;
+    }
     try {
-        const request = await serviceRequestRepo.update(id, { description, ownerId, employeeIds, contentIds });
+        const request = await serviceRequestRepo.update(id, {
+            title: typeof title === "string" ? title : undefined,
+            description: typeof description === "string" ? description : undefined,
+            dateDue: parseBodyDateDue(dateDue),
+            priority: parseBodyPriority(priority),
+            status: statusParse.value,
+            ownerId: typeof ownerId === "number" && !Number.isNaN(ownerId) ? ownerId : undefined,
+            employeeIds: toIdList(employeeIds),
+            contentIds: toIdList(contentIds),
+        });
         res.json(request);
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });

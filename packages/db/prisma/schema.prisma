@@ -57,11 +57,12 @@ model Content {
 
 model ServiceRequest {
   id          Int       @id @default(autoincrement())
+  title       String?
   description String?
   dateCreated DateTime  @default(now())
   dateDue     DateTime?
   priority    String?
-  status      String    @default("to-do")
+  status      String    @default("to-do") // allowed: to-do | done (DB CHECK)
 
   ownerId Int
   owner   Employee @relation("OwnedRequests", fields: [ownerId], references: [id])
