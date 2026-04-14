@@ -68,6 +68,28 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "Not found" });
             return;
         }
+
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            return res.status(404).json({ error: "No linked employee account found" });
+        }
+
+        if (content.isCheckedOut && content.checkedOutById !== employee.id) {
+            return res.status(403).json({ error: "Content is checked out by another user" });
+        }
+
+        // If not checked out,  check it out
+        if (!content.isCheckedOut) {
+            await prisma.content.update({
+                where: { id },
+                data: {
+                    isCheckedOut: true,
+                    checkedOutById: employee.id,
+                },
+            });
+        }
+
         const path = content.filePath;
         if (!path?.trim()) {
             res.status(404).json({ error: "No file or link" });
@@ -165,6 +187,41 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
     }
 });
 
+//for manual check in incase some one forgets (maybe after like a week?)
+//or if you want to check in without upload
+router.post("/checkin/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        return res.status(404).json({ error: "No linked employee account found" });
+    }
+
+    const content = await contentRepo.getById(id);
+
+    if (!content) {
+        return res.status(404).json({ error: "Not found" });
+    }
+
+    //allow if owner or admin
+    const isOwner = content.checkedOutById === employee.id;
+    const isAdmin = employee.jobPosition === "admin";
+
+    if (!isOwner && !isAdmin) {
+        return res.status(403).json({ error: "Not authorized to check in this content" });
+    }
+
+    await prisma.content.update({
+        where: { id },
+        data: {
+            isCheckedOut: false,
+            checkedOutById: null,
+        },
+    });
+
+    res.json({ success: true });
+});
+
 // ===================================
 // PUT ===============================
 // ===================================
@@ -182,6 +239,16 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
             return;
+        }
+
+        const content = await contentRepo.getById(id);
+
+        if (!content) {
+            return res.status(404).json({ error: "Content not found" });
+        }
+
+        if (content.isCheckedOut && content.checkedOutById !== employee.id) {
+            return res.status(403).json({ error: "Content is checked out by another user" });
         }
 
         const { name, link, expirationDate, contentType } = req.body;
@@ -234,6 +301,8 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 jobPositions,
                 contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
+                isCheckedOut: false,
+                checkedOutById: null,
             },
             include: {
                 owner: true,
