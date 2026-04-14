@@ -36,9 +36,11 @@ router.post("/upload-photo", requiresAuth(), upload.single("file"), async (req, 
             return;
         }
 
+        const uniqueName = `${Date.now()}-${req.file.originalname}`;
+
         const uploaded = await uploadBuffer(
             req.file.buffer,
-            req.file.originalname,
+            uniqueName,
             req.file.mimetype
         );
 

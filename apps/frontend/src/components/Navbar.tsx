@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   NavigationMenuLink,
 } from "@/components/NavigationMenu.tsx"
@@ -22,6 +22,8 @@ function Navbar() {
         baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
         withCredentials: true,
     });
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -76,7 +78,9 @@ function Navbar() {
                     <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/documents/profile")}>
+                            Profile
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Settings</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 

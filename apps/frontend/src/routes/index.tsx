@@ -13,6 +13,7 @@ import Employees from "@/pages/Employees.tsx";
 import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Profile from "@/pages/Profile.tsx";
 
 
 export const router = createBrowserRouter([
@@ -62,6 +63,10 @@ export const router = createBrowserRouter([
                             {
                                 path: "tools",
                                 element: <Tools />,
+                            },
+                            {
+                                path: "profile",
+                                element: <Profile />,
                             },
                             {
                                 path: "test",
