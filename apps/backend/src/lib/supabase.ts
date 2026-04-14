@@ -1,15 +1,15 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-let _supabase: SupabaseClient | null = null;
+let supabase: SupabaseClient | null = null;
 
 function getSupabase(): SupabaseClient {
-    if (!_supabase) {
-        _supabase = createClient(
+    if (!supabase) {
+        supabase = createClient(
             process.env.SUPABASE_URL!,
             process.env.SUPABASE_SECRET_KEY!,
         );
     }
-    return _supabase;
+    return supabase;
 }
 
 export async function getSignedUrl(path: string, expiresIn = 60) {
@@ -20,7 +20,10 @@ export async function getSignedUrl(path: string, expiresIn = 60) {
     if (error) throw error;
     return data.signedUrl;
 }
-
+export async function deleteFile(path: string) {
+    const { error } = await supabase.storage.from("uploads").remove([path]);
+    if (error) throw new Error(error.message);
+}
 export async function uploadBuffer(
     buffer: Buffer,
     fileName: string,

@@ -8,45 +8,83 @@ datasource db {
 }
 
 model Employee {
-  id                                                  Int              @id @default(autoincrement())
-  auth0Id                                             String?          @unique
-  dateOfBirth                                         DateTime
-  email                                               String           @unique
-  firstName                                           String
-  jobPosition                                         String
-  lastName                                            String
-  username                                            String?
-  password                                            String?
-  userPhoto                                           UserPhoto?
-  contents                                            Content[]
-  createdRequests                                     ServiceRequest[] @relation("CreatedRequests")
-  ServiceRequest_ServiceRequest_requesteeIDToEmployee ServiceRequest[] @relation("ServiceRequest_requesteeIDToEmployee")
+  id              Int        @id @default(autoincrement())
+  auth0Id         String?    @unique
+  email           String     @unique
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  jobPosition     String
+  profileImageUrl String? //??????????
+  userPhoto       UserPhoto?
+
+  contentsOwned Content[] @relation("ownedContents") // relationship list
+
+  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table yippee)
+
+  createdRequests  ServiceRequest[] @relation("OwnedRequests")
+  assignedRequests ServiceRequest[] @relation("EmployeeRequests")
+
+  notifications  Notification[] @relation("NotificationEmployees")
+  contentChecked Content[]      @relation("CheckedOutContent")
 }
 
 model Content {
-  id             Int      @id @default(autoincrement())
-  dateAdded      DateTime @default(now())
-  dateUpdated    DateTime @updatedAt
-  ownerId        Int
-  title          String
-  contentType    String
-  expirationDate DateTime
-  jobPosition    String
-  link           String
-  ownerName      String
-  status         String
-  owner          Employee @relation(fields: [ownerId], references: [id])
+  id                 Int              @id @default(autoincrement())
+  title              String
+  filePath           String? // path in Supabase bucket
+  fileSize           Int?
+  jobPositions       String[] // scalar list
+  contentType        String
+  dateAdded          DateTime         @default(now())
+  dateUpdated        DateTime         @updatedAt
+  expirationDate     DateTime
+  employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
+  ownerId            Int
+  owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequests    ServiceRequest[] @relation("ContentRequests")
+  notifications      Notification[]   @relation("NotificationContents")
+
+  isCheckedOut   Boolean   @default(false)
+  checkedOutById Int?
+  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+
+  @@index([ownerId])
+  @@index([contentType])
+  @@index([expirationDate])
 }
+
+// Service Request:
 
 model ServiceRequest {
-  id                                            Int      @id @default(autoincrement())
-  type                                          String
-  creatorID                                     Int
-  requesteeID                                   Int
-  creator                                       Employee @relation("CreatedRequests", fields: [creatorID], references: [id])
-  Employee_ServiceRequest_requesteeIDToEmployee Employee @relation("ServiceRequest_requesteeIDToEmployee", fields: [requesteeID], references: [id])
+  id          Int       @id @default(autoincrement())
+  description String?
+  dateCreated DateTime  @default(now())
+  dateDue     DateTime?
+  priority    String?
+  status      String    @default("to-do")
+
+  ownerId Int
+  owner   Employee @relation("OwnedRequests", fields: [ownerId], references: [id])
+
+  employees Employee[] @relation("EmployeeRequests")
+  contents  Content[]  @relation("ContentRequests")
 }
 
+model Notification {
+  id       Int      @id @default(autoincrement())
+  type     String
+  dateSent DateTime
+
+  dateRead DateTime? @default(now())
+
+  employeeNotifiedID Int
+
+  employeeNotified Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
+  contentsUsed     Content[] @relation("NotificationContents") //"contents a part of notification (can be none)"
+
+  @@index([employeeNotifiedID, dateRead]) // index for O(log(n)) time
+}
 model UserPhoto {
   id      Int      @id @default(autoincrement())
   ownerId Int      @unique
