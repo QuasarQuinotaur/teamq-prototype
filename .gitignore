@@ -21,3 +21,4 @@ dist/
 /packages/db/schema.sql
 
 /generated/prisma
+/apps/backend/tmp/*.*

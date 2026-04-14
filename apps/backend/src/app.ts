@@ -48,6 +48,7 @@ const config = {
 app.use(auth(config));
 app.use(express.json());
 app.use(morgan("dev"));
+app.use("/tmp", express.static("tmp"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);

@@ -13,15 +13,28 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/Table.tsx"
+import { cn } from "@/lib/utils.ts"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
+    /** When set, clicking a row (outside buttons/links) invokes this handler. */
+    onRowClick?: (row: TData) => void
+}
+
+function isInteractiveTarget(target: EventTarget | null) {
+    if (!(target instanceof Element)) return false
+    return Boolean(
+        target.closest(
+            "button, a, input, select, textarea, [role='button'], [role='menuitem'], [data-row-click-ignore]",
+        ),
+    )
 }
 
 export function DataTable<TData, TValue>({
                                              columns,
                                              data,
+                                             onRowClick,
                                          }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -56,6 +69,15 @@ export function DataTable<TData, TValue>({
                             <TableRow
                                 key={row.id}
                                 data-state={row.getIsSelected() && "selected"}
+                                className={cn(onRowClick && "cursor-pointer")}
+                                onClick={
+                                    onRowClick
+                                        ? (e) => {
+                                              if (isInteractiveTarget(e.target)) return
+                                              onRowClick(row.original)
+                                          }
+                                        : undefined
+                                }
                             >
                                 {row.getVisibleCells().map((cell) => (
                                     <TableCell key={cell.id}>

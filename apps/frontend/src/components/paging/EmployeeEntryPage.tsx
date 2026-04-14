@@ -7,9 +7,17 @@ import type {Employee} from "db";
 import EmployeeCard from "@/components/cards/EmployeeCard.tsx";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
-import type {FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
+import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
+import useEmployeeQueryEntries from "@/components/paging/hooks/employee-query-entries.tsx";
+import FilterEmployeeFields, {type EmployeeFieldsFilter} from "@/components/paging/toolbar/FilterEmployeeFields.tsx";
+import type {SortFields} from "@/components/forms/SortForm.tsx";
+import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import useEmployeeSortFunction from "@/components/paging/hooks/employee-sort-function.tsx";
+import FilterDocumentFields from "@/components/paging/toolbar/FilterDocumentFields.tsx";
+import {EMPLOYEE_SORT_BY_MAP} from "@/components/input/constants.tsx";
 
 
 export default function EmployeeEntryPage() {
@@ -27,10 +35,7 @@ export default function EmployeeEntryPage() {
                     link: item.email,
                     description: item.email,
                     badge: item.jobPosition ? item.jobPosition.charAt(0).toUpperCase() + item.jobPosition.slice(1) : item.jobPosition,
-                    image: (item as { image?: string }).image ??
-                        `https://api.dicebear.com/9.x/initials/svg?seed=${
-                            encodeURIComponent(item.firstName + ' ' + item.lastName)
-                        }`,
+                    image: (item as { image?: string }).image,
                 }));
                 setEntries(mapped);
             })
@@ -59,13 +64,13 @@ export default function EmployeeEntryPage() {
     }
 
     // Use Employee form
-    const formProps: FormWindowProps = {
+    const formOfTypeProps: FormOfTypeProps = {
         formType: "Employee",
         onCancel: fetchEmployees,
     }
 
     // Create toolbar button for Add Employee Form
-    const formAddButton = FormAddButton(formProps)
+    const formAddButton = <FormAddButton {...formOfTypeProps}/>
 
     // Make card "..." show dropdown to modify employees
     const createOptionsElement =
@@ -73,14 +78,49 @@ export default function EmployeeEntryPage() {
             ModifyDropdown({
                 entry,
                 trigger,
-                updateFormProps: formProps,
+                ...formOfTypeProps,
                 handleDelete: handleDelete,
             })
         )
 
+    // Filtering using search and key matching
+    const defaultFieldsFilter: EmployeeFieldsFilter = {}
+    const [fieldsFilter, setFieldsFilter] = useState<EmployeeFieldsFilter>(defaultFieldsFilter)
+    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const [sortFields, setSortFields] = useState(defaultSortFields)
+    const sortFunction = useEmployeeSortFunction({sortFields})
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const queryEntries = useEmployeeQueryEntries({
+        entries,
+        searchPhrase,
+        fieldsFilter,
+        sortFunction
+    })
+
+    // Track properties to update querying
+    const queryProps: QueryProps<EmployeeFieldsFilter> = {
+        searchBarProps: {
+            setFilter: setSearchPhrase
+        },
+        filterButtonProps: {
+            emptyFields: {},
+            defaultFields: defaultFieldsFilter,
+            fields: fieldsFilter,
+            setFields: setFieldsFilter,
+            createFieldsElement: FilterEmployeeFields,
+        },
+        sortButtonProps: {
+            sortByMap: EMPLOYEE_SORT_BY_MAP,
+            defaultSortFields,
+            sortFields,
+            setSortFields,
+        }
+    }
+
+
     return (
         <EntryPage
-            entries={entries}
+            entries={queryEntries}
             createOptionsElement={createOptionsElement}
             cardGridProps={{
                 renderCard: ((state) => (
@@ -92,6 +132,7 @@ export default function EmployeeEntryPage() {
                 )),
             }}
             extraToolbarElements={[formAddButton]}
+            queryProps={queryProps}
         />
     )
 }

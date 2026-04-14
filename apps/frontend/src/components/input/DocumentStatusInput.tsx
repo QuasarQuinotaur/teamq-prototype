@@ -7,6 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/elements/select.tsx"
+import {DOCUMENT_STATUS_TYPE_MAP} from "@/components/input/constants.tsx";
 
 type DocumentStatusInputProps = {
     status: string;
@@ -22,15 +23,9 @@ export default function DocumentStatusInput(
             </SelectTrigger>
             <SelectContent position={"popper"}>
                 <SelectGroup>
-                    <SelectItem value="todo">
-                        To-Do
-                    </SelectItem>
-                    <SelectItem value="in-progress">
-                        In-Progress
-                    </SelectItem>
-                    <SelectItem value="completed">
-                        Completed
-                    </SelectItem>
+                    {Object.entries(DOCUMENT_STATUS_TYPE_MAP).map(([key, value]) => (
+                        <SelectItem value={key}>{value}</SelectItem>
+                    ))}
                 </SelectGroup>
             </SelectContent>
         </Select>

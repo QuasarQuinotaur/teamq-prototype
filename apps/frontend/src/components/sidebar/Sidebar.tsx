@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/elements/sidebar-elements.tsx"
-import {ChartBarIcon, ClockIcon, BookOpenIcon, PenIcon, WrenchIcon, StarIcon, PersonIcon} from "@phosphor-icons/react"
+import {ChartBarIcon, ClockIcon, StarIcon, PersonIcon, FilesIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
@@ -47,25 +47,17 @@ const data = {
       ),
     },
     {
-      title: "Workflow",
-      url: "/documents/workflow",
+      title: "All documents",
+      url: "/documents/all",
       icon: (
-        <PenIcon/>
+        <FilesIcon/>
       ),
-    },
-    {
-      title: "Reference",
-      url: "/documents/reference",
-      icon: (
-          <BookOpenIcon />
-      ),
-    },
-    {
-      title: "Tools",
-      url: "/documents/tools",
-      icon: (
-          <WrenchIcon/>
-      ),
+      isActive: true,
+      items: [
+        { title: "Workflow", url: "/documents/workflow" },
+        { title: "Reference", url: "/documents/reference" },
+        { title: "Tools", url: "/documents/tools" },
+      ],
     },
   ],
   // navSecondary: [

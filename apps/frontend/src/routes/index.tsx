@@ -8,6 +8,7 @@ import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
 import Bookmarked from "@/pages/Bookmarked.tsx";
 import Workflow from "@/pages/Workflow";
+import AllDocuments from "@/pages/AllDocuments.tsx";
 import Employees from "@/pages/Employees.tsx";
 import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
                             {
                                 path: "bookmarked",
                                 element: <Bookmarked />,
+                            },
+                            {
+                                path: "all",
+                                element: <AllDocuments />,
                             },
                             {
                                 path: "workflow",

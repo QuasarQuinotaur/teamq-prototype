@@ -2,15 +2,34 @@
 
 import * as React from "react";
 
-import FormWindow, {type FormWindowProps} from "@/components/forms/FormWindow.tsx";
 import {useState} from "react";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import {PlusIcon} from "@phosphor-icons/react";
+import type {FormState} from "@/components/forms/Form.tsx";
+import {FormOfType, type FormOfTypeProps, type FormType} from "@/components/forms/FormOfType.tsx";
 
+const ADD_FORM_HEADERS: {[P in FormType]: string} = {
+    Document: "Add Document",
+    Employee: "Add Employee"
+}
 
-export default function FormAddButton(windowProps: FormWindowProps) {
+export default function FormAddButton({
+                                          formType,
+                                          ...state
+}: FormOfTypeProps) {
     const [formOpen, setFormOpen] = useState(false);
+
+    const formState: FormState = {
+        ...state,
+        onCancel: () => {
+            // Makes it so on cancel, the window closes
+            setFormOpen(false);
+            if (state.onCancel) {
+                state.onCancel()
+            }
+        }
+    }
 
     return (
         <Dialog
@@ -23,15 +42,10 @@ export default function FormAddButton(windowProps: FormWindowProps) {
                 </Button>
             </DialogTrigger>
             <DialogContent className={"sm:max-w-lg"}>
-                <FormWindow
-                    {...windowProps}
-                    onCancel={() => {
-                        // Makes it so on cancel, the window closes
-                        setFormOpen(false);
-                        if (windowProps.onCancel) {
-                            windowProps.onCancel()
-                        }
-                    }}
+                <h2>{ADD_FORM_HEADERS[formType]}</h2>
+                <FormOfType
+                    formType={formType}
+                    {...formState}
                 />
             </DialogContent>
         </Dialog>
