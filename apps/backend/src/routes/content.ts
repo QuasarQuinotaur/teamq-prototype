@@ -71,11 +71,30 @@ function parseJobPositions(body: Record<string, unknown>): string[] | null {
     return null;
 }
 
+/** Check-ins abandoned after this duration (e.g. closed tab without releasing). */
+const STALE_CHECKOUT_MS = 5 * 60 * 1000;
+
+async function releaseStaleCheckouts(): Promise<void> {
+    const cutoff = new Date(Date.now() - STALE_CHECKOUT_MS);
+    await prisma.content.updateMany({
+        where: {
+            isCheckedOut: true,
+            checkedOutOn: { lte: cutoff },
+        },
+        data: {
+            isCheckedOut: false,
+            checkedOutById: null,
+            checkedOutOn: null,
+        },
+    });
+}
+
 // ===================================
 // GET ===============================
 // ===================================
 
 router.get("/", requiresAuth(), async (req, res) => {
+    await releaseStaleCheckouts();
     const contents = await contentRepo.getAll();
     const enriched = await Promise.all(
         contents.map(async (c) => {
@@ -323,6 +342,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
         data: {
             isCheckedOut: false,
             checkedOutById: null,
+            checkedOutOn: null,
         },
     });
 
@@ -365,6 +385,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         data: {
             isCheckedOut: true,
             checkedOutById: employee.id,
+            checkedOutOn: new Date(),
         },
         include: {
             owner: true,
@@ -467,6 +488,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 expirationDate: new Date(expirationDate),
                 isCheckedOut: false,
                 checkedOutById: null,
+                checkedOutOn: null,
             },
             include: {
                 owner: true,
