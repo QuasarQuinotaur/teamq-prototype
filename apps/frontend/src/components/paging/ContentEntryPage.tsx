@@ -350,7 +350,7 @@ export default function ContentEntryPage({
     return (
         <EntryPage
             entries={queryEntries}
-            favoritedEntries={queryEntries.filter(
+            favoritedEntries={favoritedList && queryEntries.filter(
                 entry => favoritedList.some((favorite) => favorite.id === entry.item.id)
             )}
             gridSkeletonCount={gridSkeletonCount}
