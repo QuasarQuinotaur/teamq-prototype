@@ -14,6 +14,7 @@ import CardList from "@/components/cards/CardList.tsx";
 import type {ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import FavoriteDropdown from "@/components/paging/FavoriteDropdown.tsx";
 import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
@@ -28,19 +29,22 @@ type EntryPageProps<T> = {
     cardGridProps: CardGridProps;
     /** When set, list view rows open the item (e.g. document viewer) on click. */
     onListRowClick?: (entry: CardEntry) => void;
-    // These elements get added to top right toolbar
+    /** These elements get added to top right toolbar. */
     extraToolbarElements?: React.ReactNode[];
     queryProps: QueryProps<T>;
     /** When set alongside an empty `entries` list, grid view shows this many skeleton cards instead of the grid. */
     gridSkeletonCount?: number | null;
+    /** If specified, will list entries that are favorited to show in a special category*/
+    favoritedEntries?: CardEntry[];
 }
 export default function EntryPage<T extends object>({
-                                      cardGridProps,
-                                      onListRowClick,
-                                      extraToolbarElements,
-                                      queryProps,
-                                      gridSkeletonCount,
-                                      ...entryProps
+                                                        cardGridProps,
+                                                        onListRowClick,
+                                                        extraToolbarElements,
+                                                        queryProps,
+                                                        gridSkeletonCount,
+                                                        favoritedEntries,
+                                                        ...entryProps
 }: EntryPageProps<T> & EntryProps) {
     const { entries, createOptionsElement, listColumnOptions } = entryProps;
 
@@ -59,6 +63,42 @@ export default function EntryPage<T extends object>({
     const { view, setView } = useMainContext()
     const viewSelectorButtonProps: ViewSelectorButtonProps = {
         view, setView
+    }
+
+    function createCardGrid(gridEntries: CardEntry[]) {
+        return (
+            <CardGrid
+                {...cardGridProps}
+                {...entryProps}
+                entries={gridEntries}
+                isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
+            />
+        )
+    }
+
+    function createCardList(listEntries: CardEntry[]) {
+        return (
+            <CardList
+                {...listEntries}
+                {...entryProps}
+                entries={listEntries}
+                onRowClick={onListRowClick}
+                listColumnOptions={listColumnOptions}
+            />
+        )
+    }
+
+    function wrapFavorited(creator: (entries: CardEntry[]) => React.ReactNode, compact: boolean = true) {
+        return (
+            favoritedEntries != null && favoritedEntries.length > 0 && (
+                <FavoriteDropdown
+                    favoriteCount={favoritedEntries.length}
+                    compact={compact}
+                >
+                    {creator(favoritedEntries)}
+                </FavoriteDropdown>
+            )
+        )
     }
 
     return (
@@ -81,20 +121,14 @@ export default function EntryPage<T extends object>({
                         ))}
                     </div>
                 ) : (view === "Grid" ? (
-                    <CardGrid
-                        {...cardGridProps}
-                        entries={entries}
-                        createOptionsElement={createOptionsElement}
-                        isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
-                    />
+                    <div className={"flex flex-col gap-3"}>
+                        {wrapFavorited(createCardGrid)}
+                        {createCardGrid(entries)}
+                    </div>
                 ) : (
                     <>
-                        <CardList
-                            entries={pageEntries}
-                            createOptionsElement={createOptionsElement}
-                            onRowClick={onListRowClick}
-                            listColumnOptions={listColumnOptions}
-                        />
+                        {/*{wrapFavorited(createCardList)}*/}
+                        {createCardList(pageEntries)}
                         <div>
                             <Pagination
                                 docNum={entries.length}

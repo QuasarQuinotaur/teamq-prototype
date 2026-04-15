@@ -1,5 +1,5 @@
 import {useOutletContext} from "react-router-dom";
-import type {MainContext} from "@/components/auth/hooks/create-main-context.tsx";
+import type {MainContext} from "@/components/auth/hooks/use-create-main-context.tsx";
 
 /**
  * Gets the current active MainContext.

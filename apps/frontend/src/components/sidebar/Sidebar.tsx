@@ -39,13 +39,13 @@ const data = {
         <ClockIcon/>
       ),
     },
-    {
-      title: "Favorited",
-      url: "/documents/favorited", // not sure, needs only display the documents bookmarked by the user
-      icon: (
-        <StarIcon/>
-      ),
-    },
+    // {
+    //   title: "Favorited",
+    //   url: "/documents/favorited", // not sure, needs only display the documents bookmarked by the user
+    //   icon: (
+    //     <StarIcon/>
+    //   ),
+    // },
     {
       title: "Service requests",
       url: "/documents/service-requests",

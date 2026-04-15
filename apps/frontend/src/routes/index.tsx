@@ -6,7 +6,6 @@ import References from "@/pages/References";
 import Dashboard from "@/pages/Dashboard";
 import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
-import Favorited from "@/pages/Favorited.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
 import Employees from "@/pages/Employees.tsx";
@@ -46,10 +45,6 @@ export const router = createBrowserRouter([
                             {
                                 path: "recent",
                                 element: <Recent />,
-                            },
-                            {
-                                path: "favorited",
-                                element: <Favorited />,
                             },
                             {
                                 path: "all",

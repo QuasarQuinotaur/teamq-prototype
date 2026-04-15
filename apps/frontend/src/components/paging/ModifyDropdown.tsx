@@ -48,16 +48,20 @@ type ModifyDropdownProps = {
     handleDelete: (entry: CardEntry) => void;
     extraMenuItems?: React.ReactNode;
     documentCheckout?: DocumentCheckoutOptions;
+    editError?: string;
+    deleteError?: string;
 } & FormOfTypeProps;
 
 export default function ModifyDropdown({
-    entry,
-    trigger,
-    handleDelete,
-    extraMenuItems,
-    formType,
-    documentCheckout,
-    ...state
+                                           entry,
+                                           trigger,
+                                           handleDelete,
+                                           extraMenuItems,
+                                           formType,
+                                           documentCheckout,
+                                           editError,
+                                           deleteError,
+                                           ...state
 }: ModifyDropdownProps) {
     const [updateFormOpen, setUpdateFormOpen] = useState(false);
     const needsCheckinRef = useRef(false);
@@ -92,7 +96,7 @@ export default function ModifyDropdown({
     }
 
     async function handleDocumentEditSelect(e: Event) {
-        e.preventDefault();
+        // e.preventDefault();
         if (!documentCheckout || documentCheckout.checkoutBlocksActions) return;
         const ok = await documentCheckout.onCheckout();
         if (ok) {
@@ -101,6 +105,47 @@ export default function ModifyDropdown({
         }
     }
 
+    const editElement = editError == null && (
+        <DropdownMenuItem
+            disabled={documentCheckout?.checkoutBlocksActions}
+            title={
+                documentCheckout?.checkoutBlocksActions
+                    ? "This document is checked out. Finish editing in the other tab or wait until it is checked back in."
+                    : undefined
+            }
+            onSelect={
+                documentCheckout
+                    ? (e) => {
+                        void handleDocumentEditSelect(e)
+                    }
+                    : undefined
+            }
+        >
+            <PencilIcon />
+            Edit
+        </DropdownMenuItem>
+    )
+
+    const deleteElement = deleteError == null && (
+        <DropdownMenuItem
+            variant="destructive"
+            disabled={documentCheckout?.checkoutBlocksActions }
+            title={
+                documentCheckout?.checkoutBlocksActions
+                    ? "Cannot delete while the document is checked out."
+                    : undefined
+            }
+            onSelect={
+                documentCheckout?.checkoutBlocksActions
+                    ? (e) => e.preventDefault()
+                    : undefined
+            }
+        >
+            <TrashIcon />
+            Delete
+        </DropdownMenuItem>
+    )
+
     return (
         <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
             <AlertDialog>
@@ -108,58 +153,30 @@ export default function ModifyDropdown({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuGroup>
-                            {documentCheckout ? (
-                                <DropdownMenuItem
-                                    disabled={documentCheckout.checkoutBlocksActions}
-                                    title={
-                                        documentCheckout.checkoutBlocksActions
-                                            ? "This document is checked out. Finish editing in the other tab or wait until it is checked back in."
-                                            : undefined
-                                    }
-                                    onSelect={(e) => {
-                                        void handleDocumentEditSelect(e);
-                                    }}
-                                >
-                                    <PencilIcon />
-                                    Edit
-                                </DropdownMenuItem>
-                            ) : (
-                                <DialogTrigger asChild>
-                                    <DropdownMenuItem>
-                                        <PencilIcon />
-                                        Edit
-                                    </DropdownMenuItem>
-                                </DialogTrigger>
-                            )}
-                        </DropdownMenuGroup>
+                        {editElement && (
+                            <DropdownMenuGroup>
+                                {/*{documentCheckout ? editElement : (*/}
+                                    <DialogTrigger asChild>
+                                        {editElement}
+                                    </DialogTrigger>
+                                {/*)}*/}
+                            </DropdownMenuGroup>
+                        )}
                         {extraMenuItems && (
                             <DropdownMenuGroup>
                                 {extraMenuItems}
                             </DropdownMenuGroup>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                    variant="destructive"
-                                    disabled={documentCheckout?.checkoutBlocksActions}
-                                    title={
-                                        documentCheckout?.checkoutBlocksActions
-                                            ? "Cannot delete while the document is checked out."
-                                            : undefined
-                                    }
-                                    onSelect={
-                                        documentCheckout?.checkoutBlocksActions
-                                            ? (e) => e.preventDefault()
-                                            : undefined
-                                    }
-                                >
-                                    <TrashIcon />
-                                    Delete
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                        </DropdownMenuGroup>
+                        {deleteElement && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <AlertDialogTrigger asChild>
+                                        {deleteElement}
+                                    </AlertDialogTrigger>
+                                </DropdownMenuGroup>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
 
