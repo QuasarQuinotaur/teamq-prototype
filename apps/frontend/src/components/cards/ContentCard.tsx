@@ -202,12 +202,6 @@ export default function ContentCard({
                   ] ?? pos,
           )
         : [];
-    const expirationBadge = content.expirationDate
-        ? new Date(content.expirationDate).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-        })
-        : null;
     const isExpired =
         content.expirationDate &&
         new Date(content.expirationDate) < new Date();
@@ -216,15 +210,11 @@ export default function ContentCard({
         ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
         ...badges,
     ]
-    const expBadges = [
-        ...(expirationBadge
-            ? [isExpired ? `⚠️ Expired` : `Expires: ${expirationBadge}`]
-            : []),
-    ]
+    const expBadge = isExpired ? "Expired" : null;
 
     return (
         <CardContainer
-            className="relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
+            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
             onClick={handleCardClick}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
@@ -247,6 +237,14 @@ export default function ContentCard({
                         >
                             {entry.title}
                         </CardTitle>
+
+                        {/* On hover: expiration */}
+                        {expBadge && (
+                            <div className="flex gap-2 py-1">
+                                <Badge className="bg-red-500/20 text-red-600 border-red-400/30">{expBadge}</Badge>
+                            </div>
+                        )}
+
                     </div>
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -259,7 +257,9 @@ export default function ContentCard({
                     )}
                 </div>
             </CardHeader>
+
             <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
+
                 <div
                     className={cn(
                         "absolute inset-0 z-10 flex flex-col",
@@ -324,13 +324,6 @@ export default function ContentCard({
                 ) : null}
 
                 <div className="absolute z-40 bottom-2 right-2 flex flex-col items-end gap-1">
-
-                    {/* Top row: expiration */}
-                    {expBadges.length > 0 && (
-                        <div className="flex gap-2">
-                            <BadgeList badges={expBadges} />
-                        </div>
-                    )}
 
                     {/* Bottom row: roles/types */}
                     <div className="flex gap-2">
