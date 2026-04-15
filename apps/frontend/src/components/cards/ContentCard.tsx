@@ -215,7 +215,7 @@ export default function ContentCard({
 
     return (
         <CardContainer
-            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-md"
+            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}

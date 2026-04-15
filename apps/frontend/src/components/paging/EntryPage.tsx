@@ -68,6 +68,9 @@ export default function EntryPage<T extends object>({
     const favoritesHeadingClass =
         "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
+    const showFavoritesWithEntries =
+        showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
+
     // Pagination
     const entriesPerPage = 10;
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
@@ -128,7 +131,7 @@ export default function EntryPage<T extends object>({
                         ))}
                     </div>
                 ) : (view === "Grid" ? (
-                    showFavoritesSection ? (
+                    showFavoritesWithEntries ? (
                         <div className="flex flex-col gap-8">
                             <section className="flex flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>Favorites</h2>
@@ -147,7 +150,7 @@ export default function EntryPage<T extends object>({
                         </div>
                     )
                 ) : (
-                    showFavoritesSection ? (
+                    showFavoritesWithEntries ? (
                         <>
                             <section className="flex flex-col gap-2 pb-6">
                                 <h2 className={favoritesHeadingClass}>Favorites</h2>
