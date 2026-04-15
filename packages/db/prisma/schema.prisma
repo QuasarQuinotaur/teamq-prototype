@@ -45,12 +45,14 @@ model Content {
   notifications      Notification[]   @relation("NotificationContents")
 
   isCheckedOut   Boolean   @default(false)
+  checkedOutOn   DateTime?
   checkedOutById Int?
   checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
   @@index([ownerId])
   @@index([contentType])
   @@index([expirationDate])
+  @@index([isCheckedOut, checkedOutOn])
 }
 
 // Service Request:

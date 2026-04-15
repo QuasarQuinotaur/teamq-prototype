@@ -33,7 +33,7 @@ export default function EmployeeEntryPage() {
                     item,
                     title: `${item.firstName} ${item.lastName}`,
                     link: item.email,
-                    description: item.email,
+                    owner: item.email,
                     badge: item.jobPosition ? item.jobPosition.charAt(0).toUpperCase() + item.jobPosition.slice(1) : item.jobPosition,
                     image: (item as { image?: string }).image,
                 }));

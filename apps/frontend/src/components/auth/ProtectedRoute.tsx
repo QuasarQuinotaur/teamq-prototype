@@ -1,13 +1,13 @@
 import { useUserLink } from '@/hooks/useUserLink';
 import { Outlet } from 'react-router-dom';
 import NotRegistered from '@/pages/NotRegistered';
-import createMainContext from "@/components/auth/hooks/create-main-context.tsx";
+import useCreateMainContext from "@/components/auth/hooks/use-create-main-context.tsx";
 
 export function ProtectedRoute() {
   const { isLoading, notRegistered } = useUserLink();
 
   // Only render the actual paging content once loading is finished
-  const mainContext = createMainContext()
+  const mainContext = useCreateMainContext()
 
   if (isLoading) {
     // Show a blank screen or a spinner instead of the paging content

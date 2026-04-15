@@ -194,6 +194,20 @@ router.put("/:id", requiresAuth(), async (req, res) => {
 // delete a service request
 router.delete("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
+    // #region agent log
+    fetch("http://127.0.0.1:7709/ingest/1f29aa8a-afae-46fa-8349-08eaddd29392", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ed2763" },
+        body: JSON.stringify({
+            sessionId: "ed2763",
+            location: "serviceRequests.ts:DELETE",
+            message: "DELETE /servicereqs handler entered",
+            data: { rawParam: req.params.id, parsedId: id, invalidId: Number.isNaN(id) },
+            timestamp: Date.now(),
+            hypothesisId: "H2",
+        }),
+    }).catch(() => {});
+    // #endregion
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
@@ -202,6 +216,23 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         await serviceRequestRepo.delete(id);
         res.json({ success: true });
     } catch (err) {
+        // #region agent log
+        fetch("http://127.0.0.1:7709/ingest/1f29aa8a-afae-46fa-8349-08eaddd29392", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ed2763" },
+            body: JSON.stringify({
+                sessionId: "ed2763",
+                location: "serviceRequests.ts:DELETE:catch",
+                message: "Prisma delete failed",
+                data: {
+                    id,
+                    err: err instanceof Error ? err.message : String(err),
+                },
+                timestamp: Date.now(),
+                hypothesisId: "H2",
+            }),
+        }).catch(() => {});
+        // #endregion
         res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
     }
 });

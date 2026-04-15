@@ -4,6 +4,7 @@
 import * as React from "react";
 
 import type {
+    CardEntry,
     CardState
 } from "@/components/cards/Card.tsx";
 import type {EntryProps} from "@/components/paging/EntryPage.tsx";
@@ -31,19 +32,22 @@ export default function CardGrid({
             </div>
         )
     }
+
+    function renderEntry(entry: CardEntry) {
+        const entryOptionsWrapper = createOptionsElement ? (
+            (trigger: React.ReactNode) => createOptionsElement(entry, trigger)
+        ) : undefined;
+        const cardState: CardState = {
+            entry: entry,
+            badges: defaultBadge ? [defaultBadge] : [],
+            createOptionsElement: entryOptionsWrapper,
+        }
+        return renderCard(cardState);
+    }
+
     return (
         <div className={CARD_GRID_LAYOUT_CLASS}>
-            {entries.map((entry) => {
-                const entryOptionsWrapper = createOptionsElement ? (
-                    (trigger: React.ReactNode) => createOptionsElement(entry, trigger)
-                ) : undefined;
-                const cardState: CardState = {
-                    entry: entry,
-                    badges: defaultBadge ? [defaultBadge] : [],
-                    createOptionsElement: entryOptionsWrapper,
-                }
-                return renderCard(cardState);
-            })}
+            {entries.map(renderEntry)}
         </div>
     )
 }

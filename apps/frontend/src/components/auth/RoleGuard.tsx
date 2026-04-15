@@ -13,7 +13,6 @@ export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
 
   // Pass context down
   const mainContext = useMainContext()
-  console.log("ROLE GUARD:", mainContext)
 
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,

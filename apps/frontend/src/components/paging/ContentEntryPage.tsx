@@ -2,14 +2,15 @@
 // It makes an EntryPage with Card + List view showing all content
 // A specific type can be specified (workflow, reference, tool) to only show that type of content
 
-import {useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
-import type {Content} from "db";
+import type {Content, Employee} from "db";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
 import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
@@ -21,6 +22,11 @@ import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import {
+    notifyContentCheckoutSync,
+    subscribeContentCheckoutSync,
+} from "@/lib/content-checkout-sync.ts";
+import axios from "axios";
 
 type ViewerState = {
     url: string;
@@ -34,14 +40,35 @@ type ContentEntryPageProps = {
     contentType?: string;
     onlyFavorites?: boolean;
 }
-type Employee = {
-    id: number;
-    firstName: string;
-    lastName: string;
-};
 
 /** Fixed grid of placeholders while the first content request is in flight. */
 const SKELETON_GRID_SLOTS = 25;
+
+const apiBase = import.meta.env.VITE_BACKEND_URL;
+
+/** True when filter panel matches the page baseline (no extra narrowing vs default). */
+function contentFiltersEqualToBaseline(
+    current: ContentFieldsFilter,
+    baseline: ContentFieldsFilter,
+): boolean {
+    const pack = (f: ContentFieldsFilter) =>
+        JSON.stringify({
+            c: [...(f.contentTypes ?? [])].sort(),
+            j: [...(f.jobPositions ?? [])].sort(),
+            d: [...(f.documentTypes ?? [])].sort(),
+        });
+    return pack(current) === pack(baseline);
+}
+
+type ContentWithCheckout = Content & {
+    isCheckedOut?: boolean;
+    checkedOutById?: number | null;
+    checkedOutBy?: {
+        firstName: string;
+        lastName: string;
+        profileImageUrl?: string;
+    } | null;
+};
 
 export default function ContentEntryPage({
                                              contentType,
@@ -51,10 +78,11 @@ export default function ContentEntryPage({
     const [loading, setLoading] = useState(true);
     const [viewerItem, setViewerItem] = useState<ViewerState | null>(null);
     const [employeeMap, setEmployeeMap] = useState<Map<number, string>>(new Map());
+    const [employee, setEmployee] = useState<Employee>(null);
 
     async function handleView(entry: CardEntry) {
         const id = entry.item.id;
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/download`, {
+        const res = await fetch(`${apiBase}/api/content/${id}/download`, {
             credentials: "include",
         });
         if (!res.ok) return;
@@ -65,12 +93,28 @@ export default function ContentEntryPage({
     }
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/employee`, { credentials: "include" })
+        fetch(`${apiBase}/api/employee`, { credentials: "include" })
             .then(res => res.json())
             .then((employees: Employee[]) => {
                 setEmployeeMap(new Map(employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])));
             })
             .catch(() => {});
+    }, []);
+    
+    const api = axios.create({
+        baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
+        withCredentials: true,
+    });
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/me');
+                setEmployee(response.data);
+            } catch (error) {
+                console.error("Not logged in or no employee record found", error);
+            }
+        };
+        void fetchUser();
     }, []);
 
     // This gets all content for the signed-in user
@@ -78,16 +122,17 @@ export default function ContentEntryPage({
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
 
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content`, { credentials: "include" })
+        fetch(`${apiBase}/api/content`, { credentials: "include" })
             .then((res) => res.json())
             .then((data: Content[]) => {
                 const mapped: CardEntry[] = data.map((item) => ({
                     item: item,
                     title: item.title,
                     link: item.filePath ?? "",
-                    description:
+                    owner:
                         employeeMap.get(item.ownerId) ?? undefined,
                     badge: item.contentType,
+                    expirationDate: item.expirationDate
                 }));
                 setEntries(mapped);
             })
@@ -95,21 +140,45 @@ export default function ContentEntryPage({
                 if (isInitialLoad) setLoading(false);
             });
     }
+
+    const fetchContentRef = useRef(fetchContent);
+    fetchContentRef.current = fetchContent;
     useEffect(() => {
-        fetchContent()
+        return subscribeContentCheckoutSync(() => {
+            fetchContentRef.current();
+        });
+    }, []);
+
+    useEffect(() => {
+        fetchContent();
     }, [employeeMap]);
 
     // Delete content
     async function handleDelete(entry: CardEntry) {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}`, {
+        const res = await fetch(`${apiBase}/api/content/${entry.item.id}`, {
             method: "DELETE",
             credentials: "include",
         });
         if (!res.ok) {
             throw new Error("Delete failed");
         }
-        fetchContent()
+        fetchContent();
+        notifyContentCheckoutSync();
     }
+
+    const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
+
+    // All favorites for logged in user
+    const fetchFavorites = useCallback(async () => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, { credentials: "include" })
+            .then((res) => res.json())
+            .then((data: { id: number }[]) => {
+                setFavoritedList(data);
+            })
+    }, [])
+    useEffect(() => {
+        void fetchFavorites()
+    }, [fetchFavorites])
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
         (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
@@ -120,12 +189,21 @@ export default function ContentEntryPage({
     const sortFunction = useContentSortFunction({sortFields})
     const [searchPhrase, setSearchPhrase] = useState("")
     const queryEntries = useContentQueryEntries({
-        entries,
+        entries: onlyFavorites ? entries.filter(entry => {
+            return favoritedList.some((favorite: object & { id: number }) => favorite.id === entry.item.id)
+        }) : entries,
         searchPhrase,
         fieldsFilter,
-        onlyFavorites,
         sortFunction,
     })
+
+    const hasActiveFilterOrSearch = useMemo(() => {
+        if (searchPhrase.trim() !== "") return true;
+        return !contentFiltersEqualToBaseline(fieldsFilter, defaultFieldsFilter);
+    }, [searchPhrase, fieldsFilter, defaultFieldsFilter]);
+
+    const showFavoritesSection =
+        !onlyFavorites && !hasActiveFilterOrSearch;
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
@@ -136,49 +214,81 @@ export default function ContentEntryPage({
     };
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
+    const listColumnOptions = useMemo(
+        () => ({
+            renderTitleCell(entry: CardEntry) {
+                const item = entry.item as ContentWithCheckout;
+                if (!item.isCheckedOut) return entry.title;
+                const u = item.checkedOutBy;
+                const initials = u
+                    ? `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.trim() || "?"
+                    : "?";
+                return (
+                    <div className="flex min-w-0 items-center gap-2">
+                        <Avatar size="sm" className="shrink-0 ring-2 ring-background">
+                            {u?.profileImageUrl ? (
+                                <AvatarImage src={u.profileImageUrl} alt="" />
+                            ) : null}
+                            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{entry.title}</span>
+                    </div>
+                );
+            },
+        }),
+        [],
+    );
+
+    async function tryAddFavorite(contentId: number) {
+        try {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites/${contentId}`, {
+                method: "POST",
+                credentials: "include",
+            }).then(fetchFavorites);
+        } catch (err) {
+            console.error("Add favorite failed", err);
+        }
+    }
+    async function tryDeleteFavorite(contentId: number) {
+        try {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites/${contentId}`, {
+                method: "DELETE",
+                credentials: "include",
+            }).then(fetchFavorites);
+        } catch (err) {
+            console.error("Delete favorite failed", err);
+        }
+    }
+
     // Make card "..." show dropdown to modify documents
     const createOptionsElement =
         (entry: CardEntry, trigger: React.ReactNode) => {
-            const item = entry.item as Content & { ownerId: number };
-            const favorited = false;
+            const item = entry.item as ContentWithCheckout;
+            const id = item.id;
+            const isFavorited = favoritedList.some((item) => item.id === id);
             const extraMenuItems = <>
                 <DropdownMenuCheckboxItem
-                    checked={favorited}
+                    checked={isFavorited}
                     onCheckedChange={(newFavorited) => {
-                        console.log("Favorite", item.title, "?", newFavorited)
+                        if (newFavorited) {
+                            void tryAddFavorite(id);
+                        }
+                        else {
+                            void tryDeleteFavorite(id);
+                        }
                     }}
                 >
-                    <StarIcon weight={favorited ? "fill" : "regular"}/>
+                    <StarIcon weight={isFavorited ? "fill" : "regular"}/>
                     Favorite
                 </DropdownMenuCheckboxItem>
             </>
-            // const extraMenuItems = <>
-            //
-            //     {
-            //         item.contentType === "workflow" ? (
-            //         <>
-            //             <DropdownMenuSeparator />
-            //             {item.status !== "to-do" && (
-            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "to-do")}>
-            //                     <CircleIcon />
-            //                     Mark Todo
-            //                 </DropdownMenuItem>
-            //             )}
-            //             {item.status !== "in-progress" && (
-            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "in-progress")}>
-            //                     <ClockIcon />
-            //                     Mark In Progress
-            //                 </DropdownMenuItem>
-            //             )}
-            //             {item.status !== "completed" && (
-            //                 <DropdownMenuItem onClick={() => handleStatusChange(entry, "completed")}>
-            //                     <CheckCircleIcon />
-            //                     Mark Complete
-            //                 </DropdownMenuItem>
-            //             )}
-            //         </> ) : undefined
-            //     }
-            // </>
+            const checkoutBlocksActions = item.isCheckedOut === true;
+
+            const isOwner = employee && item.ownerId === employee.id;
+            const isAdmin = employee && employee.jobPosition === "admin";
+            const canModify = isOwner || isAdmin;
+            const editError = canModify ? null : "You do not have authorization to edit this content."
+            const deleteError = canModify ? null : "You do not have authorization to delete this content."
 
             return ModifyDropdown({
                 entry,
@@ -186,6 +296,29 @@ export default function ContentEntryPage({
                 ...formOfTypeProps,
                 handleDelete: handleDelete,
                 extraMenuItems,
+                editError,
+                deleteError,
+                documentCheckout: {
+                    checkoutBlocksActions,
+                    onCheckout: async () => {
+                        const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
+                            method: "POST",
+                            credentials: "include",
+                        });
+                        const ok = res.ok;
+                        if (ok) notifyContentCheckoutSync();
+                        return ok;
+                    },
+                    onRelease: () => {
+                        void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
+                            method: "POST",
+                            credentials: "include",
+                        }).finally(() => {
+                            fetchContent();
+                            notifyContentCheckoutSync();
+                        });
+                    },
+                },
             });
         }
 
@@ -222,6 +355,16 @@ export default function ContentEntryPage({
         }
     }
 
+    const gridSkeletonCount =
+        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
+
+    const favoritedQueryEntries = useMemo(() => {
+        if (favoritedList.length === 0) return [];
+        return queryEntries.filter((entry) =>
+            favoritedList.some((f) => f.id === entry.item.id),
+        );
+    }, [queryEntries, favoritedList]);
+
     if (viewerItem) {
         return (
             <DocumentViewer
@@ -233,14 +376,15 @@ export default function ContentEntryPage({
         );
     }
 
-    const gridSkeletonCount =
-        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
-
     return (
         <EntryPage
             entries={queryEntries}
+            displayedEntryLabels={{ one: "document", other: "documents" }}
+            showFavoritesSection={showFavoritesSection}
+            favoritedEntries={favoritedQueryEntries}
             gridSkeletonCount={gridSkeletonCount}
             createOptionsElement={createOptionsElement}
+            listColumnOptions={listColumnOptions}
             onListRowClick={handleView}
             cardGridProps={{
                 renderCard: ((state) => (

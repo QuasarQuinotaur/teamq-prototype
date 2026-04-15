@@ -14,7 +14,14 @@ function LoginButton({ animate }: { animate: boolean }) {
       className={`absolute top-6 right-8 z-20 ${fadeClass}`}
       style={animate ? { animationDelay: '400ms' } : undefined}
     >
-      <Button variant="outline" size="sm" onClick={handleLogin}>Log in</Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-white/70 bg-transparent text-white hover:bg-white/15 hover:text-white"
+        onClick={handleLogin}
+      >
+        Log in
+      </Button>
     </div>
   );
 }

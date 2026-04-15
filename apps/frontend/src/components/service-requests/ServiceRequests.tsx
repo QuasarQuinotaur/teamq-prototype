@@ -1,13 +1,25 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { isValid, parseISO } from "date-fns";
-import { ChevronDownIcon, MoreHorizontalIcon, PencilIcon } from "lucide-react";
+import { ChevronDownIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/DropdownMenu.tsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/dialog/AlertDialog.tsx";
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,6 +74,7 @@ export type ServiceRequestCardProps = {
   assignees: ServiceRequestAssignee[];
   status: string;
   onStatusUpdated?: (id: number, status: string) => void;
+  onDeleted?: (id: number) => void;
   className?: string;
 };
 
@@ -81,10 +94,12 @@ export function ServiceRequestCard({
   assignees,
   status,
   onStatusUpdated,
+  onDeleted,
   className,
 }: ServiceRequestCardProps) {
   const [open, setOpen] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const editTo = `/documents/service-requests/${id}/edit`;
   const numericId = Number(id);
   const done = isDoneStatus(status);
@@ -123,6 +138,23 @@ export function ServiceRequestCard({
       console.error("Failed to update service request status", err);
     } finally {
       setUpdating(false);
+    }
+  }
+
+  async function performDelete() {
+    if (!onDeleted || deleting || Number.isNaN(numericId)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${apiBase}/servicereqs/${numericId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      onDeleted(numericId);
+    } catch (err) {
+      console.error("Failed to delete service request", err);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -195,30 +227,58 @@ export function ServiceRequestCard({
           </CollapsibleTrigger>
 
           <div className="mr-2 flex shrink-0 items-center self-stretch">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground"
-                  aria-label="Request options"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontalIcon className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-40">
-                <DropdownMenuItem asChild>
-                  <Link to={editTo} className="flex cursor-pointer items-center gap-2">
-                    <PencilIcon className="size-4" />
-                    Edit
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <AlertDialog>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground"
+                    aria-label="Request options"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontalIcon className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-40">
+                  <DropdownMenuItem asChild>
+                    <Link to={editTo} className="flex cursor-pointer items-center gap-2">
+                      <PencilIcon className="size-4" />
+                      Edit
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={!onDeleted || deleting || Number.isNaN(numericId)}
+                      className="flex cursor-pointer items-center gap-2"
+                    >
+                      <Trash2Icon className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    disabled={deleting}
+                    onClick={() => void performDelete()}
+                  >
+                    {deleting ? "Deleting…" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 

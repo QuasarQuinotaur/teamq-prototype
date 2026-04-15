@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   NavigationMenuLink,
 } from "@/components/NavigationMenu.tsx"
@@ -10,29 +10,70 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/DropdownMenu"
-import { Avatar, AvatarFallback } from "@/elements/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar"
 import { useState, useEffect } from 'react';
 
 import axios from 'axios';
 
 function Navbar() {
-    const [employee, setEmployee] = useState<{ firstName: string; lastName: string } | null>(null);
+    const [employee, setEmployee] = useState<{
+        firstName: string;
+        lastName: string ;
+        image?: string} | null>(null);
 
     const api = axios.create({
         baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
         withCredentials: true,
     });
 
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    const navigate = useNavigate();
+
+    async function fetchProfilePhoto() {
+        try {
+            const res = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/photos/photo`,
+                { credentials: "include" }
+            );
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            setEmployee(prev =>
+                prev ? { ...prev, image: data.url } : prev
+            );
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
     useEffect(() => {
-        const fetchUser = async () => {
+        const fetchUserAndPhoto = async () => {
             try {
-                const response = await api.get('/me');
-                setEmployee(response.data);
+                const userRes = await api.get('/me');
+                const user = userRes.data;
+
+                const photoRes = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/photos/photo`,
+                    { credentials: "include" }
+                );
+
+                const photoData = photoRes.ok ? await photoRes.json() : null;
+
+                setEmployee({
+                    ...user,
+                    image: photoData?.url,
+                });
+
             } catch (error) {
-                console.error("Not logged in or no employee record found", error);
+                console.error(error);
             }
         };
-        fetchUser();
+
+        fetchUserAndPhoto();
     }, []);
 
     const getInitials = () => {
@@ -67,16 +108,26 @@ function Navbar() {
                     <DropdownMenuTrigger asChild>
                         <button className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                             <Avatar size="default" className="cursor-pointer bg-white/20 hover:bg-white/30 transition-colors">
-                                <AvatarFallback className="text-white bg-transparent font-medium">
-                                    {getInitials()}
-                                </AvatarFallback>
+
+                                {employee?.image && (
+                                    <AvatarImage src={employee.image} alt="Profile" />
+                                )}
+
+                                {!employee?.image && (
+                                    <AvatarFallback className="text-white bg-transparent font-medium">
+                                        {getInitials()}
+                                    </AvatarFallback>
+                                )}
+
                             </Avatar>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/documents/profile")}>
+                            Profile
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Settings</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 

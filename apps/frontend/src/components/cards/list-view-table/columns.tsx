@@ -2,6 +2,10 @@ import type { ColumnDef } from "@tanstack/react-table"
 import type { CardEntry } from "@/components/cards/Card.tsx"
 import * as React from "react"
 
+export type CreateColumnsOptions = {
+    renderTitleCell?: (entry: CardEntry) => React.ReactNode;
+};
+
 // Legacy mock type (kept for reference)
 // export type Payment = {
 //     id: string
@@ -11,16 +15,41 @@ import * as React from "react"
 // }
 
 export function createColumns(
-    createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
+    createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode,
+    options?: CreateColumnsOptions,
 ): ColumnDef<CardEntry>[] {
     const cols: ColumnDef<CardEntry>[] = [
         {
             accessorKey: "title",
             header: "Title",
+            cell: ({ row }) => {
+                const entry = row.original;
+                if (options?.renderTitleCell) {
+                    return options.renderTitleCell(entry);
+                }
+                return entry.title;
+            },
         },
         {
-            accessorKey: "description",
-            header: "Description",
+            accessorKey: "owner",
+            header: "Owner",
+        },
+        {
+            accessorKey: "expirationDate",
+            header: "Expiration",
+            cell: ({ getValue }) => {
+                const value = getValue();
+
+                if (!value) return "—";
+
+                const date = new Date(value as string);
+
+                return date.toLocaleDateString("en-US", {
+                    month: "short",   // Apr
+                    day: "numeric",   // 2
+                    year: "numeric",  // 2026
+                });
+            },
         },
         {
             accessorKey: "badge",

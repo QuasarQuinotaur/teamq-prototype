@@ -6,7 +6,6 @@ import References from "@/pages/References";
 import Dashboard from "@/pages/Dashboard";
 import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
-import Favorited from "@/pages/Favorited.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
 import Employees from "@/pages/Employees.tsx";
@@ -16,6 +15,8 @@ import EditServiceRequestPage from "@/pages/EditServiceRequestPage.tsx";
 import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Profile from "@/pages/Profile.tsx";
+import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -47,10 +48,6 @@ export const router = createBrowserRouter([
                                 element: <Recent />,
                             },
                             {
-                                path: "favorited",
-                                element: <Favorited />,
-                            },
-                            {
                                 path: "all",
                                 element: <AllDocuments />,
                             },
@@ -79,16 +76,24 @@ export const router = createBrowserRouter([
                                 element: <Tools />,
                             },
                             {
+                                path: "profile",
+                                element: <Profile />,
+                            },
+                            {
                                 path: "test",
                                 element: <Test />
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />, 
+                                element: <RoleGuard allowedRole="admin" />,
                                 children: [
-                                {
-                                    path: "/documents/employees",
-                                    element: <Employees />,
-                                },
+                                    {
+                                        path: "/documents/employees",
+                                        element: <Employees />,
+                                    },
+                                    {
+                                        path: "dev-checkout",
+                                        element: <DevCheckoutPage />,
+                                    },
                                 ],
                             },
                         ]

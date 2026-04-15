@@ -15,10 +15,32 @@ const { requiresAuth } = pkg;
 import multer from "multer";
 
 import { ContentRepository } from "../ContentRepository.ts";
+import {exec} from "node:child_process";
+import {readFile} from "fs/promises";
 const contentRepo = new ContentRepository();
 
 const router = Router();
 const upload = multer();
+
+type EmployeeWithPhoto = {
+    id: number;
+    userPhoto: { path: string } | null;
+};
+
+async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
+    emp: T,
+): Promise<Omit<T, "userPhoto"> & { profileImageUrl?: string }> {
+    const { userPhoto, ...rest } = emp;
+    let profileImageUrl: string | undefined;
+    if (userPhoto?.path) {
+        try {
+            profileImageUrl = await getSignedUrl(userPhoto.path, 3600);
+        } catch (err) {
+            console.error("Profile image signed URL failed", emp.id, err);
+        }
+    }
+    return { ...rest, profileImageUrl };
+}
 
 /** Multipart bodies send strings; accept JSON array, comma-separated, or legacy single `jobPosition`. */
 function parseJobPositions(body: Record<string, unknown>): string[] | null {
@@ -49,13 +71,41 @@ function parseJobPositions(body: Record<string, unknown>): string[] | null {
     return null;
 }
 
+/** Check-ins abandoned after this duration (e.g. closed tab without releasing). */
+const STALE_CHECKOUT_MS = 5 * 60 * 1000;
+
+async function releaseStaleCheckouts(): Promise<void> {
+    const cutoff = new Date(Date.now() - STALE_CHECKOUT_MS);
+    await prisma.content.updateMany({
+        where: {
+            isCheckedOut: true,
+            checkedOutOn: { lte: cutoff },
+        },
+        data: {
+            isCheckedOut: false,
+            checkedOutById: null,
+            checkedOutOn: null,
+        },
+    });
+}
+
 // ===================================
 // GET ===============================
 // ===================================
 
-router.get("/", requiresAuth(), async (req, res) => { // get all contents
+router.get("/", requiresAuth(), async (req, res) => {
+    await releaseStaleCheckouts();
     const contents = await contentRepo.getAll();
-    res.json(contents);
+    const enriched = await Promise.all(
+        contents.map(async (c) => {
+            if (!c.checkedOutBy) {
+                return { ...c, checkedOutBy: null };
+            }
+            const mapped = await employeeWithProfileUrl(c.checkedOutBy);
+            return { ...c, checkedOutBy: mapped };
+        }),
+    );
+    res.json(enriched);
 });
 
 router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
@@ -88,53 +138,97 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
 
 router.get("/:id/thumbnail", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
+
     if (isNaN(id)) {
-        res.status(400).json({ error: "Invalid id" });
-        return;
+        return res.status(400).json({ error: "Invalid id" });
     }
+
     try {
         const content = await contentRepo.getById(id);
         if (!content) {
-            res.status(404).json({ error: "Not found" });
-            return;
+            return res.status(404).json({ error: "Not found" });
         }
+
         const storagePath = content.filePath;
+
+        // skip invalid or external links
         if (
             !storagePath?.trim() ||
             storagePath.startsWith("http://") ||
             storagePath.startsWith("https://")
         ) {
-            res.json({ thumbnailUrl: null });
-            return;
+            return res.json({ thumbnailUrl: null });
         }
-        if (!storagePath.toLowerCase().endsWith(".pdf")) {
-            res.json({ thumbnailUrl: null });
-            return;
-        }
+
+        const ext = storagePath.split(".").pop()?.toLowerCase();
 
         const thumbRel = `/tmp/thumbnails/${id}.png`;
         const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
 
-        let needsWrite = true;
+        // CACHE CHECK
         try {
             await stat(thumbFsPath);
-            needsWrite = false;
+            return res.json({ thumbnailUrl: thumbRel });
         } catch {
-            needsWrite = true;
+            // continue if not found
         }
 
-        if (needsWrite) {
-            await mkdir(path.dirname(thumbFsPath), { recursive: true });
-            const buf = await downloadBuffer(storagePath);
+        await mkdir(path.dirname(thumbFsPath), { recursive: true });
+
+        // download file
+        const buf = await downloadBuffer(storagePath);
+
+        const tempDocx = path.join(process.cwd(), "tmp", `file-${id}.docx`);
+        const tempPdf = path.join(process.cwd(), "tmp", `file-${id}.pdf`);
+
+        // ======================
+        // PDF HANDLING
+        // ======================
+        if (ext === "pdf") {
             const doc = await pdf(buf, { scale: 0.85 });
             const firstPage = await doc.getPage(1);
             await writeFile(thumbFsPath, firstPage);
+
+            return res.json({ thumbnailUrl: thumbRel });
         }
 
-        res.json({ thumbnailUrl: thumbRel });
+        // ======================
+        // DOCX HANDLING
+        // ======================
+        if (ext === "docx") {
+            // save DOCX temporarily
+            await writeFile(tempDocx, buf);
+
+            // convert DOCX → PDF
+            await new Promise((resolve, reject) => {
+                exec(
+                    `soffice --headless --convert-to pdf --outdir "${path.dirname(tempPdf)}" "${tempDocx}"`,
+                    (err) => (err ? reject(err) : resolve(null))
+                );
+            });
+
+            // small delay to ensure file exists
+            await new Promise((r) => setTimeout(r, 500));
+
+            // read generated PDF
+            const pdfBuf = await readFile(tempPdf);
+
+            const doc = await pdf(pdfBuf, { scale: 0.85 });
+            const firstPage = await doc.getPage(1);
+
+            await writeFile(thumbFsPath, firstPage);
+
+            return res.json({ thumbnailUrl: thumbRel });
+        }
+
+        // ======================
+        // OTHER FILE TYPES HANDLING
+        // ======================
+        return res.json({ thumbnailUrl: null });
+
     } catch (err) {
         console.error("Thumbnail generation failed", err);
-        res.json({ thumbnailUrl: null });
+        return res.json({ thumbnailUrl: null });
     }
 });
 
@@ -248,6 +342,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
         data: {
             isCheckedOut: false,
             checkedOutById: null,
+            checkedOutOn: null,
         },
     });
 
@@ -290,21 +385,27 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         data: {
             isCheckedOut: true,
             checkedOutById: employee.id,
+            checkedOutOn: new Date(),
         },
         include: {
             owner: true,
-            checkedOutBy: true,
+            checkedOutBy: { include: { userPhoto: true } },
         },
     });
 
-    res.json({ success: true, content: updated });
+    const checkedOutBy = updated.checkedOutBy
+        ? await employeeWithProfileUrl(updated.checkedOutBy)
+        : null;
+    res.json({
+        success: true,
+        content: { ...updated, checkedOutBy },
+    });
 });
 
 // ===================================
 // PUT ===============================
 // ===================================
-
-router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => { // update content
+router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -323,6 +424,12 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 
         if (!content) {
             return res.status(404).json({ error: "Content not found" });
+        }
+
+        const isOwner = content.ownerId === employee.id;
+        const isAdmin = employee.jobPosition === "admin";
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to update this content" });
         }
 
         if (content.isCheckedOut && content.checkedOutById !== employee.id) {
@@ -379,6 +486,9 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 jobPositions,
                 contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
+                isCheckedOut: false,
+                checkedOutById: null,
+                checkedOutOn: null,
             },
             include: {
                 owner: true,
@@ -402,7 +512,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 // DELETE ===============================
 // ======================================
 
-router.delete("/:id", requiresAuth(), async (req, res) => { // delete content
+router.delete("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -410,10 +520,28 @@ router.delete("/:id", requiresAuth(), async (req, res) => { // delete content
     }
 
     try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
         const content = await contentRepo.getById(id);
 
         if (!content) {
             res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        if (content.isCheckedOut) {
+            res.status(409).json({ error: "Cannot delete while document is checked out" });
+            return;
+        }
+
+        const isOwner = content.ownerId === employee.id;
+        const isAdmin = employee.jobPosition === "admin";
+        if (!isOwner && !isAdmin) {
+            res.status(403).json({ error: "Not authorized to delete this content" });
             return;
         }
 
