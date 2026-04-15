@@ -16,6 +16,7 @@ import Test from "@/pages/Test.tsx";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
+import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -83,12 +84,16 @@ export const router = createBrowserRouter([
                                 element: <Test />
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />, 
+                                element: <RoleGuard allowedRole="admin" />,
                                 children: [
-                                {
-                                    path: "/documents/employees",
-                                    element: <Employees />,
-                                },
+                                    {
+                                        path: "/documents/employees",
+                                        element: <Employees />,
+                                    },
+                                    {
+                                        path: "dev-checkout",
+                                        element: <DevCheckoutPage />,
+                                    },
                                 ],
                             },
                         ]
