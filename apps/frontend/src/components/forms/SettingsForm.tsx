@@ -44,8 +44,9 @@ export default function SettingsForm( { onThemeChange }) {
                     <ThemeOption themeName="Hanover Blue" themeDescription="A simple and sleek color scheme based on Hanover Blue" />
                     <ThemeOption themeName="Berry" themeDescription="A vibrant pink and green theme to make your documents pop!" />
                     <ThemeOption themeName="Retro" themeDescription="A 70's based color scheme to remember the good ol' days." />
-                    <ThemeOption themeName="Kylie" themeDescription="A very, VERY pink theme." />
+                    <ThemeOption themeName="Quasar" themeDescription="A pink and purple theme for the child in us all." />
                     <ThemeOption themeName="Tritanomoly" themeDescription="A turquoise based theme to provide a calming environment" />
+                    <ThemeOption themeName="Kylie" themeDescription="A very, VERY pink theme." />
                 </RadioGroup>
             </FieldSet>
         </FieldGroup>

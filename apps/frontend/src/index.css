@@ -71,7 +71,7 @@
   --theme-highlight: #F96635;
 }
 
-&:where([data-theme="kylie"]) {
+&:where([data-theme="quasar"]) {
   --theme-background: #D99CCA;
   --theme-foreground: #A62D7B;
   --theme-background-accent: #BD79A8;
@@ -85,6 +85,14 @@
   --theme-background-accent: #84A98C;
   --theme-foreground-accent: #354F52;
   --theme-highlight: #52796F;
+}
+
+&:where([data-theme="kylie"]) {
+  --theme-background: #D99CCA;
+  --theme-foreground: #A62D7B;
+  --theme-background-accent: #BD79A8;
+  --theme-foreground-accent: #A63A82;
+  --theme-highlight: #C25DA9;
 }
 
 :root {
