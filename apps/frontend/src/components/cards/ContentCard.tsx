@@ -292,7 +292,7 @@ export default function ContentCard({
 
                     ) : entry.link.startsWith("http") ? (
                         // FALLBACK 1 ->  FAVICON
-                        <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                        <div className="w-full h-full flex items-center justify-center bg-muted/50">
                             <img
                                 src={linkFavicon}
                                 className="max-w-[60%] max-h-[60%] object-contain"
@@ -301,7 +301,7 @@ export default function ContentCard({
                         </div>
                     ) : (
                         // FALLBACK 2 -> COLOR CARD
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <div className="w-full h-full bg-muted/50 flex items-center justify-center">
                             <FileIcon className="w-12 h-12 text-muted-foreground" />
                         </div>
                     )}

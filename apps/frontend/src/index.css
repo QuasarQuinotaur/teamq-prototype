@@ -17,11 +17,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -52,27 +47,33 @@
 }
 
 /*--------Theme Variants---------*/
-/*@custom-variant theme-default (&:is(.theme-default *));*/
+@custom-variant theme-default (&:is(.theme-default *));
 @custom-variant theme-berry (&:is(.theme-berry *));
 
+.theme-default {
+  --theme-background: #FAFAF9;
+  --theme-foreground: #241F1A;
+  --theme-background-accent: #EEEEEE;
+  --theme-foreground-accent: #003150;
+  --theme-highlight: #0069A8FF;
+}
 
 .theme-berry {
   --theme-background: #BCF0DD;
   --theme-foreground: #642B44;
   --theme-background-accent: #479071;
   --theme-foreground-accent: #A31455;
-  --theme-highlight: #aa3f70;
+  --theme-highlight: #480ca1;
 }
 
+/*-------custom button color option--------*/
+/*@custom-variant text-primary-background (&:where[data-active="true"] color: var(--theme-background))*/
+
+/*.text-primary-background:where([data-active="true"]) {*/
+/*    color: var(--theme-background);*/
+/*}*/
 
 :root {
-  /*----------Default Theme----------*/
-  /*--theme-background: #FAFAF9;*/
-  /*--theme-foreground: #241F1A;*/
-  /*--theme-background-accent: #EEEEEE;*/
-  /*--theme-foreground-accent: #003150;*/
-  /*--theme-highlight: #0069A8FF;*/
-
   /*----------Variable Setup-----------*/
   --background: var(--theme-background);
   --foreground: var(--theme-foreground);
@@ -81,7 +82,7 @@
   --popover: var(--theme-background);
   --popover-foreground: var(--theme-foreground);
   --primary: var(--theme-highlight);
-  --primary-foreground: var(--theme-foreground);
+  --primary-foreground: var(--theme-background);
   --secondary: var(--theme-background-accent);
   --secondary-foreground: var(--theme-foreground-accent);
   --muted: var(--theme-background-accent);
@@ -92,11 +93,6 @@
   --border: var(--theme-background-accent);
   --input: var(--theme-background-accent);
   --ring: var(--theme-foreground);
-  --chart-1: oklch(0.828 0.111 230.318);
-  --chart-2: oklch(0.685 0.169 237.323);
-  --chart-3: oklch(0.588 0.158 241.966);
-  --chart-4: oklch(0.5 0.134 242.749);
-  --chart-5: oklch(0.443 0.11 240.79);
   --radius: 0.625rem;
   --sidebar: var(--theme-background);
   --sidebar-foreground: var(--theme-foreground);
@@ -109,13 +105,7 @@
   --hanover-blue: var(--theme-foreground-accent);
 }
 
-.theme-default {
-  --theme-background: #FAFAF9;
-  --theme-foreground: #241F1A;
-  --theme-background-accent: #EEEEEE;
-  --theme-foreground-accent: #003150;
-  --theme-highlight: #0069A8FF;
-}
+
 
 
 
