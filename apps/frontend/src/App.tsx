@@ -6,7 +6,7 @@ import { useEffect } from "react";
 export default function App() {
 
   useEffect(() => {
-    document.documentElement.setAttribute("class", "theme-default");
+    document.documentElement.setAttribute("data-theme", "hanover blue");
   });
 
   return (

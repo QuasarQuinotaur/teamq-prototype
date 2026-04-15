@@ -24,7 +24,7 @@ export default function Settings() {
 
     function onThemeChange(e: string) {
         console.log(`Theme: ${e}`);
-        document.documentElement.setAttribute("class", e);
+        document.documentElement.setAttribute("data-theme", e);
     }
 
     return (
