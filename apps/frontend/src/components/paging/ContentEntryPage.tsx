@@ -115,9 +115,10 @@ export default function ContentEntryPage({
                     item: item,
                     title: item.title,
                     link: item.filePath ?? "",
-                    description:
+                    owner:
                         employeeMap.get(item.ownerId) ?? undefined,
                     badge: item.contentType,
+                    expirationDate: item.expirationDate
                 }));
                 setEntries(mapped);
             })

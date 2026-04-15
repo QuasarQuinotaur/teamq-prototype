@@ -202,10 +202,24 @@ export default function ContentCard({
                   ] ?? pos,
           )
         : [];
-    const showBadges = [
+    const expirationBadge = content.expirationDate
+        ? new Date(content.expirationDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+        })
+        : null;
+    const isExpired =
+        content.expirationDate &&
+        new Date(content.expirationDate) < new Date();
+    const roleBadges = [
         ...jobPositionLabels,
         ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
         ...badges,
+    ]
+    const expBadges = [
+        ...(expirationBadge
+            ? [isExpired ? `⚠️ Expired` : `Expires: ${expirationBadge}`]
+            : []),
     ]
 
     return (
@@ -309,8 +323,20 @@ export default function ContentCard({
                     </>
                 ) : null}
 
-                <div className={"absolute z-40 flex bottom-2 right-2 gap-2"}>
-                    <BadgeList badges={showBadges}/>
+                <div className="absolute z-40 bottom-2 right-2 flex flex-col items-end gap-1">
+
+                    {/* Top row: expiration */}
+                    {expBadges.length > 0 && (
+                        <div className="flex gap-2">
+                            <BadgeList badges={expBadges} />
+                        </div>
+                    )}
+
+                    {/* Bottom row: roles/types */}
+                    <div className="flex gap-2">
+                        <BadgeList badges={roleBadges} />
+                    </div>
+
                 </div>
             </div>
         </CardContainer>

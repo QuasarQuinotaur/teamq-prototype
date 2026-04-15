@@ -77,7 +77,7 @@ export default function EmployeeCard({
         <div className="mt-2 flex justify-center">
           <BadgeList badges={badges}/>
         </div>
-        <CardDescription>{entry.description}</CardDescription>
+        <CardDescription>{entry.owner}</CardDescription>
       </CardHeader>
     </CardContainer>
   )

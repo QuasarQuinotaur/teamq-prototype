@@ -7,10 +7,12 @@ export type CardEntry = {
     item: object & { id: number };
     title: string;
     link: string;
-    description?: string;
+    owner?: string;
     subElement?: React.ReactNode;
     badge?: string;
     image?: string;
+    expirationDate?: Date | null;
+
 }
 export type CardState = {
     entry: CardEntry;

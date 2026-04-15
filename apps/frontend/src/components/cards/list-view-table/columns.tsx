@@ -31,8 +31,25 @@ export function createColumns(
             },
         },
         {
-            accessorKey: "description",
-            header: "Description",
+            accessorKey: "owner",
+            header: "Owner",
+        },
+        {
+            accessorKey: "expirationDate",
+            header: "Expiration",
+            cell: ({ getValue }) => {
+                const value = getValue();
+
+                if (!value) return "—";
+
+                const date = new Date(value as string);
+
+                return date.toLocaleDateString("en-US", {
+                    month: "short",   // Apr
+                    day: "numeric",   // 2
+                    year: "numeric",  // 2026
+                });
+            },
         },
         {
             accessorKey: "badge",
