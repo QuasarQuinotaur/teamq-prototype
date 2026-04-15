@@ -5,7 +5,6 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/oxanium";
 
-@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: 'Inter Variable', sans-serif;
@@ -52,10 +51,29 @@
   --spacing-navbar-height: 4rem;
 }
 
-@custom-variant theme-default (&:is(.theme-default *));
+/*--------Theme Variants---------*/
+/*@custom-variant theme-default (&:is(.theme-default *));*/
 @custom-variant theme-berry (&:is(.theme-berry *));
 
+
+.theme-berry {
+  --theme-background: #BCF0DD;
+  --theme-foreground: #642B44;
+  --theme-background-accent: #479071;
+  --theme-foreground-accent: #A31455;
+  --theme-highlight: #0AC37F;
+}
+
+
 :root {
+  /*----------Default Theme----------*/
+  /*--theme-background: #FAFAF9;*/
+  /*--theme-foreground: #241F1A;*/
+  /*--theme-background-accent: #EEEEEE;*/
+  /*--theme-foreground-accent: #003150;*/
+  /*--theme-highlight: #0069A8FF;*/
+
+  /*----------Variable Setup-----------*/
   --background: var(--theme-background);
   --foreground: var(--theme-foreground);
   --card: var(--theme-background);
@@ -96,16 +114,10 @@
   --theme-foreground: #241F1A;
   --theme-background-accent: #EEEEEE;
   --theme-foreground-accent: #003150;
-  --theme-highlight: #0068A5;
+  --theme-highlight: #0069A8FF;
 }
 
-.theme-berry {
-  --theme-background: #BCF0DD;
-  --theme-foreground: #642B44;
-  --theme-background-accent: #479071;
-  --theme-foreground-accent: #A31455;
-  --theme-highlight: #0AC37F;
-}
+
 
 @keyframes hero-fade-in {
   from {
