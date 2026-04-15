@@ -66,6 +66,14 @@
   --theme-highlight: #480ca1;
 }
 
+.theme-retro {
+  --theme-background: #FAECB6;
+  --theme-foreground: #288AA5;
+  --theme-background-accent: #F9A822;
+  --theme-foreground-accent: #56c5ab;
+  --theme-highlight: #F96635;
+}
+
 /*-------custom button color option--------*/
 /*@custom-variant text-primary-background (&:where[data-active="true"] color: var(--theme-background))*/
 

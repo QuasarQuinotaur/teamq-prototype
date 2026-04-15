@@ -21,7 +21,7 @@ export default function SettingsForm( { onThemeChange }) {
                 <FieldDescription>
                     Select the color scheme for your work environment!
                 </FieldDescription>
-                <RadioGroup defaultValue="default" onValueChange={onThemeChange}>
+                <RadioGroup defaultValue="theme-default" onValueChange={onThemeChange}>
                     <FieldLabel htmlFor="default">
                         <Field orientation="horizontal">
                             <FieldContent>
@@ -42,6 +42,17 @@ export default function SettingsForm( { onThemeChange }) {
                                 </FieldDescription>
                             </FieldContent>
                             <RadioGroupItem value="theme-berry" id="berries" />
+                        </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="retro">
+                        <Field orientation="horizontal">
+                            <FieldContent>
+                                <FieldTitle>Retro</FieldTitle>
+                                <FieldDescription>
+                                    A 70's based color scheme to remember the good ol' days
+                                </FieldDescription>
+                            </FieldContent>
+                            <RadioGroupItem value="theme-retro" id="retro" />
                         </Field>
                     </FieldLabel>
                 </RadioGroup>
