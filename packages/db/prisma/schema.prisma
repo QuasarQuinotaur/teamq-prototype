@@ -76,9 +76,9 @@ model ServiceRequest {
 model Notification {
   id       Int      @id @default(autoincrement())
   type     String
-  dateSent DateTime
+  dateSent DateTime @default(now())
 
-  dateRead DateTime? @default(now())
+  dateRead DateTime?
 
   employeeNotifiedID Int
 

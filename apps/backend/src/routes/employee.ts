@@ -32,7 +32,7 @@ router.get("/", requiresAuth(), async (req, res) => {
 
             return {
                 ...e,
-                image, // 👈 THIS is what frontend needs
+                image, //  frontend needs
             };
         })
     );
