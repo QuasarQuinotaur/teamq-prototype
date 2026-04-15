@@ -81,7 +81,8 @@ export default function ContentCard({
     const [titleCollapsedClamp, setTitleCollapsedClamp] = React.useState(true);
     const titleCollapseTimerRef = React.useRef<number | null>(null);
 
-    const TITLE_COLLAPSE_MS = 500;
+    /** Matches header `transition-[max-height]` / badge motion so line-clamp restores after collapse finishes. */
+    const CARD_HOVER_TRANSITION_MS = 500;
 
     function handleCardPointerEnter() {
         if (titleCollapseTimerRef.current != null) {
@@ -97,7 +98,7 @@ export default function ContentCard({
         titleCollapseTimerRef.current = window.setTimeout(() => {
             setTitleCollapsedClamp(true);
             titleCollapseTimerRef.current = null;
-        }, TITLE_COLLAPSE_MS);
+        }, CARD_HOVER_TRANSITION_MS);
     }
 
     React.useEffect(() => {
@@ -214,7 +215,7 @@ export default function ContentCard({
 
     return (
         <CardContainer
-            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0"
+            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-md"
             onClick={handleCardClick}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
@@ -223,10 +224,8 @@ export default function ContentCard({
                 <div className="flex w-full items-start justify-between gap-2">
                     <div
                         className={cn(
-                            "overflow-hidden flex-1 min-w-0 transition-[max-height] ease-in-out",
-                            cardHovered
-                                ? "max-h-24 duration-300"
-                                : "max-h-[1.4em] duration-500",
+                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out motion-reduce:transition-none",
+                            cardHovered ? "max-h-24" : "max-h-[1.4em]",
                         )}
                     >
                         <CardTitle
@@ -238,10 +237,19 @@ export default function ContentCard({
                             {entry.title}
                         </CardTitle>
 
-                        {/* On hover: expiration */}
+                        {/* On hover: expiration — same motion as bottom badges */}
                         {expBadge && (
-                            <div className="flex gap-2 py-1">
-                                <Badge className="bg-red-500/20 text-red-600 border-red-400/30">{expBadge}</Badge>
+                            <div
+                                className={cn(
+                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:transition-none",
+                                    cardHovered
+                                        ? "translate-y-0"
+                                        : "translate-y-[calc(200%+1.25rem)]",
+                                )}
+                            >
+                                <Badge className="bg-red-500/20 text-red-600 border-red-400/30">
+                                    {expBadge}
+                                </Badge>
                             </div>
                         )}
 
@@ -325,14 +333,20 @@ export default function ContentCard({
                     </>
                 ) : null}
 
-                <div className="absolute z-40 bottom-2 right-2 flex flex-col items-end gap-1">
-
-                    {/* Bottom row: roles/types */}
-                    <div className="flex gap-2">
-                        <BadgeList badges={roleBadges} />
+                {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
+                    <div
+                        className={cn(
+                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:transition-none",
+                            cardHovered
+                                ? "translate-y-0 scale-100"
+                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97]",
+                        )}
+                    >
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <BadgeList badges={roleBadges} />
+                        </div>
                     </div>
-
-                </div>
+                ) : null}
             </div>
         </CardContainer>
     )

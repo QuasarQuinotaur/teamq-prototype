@@ -233,6 +233,10 @@ export default function ServiceRequestsPage() {
     );
   }, []);
 
+  const handleDeleted = useCallback((id: number) => {
+    setRequests((prev) => (prev == null ? prev : prev.filter((r) => r.id !== id)));
+  }, []);
+
   const fuse = useMemo(() => {
     return new Fuse(requests ?? [], {
       keys: [
@@ -287,7 +291,7 @@ export default function ServiceRequestsPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center gap-3 px-4 pt-5 pb-5">
         <SidebarTrigger className="-ml-1 shrink-0" />
-        <div className="min-w-0 max-w-2xl flex-1">
+        <div className="min-w-0 max-w-[21rem] flex-1">
           <SearchBar setFilter={setSearchPhrase} />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -352,6 +356,7 @@ export default function ServiceRequestsPage() {
                         assignees={assigneesFromRequest(req)}
                         status={req.status ?? "to-do"}
                         onStatusUpdated={handleStatusUpdated}
+                        onDeleted={handleDeleted}
                       />
                     </li>
                   ))}
@@ -376,6 +381,7 @@ export default function ServiceRequestsPage() {
                         assignees={assigneesFromRequest(req)}
                         status={req.status ?? "to-do"}
                         onStatusUpdated={handleStatusUpdated}
+                        onDeleted={handleDeleted}
                       />
                     </li>
                   ))}

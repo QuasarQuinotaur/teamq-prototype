@@ -37,8 +37,15 @@ export default function FormAddButton({
             onOpenChange={setFormOpen}
         >
             <DialogTrigger asChild>
-                <Button variant={"outline"}>
-                    <PlusIcon/>
+                <Button
+                    variant={formType === "Document" ? "default" : "outline"}
+                    className={
+                        formType === "Document"
+                            ? "px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            : undefined
+                    }
+                >
+                    {formType === "Document" ? "+ New Document" : <PlusIcon />}
                 </Button>
             </DialogTrigger>
             <DialogContent className={"sm:max-w-lg"}>

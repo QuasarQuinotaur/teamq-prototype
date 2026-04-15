@@ -46,6 +46,20 @@ const SKELETON_GRID_SLOTS = 25;
 
 const apiBase = import.meta.env.VITE_BACKEND_URL;
 
+/** True when filter panel matches the page baseline (no extra narrowing vs default). */
+function contentFiltersEqualToBaseline(
+    current: ContentFieldsFilter,
+    baseline: ContentFieldsFilter,
+): boolean {
+    const pack = (f: ContentFieldsFilter) =>
+        JSON.stringify({
+            c: [...(f.contentTypes ?? [])].sort(),
+            j: [...(f.jobPositions ?? [])].sort(),
+            d: [...(f.documentTypes ?? [])].sort(),
+        });
+    return pack(current) === pack(baseline);
+}
+
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
     checkedOutById?: number | null;
@@ -152,13 +166,13 @@ export default function ContentEntryPage({
         notifyContentCheckoutSync();
     }
 
-    const [favoritedList, setFavoritedList] = useState([])
+    const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
 
     // All favorites for logged in user
     const fetchFavorites = useCallback(async () => {
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, { credentials: "include" })
             .then((res) => res.json())
-            .then((data: object[]) => {
+            .then((data: { id: number }[]) => {
                 setFavoritedList(data);
             })
     }, [])
@@ -182,6 +196,14 @@ export default function ContentEntryPage({
         fieldsFilter,
         sortFunction,
     })
+
+    const hasActiveFilterOrSearch = useMemo(() => {
+        if (searchPhrase.trim() !== "") return true;
+        return !contentFiltersEqualToBaseline(fieldsFilter, defaultFieldsFilter);
+    }, [searchPhrase, fieldsFilter, defaultFieldsFilter]);
+
+    const showFavoritesSection =
+        !onlyFavorites && !hasActiveFilterOrSearch;
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
@@ -333,6 +355,16 @@ export default function ContentEntryPage({
         }
     }
 
+    const gridSkeletonCount =
+        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
+
+    const favoritedQueryEntries = useMemo(() => {
+        if (favoritedList.length === 0) return [];
+        return queryEntries.filter((entry) =>
+            favoritedList.some((f) => f.id === entry.item.id),
+        );
+    }, [queryEntries, favoritedList]);
+
     if (viewerItem) {
         return (
             <DocumentViewer
@@ -344,15 +376,12 @@ export default function ContentEntryPage({
         );
     }
 
-    const gridSkeletonCount =
-        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
-
     return (
         <EntryPage
             entries={queryEntries}
-            favoritedEntries={favoritedList && queryEntries.filter(
-                entry => favoritedList.some((favorite) => favorite.id === entry.item.id)
-            )}
+            displayedEntryLabels={{ one: "document", other: "documents" }}
+            showFavoritesSection={showFavoritesSection}
+            favoritedEntries={favoritedQueryEntries}
             gridSkeletonCount={gridSkeletonCount}
             createOptionsElement={createOptionsElement}
             listColumnOptions={listColumnOptions}
