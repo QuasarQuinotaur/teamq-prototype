@@ -4,7 +4,7 @@ import * as React from "react"
 import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import { MoreHorizontalIcon } from "lucide-react";
+import {FileIcon, MoreHorizontalIcon} from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -293,7 +293,9 @@ export default function ContentCard({
                         </div>
                     ) : (
                         // FALLBACK 2 -> COLOR CARD
-                        <div className={`w-full h-full ${cardColor}`} />
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <FileIcon className="w-12 h-12 text-muted-foreground" />
+                        </div>
                     )}
                 </div>
 
