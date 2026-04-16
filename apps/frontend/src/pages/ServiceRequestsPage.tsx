@@ -3,9 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { addDays, isValid, parseISO, startOfDay } from "date-fns";
 import Fuse from "fuse.js";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
+import DocumentViewer from "@/components/DocumentViewer.tsx";
 import {
   ServiceRequestCard,
   type ServiceRequestAssignee,
+  type ServiceRequestLinkedDocument,
 } from "@/components/service-requests/ServiceRequests.tsx";
 import SearchBar from "@/components/paging/toolbar/SearchBar.tsx";
 import FilterButton from "@/components/paging/toolbar/FilterButton.tsx";
@@ -37,6 +39,7 @@ type ServiceRequestPayload = {
   status?: string;
   owner: EmployeePayload;
   employees: EmployeePayload[];
+  contents?: ServiceRequestLinkedDocument[];
 };
 
 function assigneesFromRequest(req: ServiceRequestPayload): ServiceRequestAssignee[] {
@@ -181,11 +184,14 @@ function sortRequests(
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
+type ViewerState = { url: string; filename: string; title: string };
+
 export default function ServiceRequestsPage() {
   const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState<ServiceRequestPayload[] | null>(null);
   const [meId, setMeId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<ViewerState | null>(null);
   const [searchPhrase, setSearchPhrase] = useState("");
   const [fieldsFilter, setFieldsFilter] = useState<ServiceRequestFieldsFilter>(() => ({
     ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER,
@@ -237,6 +243,24 @@ export default function ServiceRequestsPage() {
     setRequests((prev) => (prev == null ? prev : prev.filter((r) => r.id !== id)));
   }, []);
 
+  const handleLinkedDocumentOpen = useCallback(async (doc: ServiceRequestLinkedDocument) => {
+    const res = await fetch(`${base}/content/${doc.id}/download`, {
+      credentials: "include",
+    });
+    if (!res.ok) return;
+    const body: unknown = await res.json();
+    const url =
+      typeof body === "object" &&
+      body !== null &&
+      "url" in body &&
+      typeof (body as { url: unknown }).url === "string"
+        ? (body as { url: string }).url
+        : null;
+    if (!url) return;
+    const filename = doc.filePath?.split("/").pop()?.split("?")[0] ?? doc.title;
+    setViewer({ url, filename, title: doc.title });
+  }, []);
+
   const fuse = useMemo(() => {
     return new Fuse(requests ?? [], {
       keys: [
@@ -250,6 +274,11 @@ export default function ServiceRequestsPage() {
           name: "employees",
           getFn: (r) =>
             r.employees.map((e) => `${e.firstName} ${e.lastName}`).join(" "),
+        },
+        {
+          name: "contents",
+          getFn: (r) =>
+            (r.contents ?? []).map((c) => c.title).join(" "),
         },
         { name: "id", getFn: (r) => String(r.id) },
         { name: "status", getFn: (r) => r.status?.trim() ?? "" },
@@ -286,6 +315,17 @@ export default function ServiceRequestsPage() {
   }, [queryResults, meId]);
 
   const loading = requests === null && error === null;
+
+  if (viewer) {
+    return (
+      <DocumentViewer
+        url={viewer.url}
+        filename={viewer.filename}
+        title={viewer.title}
+        onClose={() => setViewer(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -355,6 +395,8 @@ export default function ServiceRequestsPage() {
                         assignedBy={assignedByFromOwner(req.owner)}
                         assignees={assigneesFromRequest(req)}
                         status={req.status ?? "to-do"}
+                        linkedDocuments={req.contents ?? []}
+                        onLinkedDocumentOpen={handleLinkedDocumentOpen}
                         onStatusUpdated={handleStatusUpdated}
                         onDeleted={handleDeleted}
                       />
@@ -380,6 +422,8 @@ export default function ServiceRequestsPage() {
                         assignedBy={assignedByFromOwner(req.owner)}
                         assignees={assigneesFromRequest(req)}
                         status={req.status ?? "to-do"}
+                        linkedDocuments={req.contents ?? []}
+                        onLinkedDocumentOpen={handleLinkedDocumentOpen}
                         onStatusUpdated={handleStatusUpdated}
                         onDeleted={handleDeleted}
                       />

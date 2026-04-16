@@ -1,7 +1,13 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { isValid, parseISO } from "date-fns";
-import { ChevronDownIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  FileIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +71,12 @@ export type ServiceRequestAssigner = {
   imageSrc?: string;
 };
 
+export type ServiceRequestLinkedDocument = {
+  id: number;
+  title: string;
+  filePath: string | null;
+};
+
 export type ServiceRequestCardProps = {
   id: string;
   title: string;
@@ -73,6 +85,8 @@ export type ServiceRequestCardProps = {
   assignedBy: ServiceRequestAssigner;
   assignees: ServiceRequestAssignee[];
   status: string;
+  linkedDocuments: ServiceRequestLinkedDocument[];
+  onLinkedDocumentOpen: (doc: ServiceRequestLinkedDocument) => void;
   onStatusUpdated?: (id: number, status: string) => void;
   onDeleted?: (id: number) => void;
   className?: string;
@@ -93,6 +107,8 @@ export function ServiceRequestCard({
   assignedBy,
   assignees,
   status,
+  linkedDocuments,
+  onLinkedDocumentOpen,
   onStatusUpdated,
   onDeleted,
   className,
@@ -284,33 +300,64 @@ export function ServiceRequestCard({
 
         <CollapsibleContent>
           <div className="border-t border-border bg-muted/15 px-3 py-3 text-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-              <div className="min-w-0 flex-1 space-y-3">
-                <p
-                  className={cn(
-                    "text-sm font-medium tabular-nums",
-                    dueLabel ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  Due: {dueLabel ?? "No due date"}
-                </p>
-                <p className="whitespace-pre-wrap text-foreground">
-                  {descriptionText ? descriptionText : "No description."}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:text-right">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Assigned by
-                </p>
-                <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1.5">
-                  <Avatar size="default" title={assignedBy.name}>
-                    {assignedBy.imageSrc ? (
-                      <AvatarImage src={assignedBy.imageSrc} alt="" />
-                    ) : null}
-                    <AvatarFallback>{initials(assignedBy.name)}</AvatarFallback>
-                  </Avatar>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <p
+                    className={cn(
+                      "text-sm font-medium tabular-nums",
+                      dueLabel ? "text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    Due: {dueLabel ?? "No due date"}
+                  </p>
+                  <p className="whitespace-pre-wrap text-foreground">
+                    {descriptionText ? descriptionText : "No description."}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:text-right">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Assigned by
+                  </p>
+                  <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1.5">
+                    <Avatar size="default" title={assignedBy.name}>
+                      {assignedBy.imageSrc ? (
+                        <AvatarImage src={assignedBy.imageSrc} alt="" />
+                      ) : null}
+                      <AvatarFallback>{initials(assignedBy.name)}</AvatarFallback>
+                    </Avatar>
+                  </div>
                 </div>
               </div>
+
+              {linkedDocuments.length > 0 ? (
+                <div className="border-t border-border/80 pt-3">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Linked documents
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {linkedDocuments.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => onLinkedDocumentOpen(doc)}
+                        className={cn(
+                          "flex h-12 max-h-12 min-w-0 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-left shadow-sm transition-colors",
+                          "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        )}
+                      >
+                        <FileIcon
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1 truncate text-xs font-medium leading-tight text-foreground">
+                          {doc.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </CollapsibleContent>

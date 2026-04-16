@@ -4,7 +4,7 @@ import * as React from "react"
 import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import {FileIcon, MoreHorizontalIcon} from "lucide-react";
+import {MoreHorizontalIcon} from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -13,11 +13,17 @@ import {
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
-import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 import type {Content} from "db";
 import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
+import ContentCardThumbnail, {
+    googleFaviconUrlForLink,
+    isPlainWebPageLink,
+    isSupabasePath,
+    useInViewOnce,
+    useMicrolinkLinkPreview,
+} from "@/components/cards/ContentCardThumbnail.tsx";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -28,10 +34,6 @@ type ContentWithCheckout = Content & {
         profileImageUrl?: string;
     } | null;
 };
-
-function isSupabasePath(link: string) {
-    return !link.startsWith("http://") && !link.startsWith("https://");
-}
 
 async function viewItem(link: string, item: object & { id: number }) {
     if (isSupabasePath(link)) {
@@ -66,15 +68,28 @@ export default function ContentCard({
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
 }: ContentCardProps) {
-    // Favicon-based image
-    const linkDomain = entry.link
-        .replace('https://', '')
-        .replace('http://', '')
-        .split('/')[0];
-
-    const linkFavicon = `https://www.google.com/s2/favicons?sz=128&domain=${linkDomain}`;
-
-    const cardColor = stringToAccentBgClass(entry.title)
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    const cardVisible = useInViewOnce(cardRef);
+    const plainWebLink = isPlainWebPageLink(entry);
+    const linkMicrolink = useMicrolinkLinkPreview(
+        entry.link,
+        cardVisible && plainWebLink,
+    );
+    const isExternalUrl = Boolean(entry.link && !isSupabasePath(entry.link));
+    /** Microlink site logo when available; otherwise hostname favicon — for every URL-based link card. */
+    const titleFaviconUrl = React.useMemo(() => {
+        if (!isExternalUrl || !entry.link) return null;
+        const fallback = googleFaviconUrlForLink(entry.link);
+        if (!plainWebLink) return fallback;
+        if (linkMicrolink.done && linkMicrolink.faviconUrl) return linkMicrolink.faviconUrl;
+        return fallback;
+    }, [
+        isExternalUrl,
+        entry.link,
+        plainWebLink,
+        linkMicrolink.done,
+        linkMicrolink.faviconUrl,
+    ]);
 
     const [cardHovered, setCardHovered] = React.useState(false);
     /** After collapse animation, restore single-line ellipsis; cleared on hover. */
@@ -108,78 +123,6 @@ export default function ContentCard({
             }
         };
     }, []);
-
-    // Get the pdf preview from the backend
-    const [thumbnail, setThumbnail] = React.useState<string | null>(null);
-    React.useEffect(() => {
-        const fetchThumbnail = async () => {
-            try {
-                // only for your stored files
-                if (!isSupabasePath(entry.link)) return;
-
-                const id = (entry.item as { id: number }).id;
-
-                const res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/thumbnail`,
-                    { credentials: "include" }
-                );
-
-                if (!res.ok) return;
-
-                const data = await res.json();
-
-                setThumbnail(data.thumbnailUrl);
-            } catch (err) {
-                console.error("Thumbnail fetch failed", err);
-            }
-        };
-
-        fetchThumbnail();
-    }, [entry]);
-
-    // Get the discord-style link preview from the backend
-    const [preview, setPreview] = React.useState<{
-        title?: string;
-        description?: string;
-        image?: string | null;
-    } | null>(null);
-
-
-    React.useEffect(() => {
-        // wrap function bc useEffect can't be async
-        const fetchPreview = async () => {
-            try {
-                // only run for external links, not PDFs or other stored files
-                if (isSupabasePath(entry.link)) return;
-
-
-                // call backend route
-                const res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/link-preview?url=${encodeURIComponent(entry.link)}`
-                );
-
-
-                if (!res.ok) return;
-
-
-                // convert response in JS object
-                const data = await res.json();
-
-
-                // store data, triger re-render
-                setPreview(data);
-
-
-            } catch (err) {
-                // log errors but don't break UI
-                console.error("Preview fetch failed", err);
-            }
-        };
-
-
-        fetchPreview();
-    }, [entry]); //" run this code whenever entry changes (for new cards)"
-
 
     function handleCardClick() {
         if (onView && isSupabasePath(entry.link)) {
@@ -215,6 +158,7 @@ export default function ContentCard({
 
     return (
         <CardContainer
+            ref={cardRef}
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
             onPointerEnter={handleCardPointerEnter}
@@ -224,24 +168,34 @@ export default function ContentCard({
                 <div className="flex w-full items-start justify-between gap-2">
                     <div
                         className={cn(
-                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out motion-reduce:transition-none",
+                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out",
                             cardHovered ? "max-h-24" : "max-h-[1.4em]",
                         )}
                     >
-                        <CardTitle
-                            className={cn(
-                                "min-w-0 break-words",
-                                titleCollapsedClamp && "line-clamp-1",
-                            )}
-                        >
-                            {entry.title}
-                        </CardTitle>
+                        <div className="flex min-w-0 items-start gap-2">
+                            {titleFaviconUrl ? (
+                                <img
+                                    src={titleFaviconUrl}
+                                    alt=""
+                                    className="mt-0.5 size-4 shrink-0 rounded-sm"
+                                    draggable={false}
+                                />
+                            ) : null}
+                            <CardTitle
+                                className={cn(
+                                    "min-w-0 flex-1 break-words",
+                                    titleCollapsedClamp && "line-clamp-1",
+                                )}
+                            >
+                                {entry.title}
+                            </CardTitle>
+                        </div>
 
                         {/* On hover: expiration — same motion as bottom badges */}
                         {expBadge && (
                             <div
                                 className={cn(
-                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:transition-none",
+                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out",
                                     cardHovered
                                         ? "translate-y-0"
                                         : "translate-y-[calc(200%+1.25rem)]",
@@ -274,37 +228,12 @@ export default function ContentCard({
                         checkedOut && "brightness-[0.45]",
                     )}
                 >
-                    {thumbnail ? (
-                        // PDFs
-                        <img
-                            src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
-                            className="w-full h-full object-cover"
-                            alt=""
-                        />
-                    ) : preview?.image ? (
-                        // LINKS - discord style preview
-                        <div className="w-full h-full flex items-center justify-center">
-                            <img
-                                src={preview.image}
-                                className="max-w-full max-h-full object-contain"
-                            />
-                        </div>
-
-                    ) : entry.link.startsWith("http") ? (
-                        // FALLBACK 1 ->  FAVICON
-                        <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                            <img
-                                src={linkFavicon}
-                                className="max-w-[60%] max-h-[60%] object-contain"
-                                alt=""
-                            />
-                        </div>
-                    ) : (
-                        // FALLBACK 2 -> COLOR CARD
-                        <div className="w-full h-full bg-muted/50 flex items-center justify-center">
-                            <FileIcon className="w-12 h-12 text-muted-foreground" />
-                        </div>
-                    )}
+                    <ContentCardThumbnail
+                        entry={entry}
+                        visible={cardVisible}
+                        linkMicrolink={plainWebLink ? linkMicrolink : undefined}
+                        linkTitleFaviconUrl={plainWebLink ? titleFaviconUrl : undefined}
+                    />
                 </div>
 
                 {checkedOut ? (
@@ -336,7 +265,7 @@ export default function ContentCard({
                 {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
                     <div
                         className={cn(
-                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:transition-none",
+                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out",
                             cardHovered
                                 ? "translate-y-0 scale-100"
                                 : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97]",
