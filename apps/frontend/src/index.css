@@ -166,14 +166,9 @@
     times, serif;
 }
 
-:root:where([data-theme="hanover blue"]) {
-  --app-font-heading:
-    "Roboto Slab Variable", "Roboto Slab", sans-serif;
-}
-
 :root:where([data-theme="retro"]) {
   --app-font-heading:
-    "Yantramanav Variable", "Yantramanav", sans-serif;
+    "Roboto Slab Variable", "Roboto Slab", sans-serif;
   --app-font-sans:
     "Yantramanav Variable", "Yantramanav", sans-serif;
 }

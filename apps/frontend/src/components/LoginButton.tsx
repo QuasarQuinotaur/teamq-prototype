@@ -16,7 +16,7 @@ function LoginButton({ animate }: { animate: boolean }) {
     >
       <Button
         variant="outline"
-        size="default"
+        size="lg"
         className="border-border bg-white text-slate-950 shadow-sm hover:bg-zinc-50 hover:text-slate-950 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-50"
         onClick={handleLogin}
       >
