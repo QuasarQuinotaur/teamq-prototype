@@ -2,12 +2,13 @@ const STORAGE_KEY = "hanover:data-theme";
 
 export const THEME_IDS = [
   "hanover blue",
+  "times",
+  "dark",
+  "quasar",
   "berry",
   "retro",
-  "quasar",
   "tritanomoly",
   "kylie",
-  "dark",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];

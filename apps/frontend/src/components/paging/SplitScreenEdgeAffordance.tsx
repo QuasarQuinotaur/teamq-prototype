@@ -15,7 +15,7 @@ export default function SplitScreenEdgeAffordance({ onActivate }: SplitScreenEdg
                 "pointer-events-none fixed top-(--spacing-navbar-height) right-0 z-30 hidden h-[calc(100dvh-var(--spacing-navbar-height))] w-16 md:block",
             )}
         >
-            <div className="group/strip pointer-events-auto flex h-full w-full items-center justify-end pr-0.5">
+            <div className="group/strip pointer-events-auto absolute top-1/2 right-0 flex h-64 w-20 -translate-y-1/2 items-center justify-end pr-0.5">
                 <button
                     type="button"
                     onClick={onActivate}
