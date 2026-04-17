@@ -39,6 +39,12 @@ type EntryPageProps<T> = {
     displayedEntryLabels?: { one: string; other: string };
     /** When true, shows a Favorites block above the main list (documents UI). */
     showFavoritesSection?: boolean;
+    /** When true, only the scrollable entry list/grid is rendered (parent supplies toolbar). */
+    omitToolbar?: boolean;
+    /** When true, grid view is always used (e.g. split-pane embeds). */
+    forceGridView?: boolean;
+    /** Extra classes on the scrollable content wrapper (e.g. tighter padding in split panes). */
+    contentClassName?: string;
 }
 export default function EntryPage<T extends object>({
                                                         cardGridProps,
@@ -49,6 +55,9 @@ export default function EntryPage<T extends object>({
                                                         favoritedEntries,
                                                         displayedEntryLabels,
                                                         showFavoritesSection = false,
+                                                        omitToolbar = false,
+                                                        forceGridView = false,
+                                                        contentClassName,
                                                         ...entryProps
 }: EntryPageProps<T> & EntryProps) {
     const { entries, createOptionsElement, listColumnOptions } = entryProps;
@@ -83,7 +92,8 @@ export default function EntryPage<T extends object>({
 
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
-    const { view, setView } = useMainContext()
+    const { view: contextView, setView } = useMainContext()
+    const view = forceGridView ? "Grid" : contextView
     const viewSelectorButtonProps: ViewSelectorButtonProps = {
         view, setView
     }
@@ -111,15 +121,13 @@ export default function EntryPage<T extends object>({
         )
     }
 
-    return (
-        <div className={"bg-muted/50 flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2"}>
-            {/*Toolbar for querying*/}
-            <Toolbar
-                extraElements={extraToolbarElements}
-                viewSelectorButtonProps={viewSelectorButtonProps}
-                queryProps={queryProps}
-            />
-            <div className="flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8">
+    const entryBody = (
+            <div
+                className={
+                    contentClassName ??
+                    "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8"
+                }
+            >
                 {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
                     <div
                         className={CARD_GRID_LAYOUT_CLASS}
@@ -188,6 +196,21 @@ export default function EntryPage<T extends object>({
                     )
                 ))}
             </div>
+    );
+
+    if (omitToolbar) {
+        return entryBody;
+    }
+
+    return (
+        <div className={"bg-muted/50 flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2"}>
+            <Toolbar
+                extraElements={extraToolbarElements}
+                viewSelectorButtonProps={viewSelectorButtonProps}
+                queryProps={queryProps}
+                showViewSelector={!forceGridView}
+            />
+            {entryBody}
         </div>
     )
 }

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Button } from "@/elements/buttons/button.tsx";
 import { addDays, isValid, parseISO, startOfDay } from "date-fns";
 import Fuse from "fuse.js";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
+import SplitDocumentWorkspace from "@/components/paging/SplitDocumentWorkspace.tsx";
+import { isDocumentLikeFilename } from "@/lib/document-kind.ts";
 import {
   ServiceRequestCard,
   type ServiceRequestAssignee,
@@ -184,14 +187,28 @@ function sortRequests(
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-type ViewerState = { url: string; filename: string; title: string };
+type ViewerState = {
+  contentId: number;
+  url: string;
+  filename: string;
+  title: string;
+};
+
+function filenameForLinkedDoc(d: ServiceRequestLinkedDocument): string {
+  return d.filePath?.split("/").pop()?.split("?")[0] ?? d.title;
+}
 
 export default function ServiceRequestsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState<ServiceRequestPayload[] | null>(null);
   const [meId, setMeId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<ViewerState | null>(null);
+  const [fullscreenDoc, setFullscreenDoc] = useState<ViewerState | null>(null);
+  const [splitMode, setSplitMode] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("split") === "1",
+  );
+  const [leftPaneDoc, setLeftPaneDoc] = useState<ViewerState | null>(null);
+  const [rightPaneDoc, setRightPaneDoc] = useState<ViewerState | null>(null);
   const [searchPhrase, setSearchPhrase] = useState("");
   const [fieldsFilter, setFieldsFilter] = useState<ServiceRequestFieldsFilter>(() => ({
     ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER,
@@ -202,6 +219,10 @@ export default function ServiceRequestsPage() {
   useEffect(() => {
     const next = presetFromSearchParams(searchParams);
     setFieldsFilter((f) => (f.preset === next ? f : { ...f, preset: next }));
+  }, [searchParams]);
+
+  useEffect(() => {
+    setSplitMode(searchParams.get("split") === "1");
   }, [searchParams]);
 
   useEffect(() => {
@@ -243,23 +264,140 @@ export default function ServiceRequestsPage() {
     setRequests((prev) => (prev == null ? prev : prev.filter((r) => r.id !== id)));
   }, []);
 
-  const handleLinkedDocumentOpen = useCallback(async (doc: ServiceRequestLinkedDocument) => {
-    const res = await fetch(`${base}/content/${doc.id}/download`, {
-      credentials: "include",
-    });
-    if (!res.ok) return;
-    const body: unknown = await res.json();
-    const url =
-      typeof body === "object" &&
-      body !== null &&
-      "url" in body &&
-      typeof (body as { url: unknown }).url === "string"
-        ? (body as { url: string }).url
-        : null;
-    if (!url) return;
-    const filename = doc.filePath?.split("/").pop()?.split("?")[0] ?? doc.title;
-    setViewer({ url, filename, title: doc.title });
+  const loadViewerFromLinkedDoc = useCallback(
+    async (doc: ServiceRequestLinkedDocument): Promise<ViewerState | null> => {
+      const res = await fetch(`${base}/content/${doc.id}/download`, {
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const body: unknown = await res.json();
+      const url =
+        typeof body === "object" &&
+        body !== null &&
+        "url" in body &&
+        typeof (body as { url: unknown }).url === "string"
+          ? (body as { url: string }).url
+          : null;
+      if (!url) return null;
+      const filename = filenameForLinkedDoc(doc);
+      return { contentId: doc.id, url, filename, title: doc.title };
+    },
+    [],
+  );
+
+  const handleLinkedDocumentOpen = useCallback(
+    async (doc: ServiceRequestLinkedDocument) => {
+      const state = await loadViewerFromLinkedDoc(doc);
+      if (state) setFullscreenDoc(state);
+    },
+    [loadViewerFromLinkedDoc],
+  );
+
+  const openDocInLeftPane = useCallback(
+    async (doc: ServiceRequestLinkedDocument) => {
+      const state = await loadViewerFromLinkedDoc(doc);
+      if (state) setLeftPaneDoc(state);
+    },
+    [loadViewerFromLinkedDoc],
+  );
+
+  const openDocInRightPane = useCallback(
+    async (doc: ServiceRequestLinkedDocument) => {
+      const state = await loadViewerFromLinkedDoc(doc);
+      if (state) setRightPaneDoc(state);
+    },
+    [loadViewerFromLinkedDoc],
+  );
+
+  const closeFullscreen = useCallback(() => {
+    setFullscreenDoc(null);
   }, []);
+
+  const enterSplitFromGrid = useCallback(() => {
+    setSplitMode(true);
+    setLeftPaneDoc(null);
+    setRightPaneDoc(null);
+    setFullscreenDoc(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("split", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const enterSplitFromFullscreen = useCallback(() => {
+    if (!fullscreenDoc) return;
+    setSplitMode(true);
+    setLeftPaneDoc(fullscreenDoc);
+    setRightPaneDoc(null);
+    setFullscreenDoc(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("split", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [fullscreenDoc, setSearchParams]);
+
+  const exitSplit = useCallback(() => {
+    setSplitMode(false);
+    setLeftPaneDoc(null);
+    setRightPaneDoc(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("split");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const clearLeftPaneDoc = useCallback(() => setLeftPaneDoc(null), []);
+  const clearRightPaneDoc = useCallback(() => setRightPaneDoc(null), []);
+
+  const leftDocPayload = useMemo(
+    () =>
+      leftPaneDoc
+        ? {
+            url: leftPaneDoc.url,
+            filename: leftPaneDoc.filename,
+            title: leftPaneDoc.title,
+          }
+        : null,
+    [leftPaneDoc],
+  );
+  const rightDocPayload = useMemo(
+    () =>
+      rightPaneDoc
+        ? {
+            url: rightPaneDoc.url,
+            filename: rightPaneDoc.filename,
+            title: rightPaneDoc.title,
+          }
+        : null,
+    [rightPaneDoc],
+  );
+
+  const linkedDocumentsUnique = useMemo(() => {
+    const map = new Map<number, ServiceRequestLinkedDocument>();
+    for (const r of requests ?? []) {
+      for (const c of r.contents ?? []) {
+        if (!map.has(c.id)) map.set(c.id, c);
+      }
+    }
+    return [...map.values()];
+  }, [requests]);
+
+  const pickableLinkedDocs = useMemo(
+    () => linkedDocumentsUnique.filter((d) => isDocumentLikeFilename(filenameForLinkedDoc(d))),
+    [linkedDocumentsUnique],
+  );
 
   const fuse = useMemo(() => {
     return new Fuse(requests ?? [], {
@@ -316,13 +454,90 @@ export default function ServiceRequestsPage() {
 
   const loading = requests === null && error === null;
 
-  if (viewer) {
+  const linkedDocPickerPane = (onPick: (doc: ServiceRequestLinkedDocument) => void) =>
+    pickableLinkedDocs.length === 0 ? (
+      <div className="flex h-full min-h-0 items-center justify-center p-4 text-center text-sm text-muted-foreground">
+        No document files linked to your requests yet, or none match the viewer.
+      </div>
+    ) : (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <p className="shrink-0 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Select a linked document for this pane
+        </p>
+        <ul className="min-h-0 flex-1 list-none overflow-y-auto p-2">
+          {pickableLinkedDocs.map((d) => (
+            <li key={d.id}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto min-h-10 w-full justify-start whitespace-normal px-3 py-2 text-left text-sm font-normal"
+                onClick={() => void onPick(d)}
+              >
+                {d.title}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+
+  if (splitMode) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center gap-3 px-4 pt-5 pb-5">
+          <SidebarTrigger className="-ml-1 shrink-0" />
+          <div className="min-w-0 max-w-[21rem] flex-1">
+            <SearchBar setFilter={setSearchPhrase} />
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="sm" type="button" onClick={exitSplit}>
+              Exit split
+            </Button>
+            <Link
+              to="/documents/service-requests/new"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              + New Request
+            </Link>
+            <FilterButton
+              emptyFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+              defaultFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+              fields={fieldsFilter}
+              setFields={setFieldsFilter}
+              createFieldsElement={FilterServiceRequestFields}
+            />
+            <SortButton
+              sortByMap={SERVICE_REQUEST_SORT_BY_MAP as Record<string, string>}
+              defaultSortFields={DEFAULT_SORT_FIELDS}
+              sortFields={sortFields}
+              setSortFields={setSortFields}
+            />
+          </div>
+        </header>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2 pb-4">
+          <SplitDocumentWorkspace
+            leftDoc={leftDocPayload}
+            rightDoc={rightDocPayload}
+            onLeftBackToGrid={clearLeftPaneDoc}
+            onRightBackToGrid={clearRightPaneDoc}
+            leftGrid={linkedDocPickerPane(openDocInLeftPane)}
+            rightGrid={linkedDocPickerPane(openDocInRightPane)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (fullscreenDoc) {
+    const canEnterSplit = isDocumentLikeFilename(fullscreenDoc.filename);
     return (
       <DocumentViewer
-        url={viewer.url}
-        filename={viewer.filename}
-        title={viewer.title}
-        onClose={() => setViewer(null)}
+        url={fullscreenDoc.url}
+        filename={fullscreenDoc.filename}
+        title={fullscreenDoc.title}
+        onClose={closeFullscreen}
+        canEnterSplit={canEnterSplit}
+        onEnterSplit={canEnterSplit ? enterSplitFromFullscreen : undefined}
       />
     );
   }
@@ -335,6 +550,9 @@ export default function ServiceRequestsPage() {
           <SearchBar setFilter={setSearchPhrase} />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" type="button" onClick={enterSplitFromGrid}>
+            Split view
+          </Button>
           <Link
             to="/documents/service-requests/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
