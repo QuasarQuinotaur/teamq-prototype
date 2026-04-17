@@ -8,11 +8,15 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/oxanium";
-
+@import "@fontsource/vt323";
+@import "@fontsource-variable/libre-baskerville";
+@import "@fontsource/ibm-plex-serif";
+@import "@fontsource/yantramanav";
+@import "@fontsource-variable/roboto-slab";
 
 @theme inline {
-  --font-heading: 'Inter Variable', sans-serif;
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-heading: var(--app-font-heading);
+  --font-sans: var(--app-font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -59,44 +63,12 @@
   --theme-highlight: #0069A8FF;
 }
 
-&:where([data-theme="berry"]) {
-  --theme-background: #BCF0DD;
-  --theme-foreground: #642B44;
-  --theme-background-accent: #479071;
-  --theme-foreground-accent: #A31455;
-  --theme-highlight: #480ca1;
-}
-
-&:where([data-theme="retro"]) {
-  --theme-background: #FAECB6;
-  --theme-foreground: #288AA5;
-  --theme-background-accent: #F9A822;
-  --theme-foreground-accent: #56c5ab;
-  --theme-highlight: #F96635;
-}
-
-&:where([data-theme="quasar"]) {
-  --theme-background: #D99CCA;
-  --theme-foreground: #A62D7B;
-  --theme-background-accent: #BD79A8;
-  --theme-foreground-accent: #A63A82;
-  --theme-highlight: #C25DA9;
-}
-
-&:where([data-theme="tritanomoly"]) {
-  --theme-background: #CAD2C5;
-  --theme-foreground: #2F3E46;
-  --theme-background-accent: #84A98C;
-  --theme-foreground-accent: #354F52;
-  --theme-highlight: #52796F;
-}
-
-&:where([data-theme="kylie"]) {
-  --theme-background: #D99CCA;
-  --theme-foreground: #A62D7B;
-  --theme-background-accent: #BD79A8;
-  --theme-foreground-accent: #A63A82;
-  --theme-highlight: #C25DA9;
+&:where([data-theme="times"]) {
+  --theme-background: #faf8f5;
+  --theme-foreground: #292524;
+  --theme-background-accent: #e7e5e4;
+  --theme-foreground-accent: #151515;
+  --theme-highlight: #5a5a5a;
 }
 
 &:where([data-theme="dark"]) {
@@ -107,8 +79,50 @@
   --theme-highlight: #55aee8;
 }
 
+&:where([data-theme="quasar"]) {
+  --theme-background: #421536;
+  --theme-foreground: #ebbbe2;
+  --theme-background-accent: #66174e;
+  --theme-foreground-accent: #A63A82;
+  --theme-highlight: #C25DA9;
+}
+
+&:where([data-theme="berry"]) {
+  --theme-background: #BCF0DD;
+  --theme-foreground: #642B44;
+  --theme-background-accent: #479071;
+  --theme-foreground-accent: #A31455;
+  --theme-highlight: #480ca1;
+}
+
+&:where([data-theme="retro"]) {
+  --theme-background: #f4f4f3;
+  --theme-foreground: #288AA5;
+  --theme-background-accent: #efefef;
+  --theme-foreground-accent: #05456f;
+  --theme-highlight: #F96635;
+}
+
+&:where([data-theme="kylie"]) {
+  --theme-background: #ba65a4;
+  --theme-foreground: #5d1343;
+  --theme-background-accent: #d290bd;
+  --theme-foreground-accent: #7e205f;
+  --theme-highlight: #f5e0f0;
+}
+
+&:where([data-theme="tritanomoly"]) {
+  --theme-background: #eaf0e6;
+  --theme-foreground: #2F3E46;
+  --theme-background-accent: #b0bab2;
+  --theme-foreground-accent: #354F52;
+  --theme-highlight: #80b5a7;
+}
+
 :root {
   /*----------Variable Setup-----------*/
+  --app-font-sans: "Geist Variable", sans-serif;
+  --app-font-heading: "Inter Variable", sans-serif;
   --background: var(--theme-background);
   --foreground: var(--theme-foreground);
   --card: var(--theme-background);
@@ -138,6 +152,27 @@
   --sidebar-ring: var(--theme-foreground);
   --hanover-blue: var(--theme-foreground-accent);
 }
+
+/*
+ * Times: Libre Baskerville (Baskerville) for headings; Helserif if installed locally,
+ * else IBM Plex Serif as a similar geometric serif fallback (Helserif is not bundled—URW).
+ */
+:root:where([data-theme="times"]) {
+  --app-font-heading:
+    "Libre Baskerville Variable", "Libre Baskerville", baskerville, "Baskerville Old Face",
+    "Goudy Old Style", "Palatino Linotype", palatino, "Times New Roman", serif;
+  --app-font-sans:
+    "Helserif", "Helserif Std", "Helserif Std Book", "IBM Plex Serif", "Times New Roman",
+    times, serif;
+}
+
+:root:where([data-theme="retro"]) {
+  --app-font-heading:
+    "Roboto Slab Variable", "Roboto Slab", sans-serif;
+  --app-font-sans:
+    "Yantramanav Variable", "Yantramanav", sans-serif;
+}
+
 
 :root:where([data-theme="dark"]) {
   --destructive: #f14445;
@@ -188,6 +223,14 @@
   }
   html {
     @apply font-sans;
+  }
+  html:where([data-theme="retro"]) {
+    font-size: 100%;
+    line-height: 3;
+    -webkit-font-smoothing: antialiased;
+  }
+  html:where([data-theme="times"]) :is(h1, h2, h3, h4) {
+    font-family: var(--font-heading);
   }
   h1 {
     @apply scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl;

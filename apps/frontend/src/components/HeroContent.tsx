@@ -4,7 +4,7 @@ function HeroContent({ animate }: { animate: boolean }) {
      : '';
 
   return (
-    <div className="relative z-10 flex h-full items-center pl-16 select-none text-white">
+    <div className="absolute inset-0 z-10 flex items-center pl-8 select-none text-white md:pl-16">
       <div className="max-w-xl space-y-6">
         <img
           src="/CombinationMark.png"

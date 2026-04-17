@@ -81,14 +81,14 @@ export default function EntryPage<T extends object>({
         showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
 
     // Pagination
-    const entriesPerPage = 10;
+    const entriesPerPage = omitToolbar ? 5 : 6;
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
     const updatePageEntries = useCallback((viewPageNum: number) => {
         const first = entriesPerPage*(viewPageNum-1)
         const last = entriesPerPage*(viewPageNum)
         setPageEntries(entries.slice(first, last))
-    }, [entries])
+    }, [entries, entriesPerPage])
 
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
@@ -125,7 +125,7 @@ export default function EntryPage<T extends object>({
             <div
                 className={
                     contentClassName ??
-                    "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8"
+                    "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0"
                 }
             >
                 {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
@@ -164,11 +164,11 @@ export default function EntryPage<T extends object>({
                                 <h2 className={favoritesHeadingClass}>Favorites</h2>
                                 {createCardList(favoritedEntries ?? [])}
                             </section>
-                            <section className="flex flex-col gap-2">
+                            <section className="flex min-h-0 flex-1 flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>All documents</h2>
                                 {resultCountLine}
                                 {createCardList(pageEntries)}
-                                <div>
+                                <div className="sticky bottom-0 mt-auto border-t border-border/70 py-2">
                                     <Pagination
                                         docNum={entries.length}
                                         docsPerPage={entriesPerPage}
@@ -180,10 +180,10 @@ export default function EntryPage<T extends object>({
                             </section>
                         </>
                     ) : (
-                        <>
+                        <div className="flex min-h-0 flex-1 flex-col">
                             {resultCountLine}
                             {createCardList(pageEntries)}
-                            <div>
+                            <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
                                 <Pagination
                                     docNum={entries.length}
                                     docsPerPage={entriesPerPage}
@@ -192,7 +192,7 @@ export default function EntryPage<T extends object>({
                                     updatePageEntries={updatePageEntries}
                                 />
                             </div>
-                        </>
+                        </div>
                     )
                 ))}
             </div>
@@ -203,7 +203,7 @@ export default function EntryPage<T extends object>({
     }
 
     return (
-        <div className={"bg-muted/50 flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2"}>
+        <div className={"bg-muted/50 flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl pt-2"}>
             <Toolbar
                 extraElements={extraToolbarElements}
                 viewSelectorButtonProps={viewSelectorButtonProps}

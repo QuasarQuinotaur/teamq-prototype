@@ -491,7 +491,7 @@ export default function ContentEntryPage({
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };
 
     const embeddedContentClassName =
-        "flex flex-col flex-1 min-h-0 overflow-auto px-1 pb-4 pt-1";
+        "flex flex-col flex-1 min-h-0 overflow-auto px-1 pb-0 pt-3";
 
     if (splitMode) {
         const leftPaneEntryPage = (
@@ -506,7 +506,6 @@ export default function ContentEntryPage({
                 listColumnOptions={listColumnOptions}
                 onListRowClick={openDocInLeftPane}
                 omitToolbar
-                forceGridView
                 contentClassName={embeddedContentClassName}
                 cardGridProps={{
                     renderCard: (state) => (
@@ -534,7 +533,6 @@ export default function ContentEntryPage({
                 listColumnOptions={listColumnOptions}
                 onListRowClick={openDocInRightPane}
                 omitToolbar
-                forceGridView
                 contentClassName={embeddedContentClassName}
                 cardGridProps={{
                     renderCard: (state) => (
@@ -561,7 +559,7 @@ export default function ContentEntryPage({
                     ]}
                     viewSelectorButtonProps={viewSelectorButtonProps}
                     queryProps={queryProps}
-                    showViewSelector={false}
+                    showViewSelector
                 />
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col px-1 pb-2">
                     <SplitDocumentWorkspace
@@ -603,7 +601,7 @@ export default function ContentEntryPage({
                 listColumnOptions={listColumnOptions}
                 onListRowClick={handleViewFullscreen}
                 contentClassName={cn(
-                    "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-8",
+                    "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-0",
                     "pr-3 md:pr-12",
                 )}
                 cardGridProps={{

@@ -54,6 +54,16 @@ export default function SettingsForm({
             themeDescription="A simple and sleek color scheme based on Hanover Blue"
           />
           <ThemeOption
+            themeName="Times"
+            themeValue="times"
+            themeDescription="Newsprint palette with Baskerville headings and Helserif body text"
+          />
+          <ThemeOption
+            themeName="Dark"
+            themeValue="dark"
+            themeDescription="Low-light surfaces with cool blue accents"
+          />
+          <ThemeOption
             themeName="Berry"
             themeValue="berry"
             themeDescription="A vibrant pink and green theme to make your documents pop!"
@@ -77,11 +87,6 @@ export default function SettingsForm({
             themeName="Kylie"
             themeValue="kylie"
             themeDescription="A very, VERY pink theme."
-          />
-          <ThemeOption
-            themeName="Dark"
-            themeValue="dark"
-            themeDescription="Low-light surfaces with cool blue accents"
           />
         </RadioGroup>
       </FieldSet>

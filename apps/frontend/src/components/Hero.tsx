@@ -1,16 +1,17 @@
 import React from 'react';
 import LoginButton from './LoginButton';
 import HeroContent from './HeroContent';
+import { cn } from '@/lib/utils';
 
 const HERO_BG = '/hero-hanover-hq.png';
 
-function Hero() {
+function Hero({ className }: { className?: string }) {
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   return (
-    <div className="relative h-screen overflow-hidden">
+    <div className={cn("relative overflow-hidden", className)}>
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${HERO_BG})` }}
