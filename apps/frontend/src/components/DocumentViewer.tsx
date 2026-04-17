@@ -82,13 +82,71 @@ const DOC_VIEWER_STATIC_CONFIG = {
  * so the sibling split pane updating does not re-run react-doc-viewer.
  */
 const DocumentCanvas = React.memo(function DocumentCanvas({ url, filename }: { url: string; filename: string }) {
+    const canvasRef = React.useRef<HTMLDivElement | null>(null);
+
     const documents = React.useMemo<IDocument[]>(
         () => [{ uri: url, fileName: filename }],
         [url, filename],
     );
 
+    React.useEffect(() => {
+        const root = canvasRef.current;
+        if (!root) return;
+
+        const parseScale = (transformValue: string): number | null => {
+            const match = /scale\(([\d.]+)\)/.exec(transformValue);
+            if (!match) return null;
+            const parsed = Number.parseFloat(match[1]);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+        };
+
+        const syncNonPdfZoom = () => {
+            const wrappers = root.querySelectorAll<HTMLElement>(".rdv-common-content-wrapper");
+
+            wrappers.forEach((wrapper) => {
+                const renderedDoc = wrapper.firstElementChild;
+                if (!(renderedDoc instanceof HTMLElement)) return;
+
+                // Library writes scale on wrapper. Capture it before neutralizing wrapper transform.
+                const inlineScale = parseScale(wrapper.style.transform);
+                if (inlineScale != null) {
+                    wrapper.dataset.docZoomScale = String(inlineScale);
+                }
+
+                const activeScale = Number.parseFloat(wrapper.dataset.docZoomScale ?? "1");
+                const normalizedScale = Number.isFinite(activeScale) && activeScale > 0 ? activeScale : 1;
+                const desiredZoom = String(normalizedScale);
+
+                if (wrapper.style.transform !== "none") {
+                    wrapper.style.transform = "none";
+                }
+                if (wrapper.style.transformOrigin !== "") {
+                    wrapper.style.transformOrigin = "";
+                }
+                if (renderedDoc.style.zoom !== desiredZoom) {
+                    renderedDoc.style.zoom = desiredZoom;
+                }
+            });
+        };
+
+        syncNonPdfZoom();
+
+        const observer = new MutationObserver(() => {
+            syncNonPdfZoom();
+        });
+
+        observer.observe(root, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ["style"],
+        });
+
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div className="flex-1 min-h-0 w-full flex flex-col [&_#react-doc-viewer]:min-h-0 [&_#react-doc-viewer]:h-full">
+        <div ref={canvasRef} className="flex-1 min-h-0 w-full flex flex-col [&_#react-doc-viewer]:min-h-0 [&_#react-doc-viewer]:h-full">
             <DocViewer
                 key={url}
                 documents={documents}
