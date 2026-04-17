@@ -406,9 +406,9 @@ export default function ContentEntryPage({
             </>
             const checkoutBlocksActions = item.isCheckedOut === true;
 
-            const isOwner = employee && item.ownerId === employee.id;
+            const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
             const isAdmin = employee && employee.jobPosition === "admin";
-            const canModify = isOwner || isAdmin;
+            const canModify = isJobPosition || isAdmin;
             const editError = canModify ? null : "You do not have authorization to edit this content."
             const deleteError = canModify ? null : "You do not have authorization to delete this content."
 
