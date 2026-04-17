@@ -1,4 +1,8 @@
 @import "tailwindcss";
+
+/* Class or data-theme dark for `dark:` utilities (Tailwind v4 defaults to prefers-color-scheme). */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
@@ -95,6 +99,14 @@
   --theme-highlight: #C25DA9;
 }
 
+&:where([data-theme="dark"]) {
+  --theme-background: #0e141e;
+  --theme-foreground: #eff2f7;
+  --theme-background-accent: #1d2736;
+  --theme-foreground-accent: #3882c3;
+  --theme-highlight: #55aee8;
+}
+
 :root {
   /*----------Variable Setup-----------*/
   --background: var(--theme-background);
@@ -127,6 +139,9 @@
   --hanover-blue: var(--theme-foreground-accent);
 }
 
+:root:where([data-theme="dark"]) {
+  --destructive: #f14445;
+}
 
 @keyframes hero-fade-in {
   from {
