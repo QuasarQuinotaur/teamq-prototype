@@ -45,6 +45,8 @@ type EntryPageProps<T> = {
     forceGridView?: boolean;
     /** Extra classes on the scrollable content wrapper (e.g. tighter padding in split panes). */
     contentClassName?: string;
+    /** List view only: rows per page before pagination. Defaults to 6 (5 when omitToolbar). */
+    listEntriesPerPage?: number;
 }
 export default function EntryPage<T extends object>({
                                                         cardGridProps,
@@ -58,6 +60,7 @@ export default function EntryPage<T extends object>({
                                                         omitToolbar = false,
                                                         forceGridView = false,
                                                         contentClassName,
+                                                        listEntriesPerPage,
                                                         ...entryProps
 }: EntryPageProps<T> & EntryProps) {
     const { entries, createOptionsElement, listColumnOptions } = entryProps;
@@ -80,8 +83,9 @@ export default function EntryPage<T extends object>({
     const showFavoritesWithEntries =
         showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
 
-    // Pagination
-    const entriesPerPage = omitToolbar ? 5 : 6;
+    // Pagination (list view)
+    const entriesPerPage =
+        listEntriesPerPage ?? (omitToolbar ? 5 : 6);
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
     const updatePageEntries = useCallback((viewPageNum: number) => {
@@ -112,7 +116,6 @@ export default function EntryPage<T extends object>({
     function createCardList(listEntries: CardEntry[]) {
         return (
             <CardList
-                {...listEntries}
                 {...entryProps}
                 entries={listEntries}
                 onRowClick={onListRowClick}

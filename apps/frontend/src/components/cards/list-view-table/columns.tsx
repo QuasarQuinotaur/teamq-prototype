@@ -4,6 +4,8 @@ import * as React from "react"
 
 export type CreateColumnsOptions = {
     renderTitleCell?: (entry: CardEntry) => React.ReactNode;
+    /** When true, hides the expiration column (documents-only). */
+    omitExpiration?: boolean;
 };
 
 // Legacy mock type (kept for reference)
@@ -34,7 +36,10 @@ export function createColumns(
             accessorKey: "owner",
             header: "Owner",
         },
-        {
+    ];
+
+    if (!options?.omitExpiration) {
+        cols.push({
             accessorKey: "expirationDate",
             header: "Expiration",
             cell: ({ getValue }) => {
@@ -50,17 +55,18 @@ export function createColumns(
                     year: "numeric",  // 2026
                 });
             },
+        });
+    }
+
+    cols.push({
+        accessorKey: "badge",
+        header: "Type",
+        cell: ({ row }) => {
+            const badge = row.original.badge;
+            if (!badge) return null;
+            return badge.charAt(0).toUpperCase() + badge.slice(1);
         },
-        {
-            accessorKey: "badge",
-            header: "Type",
-            cell: ({ row }) => {
-                const badge = row.original.badge;
-                if (!badge) return null;
-                return badge.charAt(0).toUpperCase() + badge.slice(1);
-            },
-        },
-    ];
+    });
 
     if (createOptionsElement) {
         cols.push({
