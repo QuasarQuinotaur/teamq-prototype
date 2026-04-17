@@ -9,6 +9,7 @@ import {
     FieldTitle,
 } from "@/components/forms/Field"
 import { RadioGroup, RadioGroupItem } from "@/elements/radio-group"
+import { Separator } from "@/elements/separator.tsx"
 
 function ThemeOption( props: {themeName: string, themeDescription: string} ) {
     const themeName = props.themeName
@@ -40,7 +41,8 @@ export default function SettingsForm( { onThemeChange }) {
                 <FieldDescription>
                     Select the color scheme for your work environment!
                 </FieldDescription>
-                <RadioGroup defaultValue={theme} onValueChange={onThemeChange}>
+                <Separator />
+                <RadioGroup className="grid grid-flow-row grid-cols-3" defaultValue={theme} onValueChange={onThemeChange}>
                     <ThemeOption themeName="Hanover Blue" themeDescription="A simple and sleek color scheme based on Hanover Blue" />
                     <ThemeOption themeName="Berry" themeDescription="A vibrant pink and green theme to make your documents pop!" />
                     <ThemeOption themeName="Retro" themeDescription="A 70's based color scheme to remember the good ol' days." />
