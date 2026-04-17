@@ -10,6 +10,7 @@ import {
 } from "@/components/forms/Field";
 import { RadioGroup, RadioGroupItem } from "@/elements/radio-group";
 import type { ThemeId } from "@/lib/theme.ts";
+import { Separator } from "@/elements/separator.tsx"
 
 function ThemeOption(props: {
   themeName: string;
@@ -39,13 +40,14 @@ export default function SettingsForm({
   onThemeChange: (value: string) => void;
 }) {
   return (
-    <FieldGroup className="w-full max-w-xs">
+    <FieldGroup className="w-full">
       <FieldSet>
         <FieldLegend variant="label">Website Theme</FieldLegend>
         <FieldDescription>
           Select the color scheme for your work environment!
         </FieldDescription>
-        <RadioGroup value={theme} onValueChange={onThemeChange}>
+        <Separator />
+        <RadioGroup className="grid grid-flow-row grid-cols-3" value={theme} onValueChange={onThemeChange}>
           <ThemeOption
             themeName="Hanover Blue"
             themeValue="hanover blue"

@@ -167,7 +167,7 @@ export default function Pagination({
 
   return (
       <>
-        <div className="flex items-center justify-center pt-10">
+        <div className="flex items-center justify-center pt-5 fixed">
           <PaginationContainer className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem className={prevExists}>
