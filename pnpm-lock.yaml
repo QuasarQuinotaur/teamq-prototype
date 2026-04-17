@@ -127,10 +127,16 @@ importers:
       '@fontsource-variable/oxanium':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource-variable/roboto-slab':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@fontsource/ibm-plex-serif':
         specifier: ^5.2.7
         version: 5.2.7
       '@fontsource/vt323':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/yantramanav':
         specifier: ^5.2.7
         version: 5.2.7
       '@iamjariwala/react-doc-viewer':
@@ -748,11 +754,17 @@ packages:
   '@fontsource-variable/oxanium@5.2.8':
     resolution: {integrity: sha512-W3HWxRLXVB6yox3dgm1DIGOp98pz8KglwiM6/2BsMopvZrg98mXI9citFWz2pUX0FOOLwf8fmHxX+KrIn+6BoA==}
 
+  '@fontsource-variable/roboto-slab@5.2.8':
+    resolution: {integrity: sha512-cdvOSwocP50xS01gXqnGxw7uFcCZQgn1IDlqiAmNuZP4uEVScYAKMDC+aWsbP1grn9QdMJ2frhcuVBNXniBVGA==}
+
   '@fontsource/ibm-plex-serif@5.2.7':
     resolution: {integrity: sha512-04owmc2OQQ/DAMjXjEMJc+7V4dBVmR01aIFOg4cuqS8pQ4HbvtlYs/u6+O0vCt21EMx5M/azIbgx43iKyisEOA==}
 
   '@fontsource/vt323@5.2.7':
     resolution: {integrity: sha512-8JTMM23vMhQxin9Cn/ijty8cNwXW4INrln0VAJ2227Rz0CVfkzM3qr3l/CqudZJ6BXCnbCGUTdf2ym3cTNex8A==}
+
+  '@fontsource/yantramanav@5.2.7':
+    resolution: {integrity: sha512-wU/VF9GhdyMm7Rd6A0Vdmrfw6Jh+Ri3/e5mXjW2YgV/S9R5pzmZjC7ithjo+EMzkUU5lJTVXTOUzXl6mJkQdfQ==}
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -6113,9 +6125,13 @@ snapshots:
 
   '@fontsource-variable/oxanium@5.2.8': {}
 
+  '@fontsource-variable/roboto-slab@5.2.8': {}
+
   '@fontsource/ibm-plex-serif@5.2.7': {}
 
   '@fontsource/vt323@5.2.7': {}
+
+  '@fontsource/yantramanav@5.2.7': {}
 
   '@hapi/hoek@9.3.0': {}
 

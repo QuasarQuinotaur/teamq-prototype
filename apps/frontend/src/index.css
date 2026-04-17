@@ -11,6 +11,8 @@
 @import "@fontsource/vt323";
 @import "@fontsource-variable/libre-baskerville";
 @import "@fontsource/ibm-plex-serif";
+@import "@fontsource/yantramanav";
+@import "@fontsource-variable/roboto-slab";
 
 @theme inline {
   --font-heading: var(--app-font-heading);
@@ -102,11 +104,11 @@
 }
 
 &:where([data-theme="kylie"]) {
-  --theme-background: #D99CCA;
-  --theme-foreground: #A62D7B;
-  --theme-background-accent: #BD79A8;
-  --theme-foreground-accent: #A63A82;
-  --theme-highlight: #C25DA9;
+  --theme-background: #ba65a4;
+  --theme-foreground: #5d1343;
+  --theme-background-accent: #d290bd;
+  --theme-foreground-accent: #7e205f;
+  --theme-highlight: #f5e0f0;
 }
 
 &:where([data-theme="tritanomoly"]) {
@@ -162,6 +164,18 @@
   --app-font-sans:
     "Helserif", "Helserif Std", "Helserif Std Book", "IBM Plex Serif", "Times New Roman",
     times, serif;
+}
+
+:root:where([data-theme="hanover blue"]) {
+  --app-font-heading:
+    "Roboto Slab Variable", "Roboto Slab", sans-serif;
+}
+
+:root:where([data-theme="retro"]) {
+  --app-font-heading:
+    "Yantramanav Variable", "Yantramanav", sans-serif;
+  --app-font-sans:
+    "Yantramanav Variable", "Yantramanav", sans-serif;
 }
 
 
