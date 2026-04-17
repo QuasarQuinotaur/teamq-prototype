@@ -12,11 +12,16 @@ import { cn } from "@/lib/utils.ts"
 import { Button, buttonVariants } from "@/elements/buttons/button.tsx"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
+const DEFAULT_START_MONTH = new Date(1900, 0)
+const DEFAULT_END_MONTH = new Date(new Date().getFullYear() + 25, 11)
+
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = "label",
+  captionLayout = "dropdown",
+  startMonth = DEFAULT_START_MONTH,
+  endMonth = DEFAULT_END_MONTH,
   buttonVariant = "ghost",
   locale,
   formatters,
@@ -38,6 +43,8 @@ function Calendar({
         className
       )}
       captionLayout={captionLayout}
+      startMonth={startMonth}
+      endMonth={endMonth}
       locale={locale}
       formatters={{
         formatMonthDropdown: (date) =>
