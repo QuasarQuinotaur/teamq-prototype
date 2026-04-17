@@ -406,7 +406,7 @@ export default function ContentEntryPage({
             </>
             const checkoutBlocksActions = item.isCheckedOut === true;
 
-            const isJobPosition = item.jobPositions.includes(employee.jobPosition);
+            const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
             const isAdmin = employee && employee.jobPosition === "admin";
             const canModify = isJobPosition || isAdmin;
             const editError = canModify ? null : "You do not have authorization to edit this content."
