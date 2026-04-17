@@ -25,18 +25,23 @@ type ToolbarProps<T> = {
     queryProps: QueryProps<T>;
     viewSelectorButtonProps: ViewSelectorButtonProps;
     extraElements?: React.ReactNode[];
+    /** When false, grid/list toggle is hidden (e.g. embedded grids in split view). */
+    showViewSelector?: boolean;
 };
 export default function Toolbar<T extends object>({
                                                       queryProps,
                                                       viewSelectorButtonProps,
                                                       extraElements,
+                                                      showViewSelector = true,
 }: ToolbarProps<T>) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
         queryProps.filterButtonProps && <FilterButton {...queryProps.filterButtonProps} />,
         queryProps.sortButtonProps && <SortButton {...queryProps.sortButtonProps} />,
-        <ViewSelectorButton {...viewSelectorButtonProps} />,
-    )
+    );
+    if (showViewSelector) {
+        topRightElements.push(<ViewSelectorButton {...viewSelectorButtonProps} />);
+    }
 
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
