@@ -21,6 +21,10 @@ export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
     listColumnOptions?: CreateColumnsOptions;
+    /** When true, cards/list rows support multi-select for bulk actions. */
+    selectMode?: boolean;
+    isEntrySelected?: (entry: CardEntry) => boolean;
+    onToggleEntrySelect?: (entry: CardEntry) => void;
 }
 
 // T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
@@ -47,6 +51,10 @@ type EntryPageProps<T> = {
     contentClassName?: string;
     /** List view only: rows per page before pagination. Defaults to 6 (5 when omitToolbar). */
     listEntriesPerPage?: number;
+    /** Passed to Toolbar: content after search (e.g. Cancel in multi-select). */
+    toolbarLeadingSlot?: React.ReactNode;
+    /** Passed to Toolbar: centered content (e.g. selection count). */
+    toolbarCenterSlot?: React.ReactNode;
 }
 export default function EntryPage<T extends object>({
                                                         cardGridProps,
@@ -61,9 +69,18 @@ export default function EntryPage<T extends object>({
                                                         forceGridView = false,
                                                         contentClassName,
                                                         listEntriesPerPage,
+                                                        toolbarLeadingSlot,
+                                                        toolbarCenterSlot,
                                                         ...entryProps
 }: EntryPageProps<T> & EntryProps) {
-    const { entries, createOptionsElement, listColumnOptions } = entryProps;
+    const {
+        entries,
+        createOptionsElement,
+        listColumnOptions,
+        selectMode,
+        isEntrySelected,
+        onToggleEntrySelect,
+    } = entryProps;
 
     const resultCountLine =
         displayedEntryLabels != null ? (
@@ -212,6 +229,8 @@ export default function EntryPage<T extends object>({
                 viewSelectorButtonProps={viewSelectorButtonProps}
                 queryProps={queryProps}
                 showViewSelector={!forceGridView}
+                toolbarLeadingSlot={toolbarLeadingSlot}
+                toolbarCenterSlot={toolbarCenterSlot}
             />
             {entryBody}
         </div>

@@ -4,7 +4,7 @@ import * as React from "react"
 import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import {MoreHorizontalIcon} from "lucide-react";
+import { Check, MoreHorizontalIcon } from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -70,6 +70,9 @@ export default function ContentCard({
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
                                         viewerEmployeeId,
+                                        selectMode,
+                                        selected,
+                                        onSelectToggle,
 }: ContentCardProps) {
     const cardRef = React.useRef<HTMLDivElement>(null);
     const cardVisible = useInViewOnce(cardRef);
@@ -128,6 +131,10 @@ export default function ContentCard({
     }, []);
 
     function handleCardClick() {
+        if (selectMode && onSelectToggle) {
+            onSelectToggle();
+            return;
+        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
@@ -285,6 +292,18 @@ export default function ContentCard({
                     </div>
                 ) : null}
             </div>
+            {selectMode && selected ? (
+                <div
+                    className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
+                    aria-hidden
+                >
+                    <Check
+                        className="size-10 text-white drop-shadow-md"
+                        strokeWidth={2.75}
+                        aria-hidden
+                    />
+                </div>
+            ) : null}
         </CardContainer>
     )
 }

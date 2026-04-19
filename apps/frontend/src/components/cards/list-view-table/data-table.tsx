@@ -20,6 +20,9 @@ interface DataTableProps<TData, TValue> {
     data: TData[]
     /** When set, clicking a row (outside buttons/links) invokes this handler. */
     onRowClick?: (row: TData) => void
+    /** Highlights rows when true and `isRowSelected` returns true (e.g. multi-select). */
+    selectMode?: boolean
+    isRowSelected?: (row: TData) => boolean
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -35,6 +38,8 @@ export function DataTable<TData, TValue>({
                                              columns,
                                              data,
                                              onRowClick,
+                                             selectMode,
+                                             isRowSelected,
                                          }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -69,7 +74,12 @@ export function DataTable<TData, TValue>({
                             <TableRow
                                 key={row.id}
                                 data-state={row.getIsSelected() && "selected"}
-                                className={cn(onRowClick && "cursor-pointer")}
+                                className={cn(
+                                    onRowClick && "cursor-pointer",
+                                    selectMode &&
+                                        isRowSelected?.(row.original) &&
+                                        "bg-primary/25",
+                                )}
                                 onClick={
                                     onRowClick
                                         ? (e) => {

@@ -6,6 +6,9 @@ export type CreateColumnsOptions = {
     renderTitleCell?: (entry: CardEntry) => React.ReactNode;
     /** When true, hides the expiration column (documents-only). */
     omitExpiration?: boolean;
+    selectMode?: boolean;
+    isEntrySelected?: (entry: CardEntry) => boolean;
+    onToggleEntrySelect?: (entry: CardEntry) => void;
 };
 
 // Legacy mock type (kept for reference)
@@ -20,7 +23,32 @@ export function createColumns(
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode,
     options?: CreateColumnsOptions,
 ): ColumnDef<CardEntry>[] {
-    const cols: ColumnDef<CardEntry>[] = [
+    const cols: ColumnDef<CardEntry>[] = [];
+
+    if (options?.selectMode && options.isEntrySelected && options.onToggleEntrySelect) {
+        cols.push({
+            id: "select",
+            header: "",
+            size: 36,
+            cell: ({ row }) => {
+                const entry = row.original;
+                const checked = options.isEntrySelected!(entry);
+                return (
+                    <div data-row-click-ignore className="flex items-center justify-center">
+                        <input
+                            type="checkbox"
+                            className="size-4 rounded border-input accent-primary"
+                            checked={checked}
+                            onChange={() => options.onToggleEntrySelect!(entry)}
+                            aria-label={checked ? "Deselect row" : "Select row"}
+                        />
+                    </div>
+                );
+            },
+        });
+    }
+
+    cols.push(
         {
             accessorKey: "title",
             header: "Title",
@@ -36,7 +64,7 @@ export function createColumns(
             accessorKey: "owner",
             header: "Owner",
         },
-    ];
+    );
 
     if (!options?.omitExpiration) {
         cols.push({

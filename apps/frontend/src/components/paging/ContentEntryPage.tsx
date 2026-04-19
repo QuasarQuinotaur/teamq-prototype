@@ -22,7 +22,8 @@ import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
-import {DropdownMenuCheckboxItem} from "@/components/DropdownMenu.tsx";
+import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
+import { Loader2 } from "lucide-react";
 import {StarIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
@@ -107,6 +108,43 @@ export default function ContentEntryPage({
     const [rightPaneDoc, setRightPaneDoc] = useState<ViewerState | null>(null);
     const [employeeMap, setEmployeeMap] = useState<Map<number, string>>(new Map());
     const [employee, setEmployee] = useState<Employee>(null);
+
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+    const exitSelectMode = useCallback(() => {
+        setSelectMode(false);
+        setSelectedIds(new Set());
+    }, []);
+
+    const isEntrySelected = useCallback(
+        (e: CardEntry) => selectedIds.has(e.item.id),
+        [selectedIds],
+    );
+
+    const onToggleEntrySelect = useCallback((e: CardEntry) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(e.item.id)) next.delete(e.item.id);
+            else next.add(e.item.id);
+            return next;
+        });
+    }, []);
+
+    const wrapRowOpen = useCallback(
+        (opener: (entry: CardEntry) => void | Promise<void>) => {
+            return (entry: CardEntry) => {
+                if (selectMode && bulkActionLoading) return;
+                if (selectMode) {
+                    onToggleEntrySelect(entry);
+                    return;
+                }
+                void opener(entry);
+            };
+        },
+        [selectMode, bulkActionLoading, onToggleEntrySelect],
+    );
 
     useEffect(() => {
         setSplitMode(searchParams.get("split") === "1");
@@ -293,16 +331,84 @@ export default function ContentEntryPage({
     const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
 
     // All favorites for logged in user
-    const fetchFavorites = useCallback(async () => {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, { credentials: "include" })
+    const fetchFavorites = useCallback(() => {
+        return fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, {
+            credentials: "include",
+        })
             .then((res) => res.json())
             .then((data: { id: number }[]) => {
                 setFavoritedList(data);
-            })
-    }, [])
+            });
+    }, []);
     useEffect(() => {
         void fetchFavorites()
     }, [fetchFavorites])
+
+    const bulkFavoriteSelected = useCallback(async () => {
+        if (selectedIds.size === 0) return;
+        setBulkActionLoading(true);
+        try {
+            const base = import.meta.env.VITE_BACKEND_URL;
+            for (const id of selectedIds) {
+                if (favoritedList.some((f) => f.id === id)) continue;
+                await fetch(`${base}/api/favorites/${id}`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+            }
+            await fetchFavorites();
+        } finally {
+            setBulkActionLoading(false);
+            exitSelectMode();
+        }
+    }, [selectedIds, favoritedList, fetchFavorites, exitSelectMode]);
+
+    const bulkCheckoutSelected = useCallback(async () => {
+        if (selectedIds.size === 0 || !employee) return;
+        setBulkActionLoading(true);
+        try {
+            let anyOk = false;
+            for (const id of selectedIds) {
+                const raw = entries.find((e) => e.item.id === id);
+                if (!raw) continue;
+                const item = raw.item as ContentWithCheckout;
+                const canModify =
+                    item.jobPositions.includes(employee.jobPosition) ||
+                    employee.jobPosition === "admin";
+                if (!canModify) continue;
+                const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+                if (res.ok) anyOk = true;
+            }
+            if (anyOk) notifyContentCheckoutSync();
+            fetchContent();
+        } finally {
+            setBulkActionLoading(false);
+            exitSelectMode();
+        }
+    }, [selectedIds, employee, entries, fetchContent, exitSelectMode]);
+
+    const bulkCheckinSelected = useCallback(async () => {
+        if (selectedIds.size === 0 || !employee) return;
+        setBulkActionLoading(true);
+        try {
+            let anyOk = false;
+            for (const id of selectedIds) {
+                const res = await fetch(`${apiBase}/api/content/checkin/${id}`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+                if (res.ok) anyOk = true;
+            }
+            if (anyOk) notifyContentCheckoutSync();
+            fetchContent();
+        } finally {
+            setBulkActionLoading(false);
+            exitSelectMode();
+        }
+    }, [selectedIds, employee, fetchContent, exitSelectMode]);
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
         (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
@@ -370,6 +476,78 @@ export default function ContentEntryPage({
     };
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
+    const toolbarCenterSlot = selectMode ? (
+        bulkActionLoading ? (
+            <span
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+                aria-live="polite"
+            >
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                Processing…
+            </span>
+        ) : (
+            <span className="tabular-nums text-sm text-muted-foreground">{selectedIds.size} selected</span>
+        )
+    ) : undefined;
+
+    const documentsToolbarExtras: React.ReactNode[] = selectMode
+        ? [
+              <Button
+                  key="favorite-all"
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={bulkActionLoading || selectedIds.size === 0}
+                  onClick={() => void bulkFavoriteSelected()}
+              >
+                  Favorite all
+              </Button>,
+              onlyMyCheckouts ? (
+                  <Button
+                      key="check-all-in"
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={bulkActionLoading || selectedIds.size === 0}
+                      onClick={() => void bulkCheckinSelected()}
+                  >
+                      Check all in
+                  </Button>
+              ) : (
+                  <Button
+                      key="check-all-out"
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={bulkActionLoading || selectedIds.size === 0}
+                      onClick={() => void bulkCheckoutSelected()}
+                  >
+                      Check all out
+                  </Button>
+              ),
+              <Button
+                  key="cancel-select"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionLoading}
+                  onClick={exitSelectMode}
+              >
+                  Cancel
+              </Button>,
+          ]
+        : [
+              <Button
+                  key="select-entry"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectMode(true)}
+              >
+                  Select
+              </Button>,
+          ];
+
     const listColumnOptions = useMemo(
         () => ({
             renderTitleCell(entry: CardEntry) {
@@ -392,8 +570,11 @@ export default function ContentEntryPage({
                     </div>
                 );
             },
+            selectMode,
+            isEntrySelected,
+            onToggleEntrySelect,
         }),
-        [employee],
+        [employee, selectMode, isEntrySelected, onToggleEntrySelect],
     );
 
     async function tryAddFavorite(contentId: number) {
@@ -550,7 +731,10 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
-                onListRowClick={openDocInLeftPane}
+                selectMode={selectMode}
+                isEntrySelected={isEntrySelected}
+                onToggleEntrySelect={onToggleEntrySelect}
+                onListRowClick={wrapRowOpen(openDocInLeftPane)}
                 omitToolbar
                 contentClassName={embeddedContentClassName}
                 cardGridProps={{
@@ -578,7 +762,10 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
-                onListRowClick={openDocInRightPane}
+                selectMode={selectMode}
+                isEntrySelected={isEntrySelected}
+                onToggleEntrySelect={onToggleEntrySelect}
+                onListRowClick={wrapRowOpen(openDocInRightPane)}
                 omitToolbar
                 contentClassName={embeddedContentClassName}
                 cardGridProps={{
@@ -599,7 +786,9 @@ export default function ContentEntryPage({
         return (
             <div className="bg-muted/50 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl pt-2">
                 <Toolbar
+                    toolbarCenterSlot={toolbarCenterSlot}
                     extraElements={[
+                        ...documentsToolbarExtras,
                         formAddButton,
                         <Button key="exit-split" variant="outline" size="sm" type="button" onClick={exitSplit}>
                             Exit split
@@ -647,7 +836,10 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
-                onListRowClick={handleViewFullscreen}
+                selectMode={selectMode}
+                isEntrySelected={isEntrySelected}
+                onToggleEntrySelect={onToggleEntrySelect}
+                onListRowClick={wrapRowOpen(handleViewFullscreen)}
                 contentClassName={cn(
                     "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-0",
                     "pr-3 md:pr-12",
@@ -665,6 +857,7 @@ export default function ContentEntryPage({
                     )),
                 }}
                 extraToolbarElements={[
+                    ...documentsToolbarExtras,
                     formAddButton,
                     <Button
                         key="split-view"
@@ -677,6 +870,7 @@ export default function ContentEntryPage({
                         Split view
                     </Button>,
                 ]}
+                toolbarCenterSlot={toolbarCenterSlot}
                 queryProps={queryProps}
             />
             <SplitScreenEdgeAffordance onActivate={enterSplitFromGrid} />

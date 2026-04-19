@@ -23,7 +23,10 @@ export default function CardGrid({
                                      defaultBadge,
                                      isLoading,
                                      entries,
-                                     createOptionsElement
+                                     createOptionsElement,
+                                     selectMode,
+                                     isEntrySelected,
+                                     onToggleEntrySelect,
 }: CardGridProps & EntryProps) {
     if (!isLoading && entries.length === 0) {
         return (
@@ -41,6 +44,13 @@ export default function CardGrid({
             entry: entry,
             badges: defaultBadge ? [defaultBadge] : [],
             createOptionsElement: entryOptionsWrapper,
+            selectMode,
+            selected: isEntrySelected?.(entry) ?? false,
+            onSelectToggle: onToggleEntrySelect
+                ? () => {
+                      onToggleEntrySelect(entry);
+                  }
+                : undefined,
         }
         return renderCard(cardState);
     }
