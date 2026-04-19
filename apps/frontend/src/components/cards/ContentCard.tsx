@@ -186,6 +186,8 @@ export default function ContentCard({
     ]
     const expBadge = isExpired ? "Expired" : null;
 
+    const showBadges: boolean = false; // get this from settings page later
+
     return (
         <CardContainer
             ref={cardRef}
@@ -197,10 +199,12 @@ export default function ContentCard({
         >
             <CardHeader className="pb-3 shrink-0">
                 <div className="flex w-full items-start justify-between gap-2">
+
+                    {/* TITLE + EXP BADGE (FIXED SYSTEM) */}
                     <div
                         className={cn(
                             "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out",
-                            cardHovered ? "max-h-24" : "max-h-[1.4em]",
+                            showBadges || cardHovered ? "max-h-32" : "max-h-[1.4em]"
                         )}
                     >
                         <div className="flex min-w-0 items-start gap-2">
@@ -212,6 +216,7 @@ export default function ContentCard({
                                     draggable={false}
                                 />
                             ) : null}
+
                             <CardTitle
                                 className={cn(
                                     "min-w-0 flex-1 break-words",
@@ -222,14 +227,14 @@ export default function ContentCard({
                             </CardTitle>
                         </div>
 
-                        {/* On hover: expiration — same motion as bottom badges */}
+                        {/* EXP BADGE */}
                         {expBadge && (
                             <div
                                 className={cn(
-                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out",
-                                    cardHovered
-                                        ? "translate-y-0"
-                                        : "translate-y-[calc(200%+1.25rem)]",
+                                    "flex gap-2 transition-all duration-500 ease-in-out",
+                                    showBadges || cardHovered
+                                        ? "opacity-100 mt-1"
+                                        : "opacity-0"
                                 )}
                             >
                                 <Badge className="bg-red-500/20 text-red-600 border-red-400/30">
@@ -237,8 +242,9 @@ export default function ContentCard({
                                 </Badge>
                             </div>
                         )}
-
                     </div>
+
+                    {/* OPTIONS */}
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
@@ -258,7 +264,7 @@ export default function ContentCard({
                 </div>
             </CardHeader>
 
-            <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
+            <div className="flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl">
 
                 <div
                     className={cn(
@@ -291,22 +297,23 @@ export default function ContentCard({
                             className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center"
                             aria-label="Checked out"
                         >
-                            <span className="flex items-end gap-0.5">
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                            </span>
+            <span className="flex items-end gap-0.5">
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+            </span>
                         </div>
                     </>
                 ) : null}
 
+                {/* ROLE BADGES */}
                 {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
                     <div
                         className={cn(
-                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out",
-                            cardHovered
-                                ? "translate-y-0 scale-100"
-                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97]",
+                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-all duration-500 ease-in-out",
+                            showBadges || cardHovered
+                                ? "translate-y-0 scale-100 opacity-100"
+                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97] opacity-0",
                         )}
                     >
                         <div className="flex flex-wrap justify-end gap-2">
@@ -315,6 +322,7 @@ export default function ContentCard({
                     </div>
                 ) : null}
             </div>
+
             {selectMode && selected ? (
                 <div
                     className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
@@ -328,5 +336,5 @@ export default function ContentCard({
                 </div>
             ) : null}
         </CardContainer>
-    )
+    );
 }
