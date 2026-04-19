@@ -12,7 +12,7 @@ import SplitDocumentWorkspace from "@/components/paging/SplitDocumentWorkspace.t
 import SplitScreenEdgeAffordance from "@/components/paging/SplitScreenEdgeAffordance.tsx";
 import ContentCard from "@/components/cards/ContentCard.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
-import ModifyDropdown from "@/components/paging/ModifyDropdown.tsx";
+import ModifyDropdown, {type DocumentCheckoutOptions} from "@/components/paging/ModifyDropdown.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
@@ -22,9 +22,9 @@ import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
-import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
+import { DropdownMenuItem, DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
-import {StarIcon} from "@phosphor-icons/react";
+import {InfoIcon, StarIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
@@ -37,6 +37,7 @@ import axios from "axios";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import { cn } from "@/lib/utils.ts";
+import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 
 type ViewerState = {
     contentId: number;
@@ -663,6 +664,7 @@ export default function ContentEntryPage({
                     <StarIcon weight={isFavorited ? "fill" : "regular"}/>
                     Favorite
                 </DropdownMenuCheckboxItem>
+                <ContentDetailsOption content={item}/>
             </>
             const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
             const isAdmin = employee && employee.jobPosition === "admin";
@@ -679,6 +681,30 @@ export default function ContentEntryPage({
             const editError = canModify ? null : "You do not have authorization to edit this content."
             const deleteError = canModify ? null : "You do not have authorization to delete this content."
 
+            const documentCheckout: DocumentCheckoutOptions = {
+                checkedOutByOther,
+                heldByMe,
+                canAttemptCheckout: canModify,
+                onCheckout: async () => {
+                    const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
+                        method: "POST",
+                        credentials: "include",
+                    });
+                    const ok = res.ok;
+                    if (ok) notifyContentCheckoutSync();
+                    return ok;
+                },
+                onCheckin: () => {
+                    void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
+                        method: "POST",
+                        credentials: "include",
+                    }).finally(() => {
+                        fetchContent();
+                        notifyContentCheckoutSync();
+                    });
+                },
+            }
+
             return (
                 <ModifyDropdown
                     entry={entry}
@@ -688,29 +714,7 @@ export default function ContentEntryPage({
                     extraMenuItems={extraMenuItems}
                     editError={editError}
                     deleteError={deleteError}
-                    documentCheckout={{
-                        checkedOutByOther,
-                        heldByMe,
-                        canAttemptCheckout: canModify,
-                        onCheckout: async () => {
-                            const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
-                                method: "POST",
-                                credentials: "include",
-                            });
-                            const ok = res.ok;
-                            if (ok) notifyContentCheckoutSync();
-                            return ok;
-                        },
-                        onCheckin: () => {
-                            void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
-                                method: "POST",
-                                credentials: "include",
-                            }).finally(() => {
-                                fetchContent();
-                                notifyContentCheckoutSync();
-                            });
-                        },
-                    }}
+                    documentCheckout={documentCheckout}
                 />
             );
         }

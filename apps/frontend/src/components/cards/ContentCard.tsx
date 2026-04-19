@@ -1,7 +1,7 @@
 // Displays information about content (workflow, reference, tool)
 
 import * as React from "react"
-import {cn} from "@/lib/utils.ts"
+import {cn, isSupabasePath} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import { Check, MoreHorizontalIcon } from "lucide-react";
@@ -20,7 +20,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import ContentCardThumbnail, {
     googleFaviconUrlForLink,
     isPlainWebPageLink,
-    isSupabasePath,
     useInViewOnce,
     useMicrolinkLinkPreview,
 } from "@/components/cards/ContentCardThumbnail.tsx";

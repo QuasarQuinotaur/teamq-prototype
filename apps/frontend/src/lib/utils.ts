@@ -20,11 +20,31 @@ export function formatDate(date: Date | undefined): string {
   })
 }
 
+export function formatDateWithTime(date: Date | undefined): string {
+  if (!date) {
+    return ""
+  }
+
+  return date.toLocaleDateString("en-US", {
+    second: "2-digit",
+    minute: "2-digit",
+    hour: "2-digit",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZoneName: "short"
+  })
+}
+
 export function isValidDate(date: Date | undefined): boolean {
   if (!date) {
     return false
   }
   return !isNaN(date.getTime())
+}
+
+export function isSupabasePath(link: string) {
+  return !link.startsWith("http://") && !link.startsWith("https://");
 }
 
 // For a state object T, sets a key to value using its setter (T[key] = value)

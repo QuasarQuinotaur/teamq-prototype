@@ -129,80 +129,78 @@ export default function ModifyDropdown({
         checkoutGroup != null && (showEditOrDeleteBlock || extraMenuItems != null);
 
     return (
-        <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
-            <AlertDialog>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                        {checkoutGroup}
-                        {showCheckoutSeparator ? <DropdownMenuSeparator /> : null}
-                        {showEdit && (
-                            <DropdownMenuGroup>
-                                <DialogTrigger asChild>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+                {checkoutGroup}
+                {showCheckoutSeparator ? <DropdownMenuSeparator /> : null}
+                {showEdit && (
+                    <DropdownMenuGroup>
+                        <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                >
+                                    <PencilIcon />
+                                    Edit
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                            <DialogContent
+                                className={
+                                    "w-full max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:max-w-xl sm:p-6 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
+                                }
+                            >
+                                <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
+                                    <DialogTitle className="text-base font-semibold sm:text-lg">
+                                        {DEFAULT_UPDATE_FORM_HEADERS[formType]}
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <FormOfType formType={formType} {...formState} />
+                            </DialogContent>
+                        </Dialog>
+                    </DropdownMenuGroup>
+                )}
+                {extraMenuItems && (
+                    <DropdownMenuGroup>{extraMenuItems}</DropdownMenuGroup>
+                )}
+                {showDelete && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
                                     <DropdownMenuItem
+                                        variant="destructive"
                                         onSelect={(e) => {
                                             e.preventDefault();
                                         }}
                                     >
-                                        <PencilIcon />
-                                        Edit
+                                        <TrashIcon />
+                                        Delete
                                     </DropdownMenuItem>
-                                </DialogTrigger>
-                            </DropdownMenuGroup>
-                        )}
-                        {extraMenuItems && (
-                            <DropdownMenuGroup>{extraMenuItems}</DropdownMenuGroup>
-                        )}
-                        {showDelete && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem
+                                </AlertDialogTrigger>
+                                <AlertDialogContent size="sm">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
                                             variant="destructive"
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                            }}
+                                            onClick={() => handleDelete(entry)}
                                         >
-                                            <TrashIcon />
                                             Delete
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                </DropdownMenuGroup>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                <AlertDialogContent size="sm">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={() => handleDelete(entry)}
-                        >
-                            Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <DialogContent
-                className={
-                    "w-full max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:max-w-xl sm:p-6 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
-                }
-            >
-                <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
-                    <DialogTitle className="text-base font-semibold sm:text-lg">
-                        {DEFAULT_UPDATE_FORM_HEADERS[formType]}
-                    </DialogTitle>
-                </DialogHeader>
-                <FormOfType formType={formType} {...formState} />
-            </DialogContent>
-        </Dialog>
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </DropdownMenuGroup>
+                    </>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
