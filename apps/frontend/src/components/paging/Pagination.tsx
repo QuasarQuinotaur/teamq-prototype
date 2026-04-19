@@ -149,9 +149,9 @@ export default function Pagination({
     updatePageEntries(clampedPageNum)
   }, [clampedPageNum, updatePageEntries])
 
-  const prevExists = clampedPageNum-1===0 ? "hidden" : ""
-  const nextExists = clampedPageNum===maxPages ? "hidden" : ""
-  const moreExists: "hidden" | "" = clampedPageNum+1 >= maxPages ? "hidden" : ""
+  const prevExists = clampedPageNum-1===0 ? "invisible" : ""
+  const nextExists = clampedPageNum===maxPages ? "invisible" : ""
+  const moreExists = clampedPageNum+1 >= maxPages ? "invisible" : ""
 
   function handlePrev(){
     setPageNum(prev=> Math.max(Math.min(prev, maxPages) - 1, 1))
@@ -167,7 +167,7 @@ export default function Pagination({
 
   return (
       <>
-        <div className="flex items-center justify-center pt-2">
+        <div className="flex items-center justify-center pb-2">
           <PaginationContainer className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem className={prevExists}>
@@ -179,7 +179,7 @@ export default function Pagination({
                 </PaginationLink>
               </PaginationItem>
               <PaginationItem>
-                <PaginationLink href="#" isActive>
+                <PaginationLink href="#" isActive className="">
                   {clampedPageNum}
                 </PaginationLink>
               </PaginationItem>
