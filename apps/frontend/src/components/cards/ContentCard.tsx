@@ -4,7 +4,7 @@ import * as React from "react"
 import {cn} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import {MoreHorizontalIcon} from "lucide-react";
+import { Check, MoreHorizontalIcon } from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -58,6 +58,8 @@ type ContentCardProps = {
     showContentTypeBadge?: boolean;
     /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
     showJobPositionBadge?: boolean;
+    /** When set, checkout dimmer/avatar/dots are hidden if this user holds the checkout (others still see them). */
+    viewerEmployeeId?: number | null;
 } & CardState;
 
 export default function ContentCard({
@@ -67,6 +69,10 @@ export default function ContentCard({
                                         onView,
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
+                                        viewerEmployeeId,
+                                        selectMode,
+                                        selected,
+                                        onSelectToggle,
 }: ContentCardProps) {
     const cardRef = React.useRef<HTMLDivElement>(null);
     const cardVisible = useInViewOnce(cardRef);
@@ -125,6 +131,10 @@ export default function ContentCard({
     }, []);
 
     function handleCardClick() {
+        if (selectMode && onSelectToggle) {
+            onSelectToggle();
+            return;
+        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
@@ -132,8 +142,28 @@ export default function ContentCard({
         }
     }
 
+    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+
+    function handleCardContextMenu(e: React.MouseEvent) {
+        if (!createOptionsElement) return;
+        const t = e.target;
+        if (
+            t instanceof Element &&
+            t.closest("a[href], input, textarea, select, [contenteditable='true']")
+        ) {
+            return;
+        }
+        e.preventDefault();
+        menuTriggerRef.current?.click();
+    }
+
     const content = entry.item as ContentWithCheckout;
     const checkedOut = content.isCheckedOut === true;
+    const showCheckoutOverlay =
+        checkedOut &&
+        (viewerEmployeeId == null ||
+            content.checkedOutById == null ||
+            content.checkedOutById !== viewerEmployeeId);
     const who = content.checkedOutBy;
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
@@ -161,6 +191,7 @@ export default function ContentCard({
             ref={cardRef}
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
+            onContextMenu={handleCardContextMenu}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
         >
@@ -211,7 +242,14 @@ export default function ContentCard({
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                <Button
+                                    ref={menuTriggerRef}
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7 p-0"
+                                    data-document-menu-trigger={entry.item.id}
+                                >
                                     <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
@@ -225,7 +263,7 @@ export default function ContentCard({
                 <div
                     className={cn(
                         "absolute inset-0 z-10 flex flex-col",
-                        checkedOut && "brightness-[0.45]",
+                        showCheckoutOverlay && "brightness-[0.45]",
                     )}
                 >
                     <ContentCardThumbnail
@@ -236,7 +274,7 @@ export default function ContentCard({
                     />
                 </div>
 
-                {checkedOut ? (
+                {showCheckoutOverlay ? (
                     <>
                         <div className="pointer-events-none absolute inset-0 z-30 bg-black/35" aria-hidden />
                         <div className="pointer-events-none absolute left-2 top-2 z-40">
@@ -277,6 +315,18 @@ export default function ContentCard({
                     </div>
                 ) : null}
             </div>
+            {selectMode && selected ? (
+                <div
+                    className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
+                    aria-hidden
+                >
+                    <Check
+                        className="size-10 text-white drop-shadow-md"
+                        strokeWidth={2.75}
+                        aria-hidden
+                    />
+                </div>
+            ) : null}
         </CardContainer>
     )
 }

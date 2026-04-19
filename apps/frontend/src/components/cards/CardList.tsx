@@ -16,12 +16,22 @@ export default function CardList({
                                      createOptionsElement,
                                      onRowClick,
                                      listColumnOptions,
+                                     selectMode,
+                                     isEntrySelected,
+                                     onDocumentRowContextMenu,
 }: CardListOwnProps) {
     const columns = createColumns(createOptionsElement, listColumnOptions);
 
     return (
         <div className="container mx-auto py-4 px-4">
-            <DataTable columns={columns} data={entries ?? []} onRowClick={onRowClick} />
+            <DataTable
+                columns={columns}
+                data={entries ?? []}
+                onRowClick={onRowClick}
+                selectMode={selectMode}
+                isRowSelected={isEntrySelected}
+                onDocumentRowContextMenu={onDocumentRowContextMenu}
+            />
         </div>
     )
 }

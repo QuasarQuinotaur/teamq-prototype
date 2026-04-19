@@ -2,10 +2,46 @@ import type { ColumnDef } from "@tanstack/react-table"
 import type { CardEntry } from "@/components/cards/Card.tsx"
 import * as React from "react"
 
+function DocumentActionsMenuCell({
+    entry,
+    createOptionsElement,
+}: {
+    entry: CardEntry
+    createOptionsElement: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode
+}) {
+    const triggerRef = React.useRef<HTMLButtonElement>(null)
+    return (
+        <div
+            data-row-click-ignore
+            className="flex justify-end"
+            onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                triggerRef.current?.click()
+            }}
+        >
+            {createOptionsElement(
+                entry,
+                <button
+                    ref={triggerRef}
+                    type="button"
+                    data-document-menu-trigger={entry.item.id}
+                    className="rounded border px-2 py-1 text-sm hover:bg-muted"
+                >
+                    •••
+                </button>,
+            )}
+        </div>
+    )
+}
+
 export type CreateColumnsOptions = {
     renderTitleCell?: (entry: CardEntry) => React.ReactNode;
     /** When true, hides the expiration column (documents-only). */
     omitExpiration?: boolean;
+    selectMode?: boolean;
+    isEntrySelected?: (entry: CardEntry) => boolean;
+    onToggleEntrySelect?: (entry: CardEntry) => void;
 };
 
 // Legacy mock type (kept for reference)
@@ -20,7 +56,32 @@ export function createColumns(
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode,
     options?: CreateColumnsOptions,
 ): ColumnDef<CardEntry>[] {
-    const cols: ColumnDef<CardEntry>[] = [
+    const cols: ColumnDef<CardEntry>[] = [];
+
+    if (options?.selectMode && options.isEntrySelected && options.onToggleEntrySelect) {
+        cols.push({
+            id: "select",
+            header: "",
+            size: 36,
+            cell: ({ row }) => {
+                const entry = row.original;
+                const checked = options.isEntrySelected!(entry);
+                return (
+                    <div data-row-click-ignore className="flex items-center justify-center">
+                        <input
+                            type="checkbox"
+                            className="size-4 rounded border-input accent-primary"
+                            checked={checked}
+                            onChange={() => options.onToggleEntrySelect!(entry)}
+                            aria-label={checked ? "Deselect row" : "Select row"}
+                        />
+                    </div>
+                );
+            },
+        });
+    }
+
+    cols.push(
         {
             accessorKey: "title",
             header: "Title",
@@ -36,7 +97,7 @@ export function createColumns(
             accessorKey: "owner",
             header: "Owner",
         },
-    ];
+    );
 
     if (!options?.omitExpiration) {
         cols.push({
@@ -73,12 +134,10 @@ export function createColumns(
             id: "actions",
             header: "",
             cell: ({ row }) => (
-                <div className="flex justify-end">
-                    {createOptionsElement(
-                        row.original,
-                        <button className="px-2 py-1 text-sm border rounded hover:bg-muted">•••</button>
-                    )}
-                </div>
+                <DocumentActionsMenuCell
+                    entry={row.original}
+                    createOptionsElement={createOptionsElement}
+                />
             ),
         });
     }

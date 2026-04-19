@@ -11,16 +11,28 @@ import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {CARD_GRID_LAYOUT_CLASS, type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import ContentCardSkeleton from "@/components/cards/ContentCardSkeleton.tsx";
 import CardList from "@/components/cards/CardList.tsx";
+import SelectMarqueeLayer from "@/components/paging/SelectMarqueeLayer.tsx";
 import type {ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
+import { cn } from "@/lib/utils.ts";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
     listColumnOptions?: CreateColumnsOptions;
+    /** When true, cards/list rows support multi-select for bulk actions. */
+    selectMode?: boolean;
+    isEntrySelected?: (entry: CardEntry) => boolean;
+    onToggleEntrySelect?: (entry: CardEntry) => void;
+    /** With `selectMode`, drag a rectangle over entries marked with `data-marquee-entry-id`. */
+    onMarqueeSelect?: (entryIds: number[]) => void;
+    /** Prevents marquee selection (e.g. during a bulk action). */
+    marqueeBlocked?: boolean;
+    /** List view: right-click a row (outside interactive controls) to open the ⋯ menu for that entry. */
+    onDocumentRowContextMenu?: (entry: CardEntry, e: React.MouseEvent) => void;
 }
 
 // T describes type of fields for filtering, ContentFields for Content, EmployeeFields for Employee, etc.
@@ -47,6 +59,10 @@ type EntryPageProps<T> = {
     contentClassName?: string;
     /** List view only: rows per page before pagination. Defaults to 6 (5 when omitToolbar). */
     listEntriesPerPage?: number;
+    /** Passed to Toolbar: content after search (e.g. Cancel in multi-select). */
+    toolbarLeadingSlot?: React.ReactNode;
+    /** Passed to Toolbar: centered content (e.g. selection count). */
+    toolbarCenterSlot?: React.ReactNode;
 }
 export default function EntryPage<T extends object>({
                                                         cardGridProps,
@@ -61,9 +77,20 @@ export default function EntryPage<T extends object>({
                                                         forceGridView = false,
                                                         contentClassName,
                                                         listEntriesPerPage,
+                                                        toolbarLeadingSlot,
+                                                        toolbarCenterSlot,
                                                         ...entryProps
 }: EntryPageProps<T> & EntryProps) {
-    const { entries, createOptionsElement, listColumnOptions } = entryProps;
+    const {
+        entries,
+        createOptionsElement,
+        listColumnOptions,
+        selectMode,
+        isEntrySelected,
+        onToggleEntrySelect,
+        onMarqueeSelect,
+        marqueeBlocked,
+    } = entryProps;
 
     const resultCountLine =
         displayedEntryLabels != null ? (
@@ -124,13 +151,10 @@ export default function EntryPage<T extends object>({
         )
     }
 
-    const entryBody = (
-            <div
-                className={
-                    contentClassName ??
-                    "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0"
-                }
-            >
+    const marqueeCommit = onMarqueeSelect ?? ((_ids: number[]) => {});
+
+    const entryScrollInner = (
+                <>
                 {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
                     <div
                         className={CARD_GRID_LAYOUT_CLASS}
@@ -198,7 +222,28 @@ export default function EntryPage<T extends object>({
                         </div>
                     )
                 ))}
-            </div>
+                </>
+    );
+
+    const entryBody = (
+            <SelectMarqueeLayer
+                enabled={Boolean(selectMode && onMarqueeSelect)}
+                blocked={marqueeBlocked}
+                onCommit={marqueeCommit}
+            >
+                <div
+                    className={cn(
+                        contentClassName ??
+                            "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0",
+                        selectMode && "select-none",
+                    )}
+                    onDragStartCapture={
+                        selectMode ? (e) => e.preventDefault() : undefined
+                    }
+                >
+                    {entryScrollInner}
+                </div>
+            </SelectMarqueeLayer>
     );
 
     if (omitToolbar) {
@@ -212,6 +257,8 @@ export default function EntryPage<T extends object>({
                 viewSelectorButtonProps={viewSelectorButtonProps}
                 queryProps={queryProps}
                 showViewSelector={!forceGridView}
+                toolbarLeadingSlot={toolbarLeadingSlot}
+                toolbarCenterSlot={toolbarCenterSlot}
             />
             {entryBody}
         </div>

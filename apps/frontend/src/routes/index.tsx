@@ -8,6 +8,8 @@ import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
+import MyDocuments from "@/pages/MyDocuments.tsx";
+import CheckedOut from "@/pages/CheckedOut.tsx";
 import Employees from "@/pages/Employees.tsx";
 import ServiceRequestsPage from "@/pages/ServiceRequestsPage.tsx";
 import NewServiceRequestPage from "@/pages/NewServiceRequestPage.tsx";
@@ -51,6 +53,14 @@ export const router = createBrowserRouter([
                             {
                                 path: "all",
                                 element: <AllDocuments />,
+                            },
+                            {
+                                path: "my-documents",
+                                element: <MyDocuments />,
+                            },
+                            {
+                                path: "checked-out",
+                                element: <CheckedOut />,
                             },
                             {
                                 path: "workflow",
