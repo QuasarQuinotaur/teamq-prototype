@@ -53,6 +53,10 @@ type ContentEntryPageProps = {
     /** Leave empty to show all documents: category filter starts empty (show all); use filter panel for categories. */
     contentType?: string;
     onlyFavorites?: boolean;
+    /** Documents whose `ownerId` is the current user (uploaded by you). */
+    onlyMine?: boolean;
+    /** Documents you currently have checked out. */
+    onlyMyCheckouts?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -86,7 +90,9 @@ type ContentWithCheckout = Content & {
 
 export default function ContentEntryPage({
                                              contentType,
-                                             onlyFavorites
+                                             onlyFavorites,
+                                             onlyMine,
+                                             onlyMyCheckouts,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -306,10 +312,35 @@ export default function ContentEntryPage({
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const sortFunction = useContentSortFunction({sortFields})
     const [searchPhrase, setSearchPhrase] = useState("")
+
+    const filteredEntries = useMemo(() => {
+        let list = entries;
+        if (onlyFavorites) {
+            list = list.filter((entry) =>
+                favoritedList.some((favorite) => favorite.id === entry.item.id),
+            );
+        }
+        if (onlyMine && employee) {
+            list = list.filter((e) => (e.item as Content).ownerId === employee.id);
+        }
+        if (onlyMyCheckouts && employee) {
+            list = list.filter((e) => {
+                const c = e.item as ContentWithCheckout;
+                return !!c.isCheckedOut && c.checkedOutById === employee.id;
+            });
+        }
+        return list;
+    }, [
+        entries,
+        onlyFavorites,
+        onlyMine,
+        onlyMyCheckouts,
+        employee,
+        favoritedList,
+    ]);
+
     const queryEntries = useContentQueryEntries({
-        entries: onlyFavorites ? entries.filter(entry => {
-            return favoritedList.some((favorite: object & { id: number }) => favorite.id === entry.item.id)
-        }) : entries,
+        entries: filteredEntries,
         searchPhrase,
         fieldsFilter,
         sortFunction,
@@ -325,7 +356,10 @@ export default function ContentEntryPage({
     }, [searchPhrase, fieldsFilter, defaultFieldsFilter]);
 
     const showFavoritesSection =
-        !onlyFavorites && !hasActiveFilterOrSearch;
+        !onlyFavorites &&
+        !onlyMine &&
+        !onlyMyCheckouts &&
+        !hasActiveFilterOrSearch;
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
@@ -341,6 +375,7 @@ export default function ContentEntryPage({
             renderTitleCell(entry: CardEntry) {
                 const item = entry.item as ContentWithCheckout;
                 if (!item.isCheckedOut) return entry.title;
+                if (employee && item.checkedOutById === employee.id) return entry.title;
                 const u = item.checkedOutBy;
                 const initials = u
                     ? `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.trim() || "?"
@@ -358,7 +393,7 @@ export default function ContentEntryPage({
                 );
             },
         }),
-        [],
+        [employee],
     );
 
     async function tryAddFavorite(contentId: number) {
@@ -404,11 +439,18 @@ export default function ContentEntryPage({
                     Favorite
                 </DropdownMenuCheckboxItem>
             </>
-            const checkoutBlocksActions = item.isCheckedOut === true;
-
             const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
             const isAdmin = employee && employee.jobPosition === "admin";
-            const canModify = isJobPosition || isAdmin;
+            const canModify = Boolean(isJobPosition || isAdmin);
+            const heldByMe =
+                Boolean(employee) &&
+                item.isCheckedOut === true &&
+                item.checkedOutById === employee!.id;
+            const checkedOutByOther =
+                item.isCheckedOut === true &&
+                Boolean(employee) &&
+                item.checkedOutById !== employee!.id;
+
             const editError = canModify ? null : "You do not have authorization to edit this content."
             const deleteError = canModify ? null : "You do not have authorization to delete this content."
 
@@ -421,7 +463,9 @@ export default function ContentEntryPage({
                 editError,
                 deleteError,
                 documentCheckout: {
-                    checkoutBlocksActions,
+                    checkedOutByOther,
+                    heldByMe,
+                    canAttemptCheckout: canModify,
                     onCheckout: async () => {
                         const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
                             method: "POST",
@@ -431,7 +475,7 @@ export default function ContentEntryPage({
                         if (ok) notifyContentCheckoutSync();
                         return ok;
                     },
-                    onRelease: () => {
+                    onCheckin: () => {
                         void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
                             method: "POST",
                             credentials: "include",
@@ -478,7 +522,9 @@ export default function ContentEntryPage({
     }
 
     const gridSkeletonCount =
-        loading && entries.length === 0 ? SKELETON_GRID_SLOTS : null;
+        loading && entries.length === 0 && !onlyMyCheckouts
+            ? SKELETON_GRID_SLOTS
+            : null;
 
     const favoritedQueryEntries = useMemo(() => {
         if (favoritedList.length === 0) return [];
@@ -514,6 +560,7 @@ export default function ContentEntryPage({
                             onView={openDocInLeftPane}
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
+                            viewerEmployeeId={employee?.id ?? null}
                             {...state}
                         />
                     ),
@@ -541,6 +588,7 @@ export default function ContentEntryPage({
                             onView={openDocInRightPane}
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
+                            viewerEmployeeId={employee?.id ?? null}
                             {...state}
                         />
                     ),
@@ -611,6 +659,7 @@ export default function ContentEntryPage({
                             onView={handleViewFullscreen}
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
+                            viewerEmployeeId={employee?.id ?? null}
                             {...state}
                         />
                     )),

@@ -64,6 +64,8 @@ const data = {
         { title: "Workflow", url: "/documents/workflow" },
         { title: "Reference", url: "/documents/reference" },
         { title: "Tools", url: "/documents/tools" },
+        { title: "My documents", url: "/documents/my-documents" },
+        { title: "Checked out", url: "/documents/checked-out" },
       ],
     },
   ],

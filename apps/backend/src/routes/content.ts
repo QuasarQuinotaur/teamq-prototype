@@ -433,8 +433,17 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        if (content.isCheckedOut) {
-            res.status(409).json({ error: "Cannot delete while document is checked out" });
+        if (!content.isCheckedOut) {
+            res.status(403).json({
+                error: "Check out the document before deleting.",
+            });
+            return;
+        }
+
+        if (content.checkedOutById !== employee.id) {
+            res.status(409).json({
+                error: "Cannot delete while document is checked out by another user",
+            });
             return;
         }
 

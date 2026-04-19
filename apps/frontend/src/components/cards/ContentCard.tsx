@@ -58,6 +58,8 @@ type ContentCardProps = {
     showContentTypeBadge?: boolean;
     /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
     showJobPositionBadge?: boolean;
+    /** When set, checkout dimmer/avatar/dots are hidden if this user holds the checkout (others still see them). */
+    viewerEmployeeId?: number | null;
 } & CardState;
 
 export default function ContentCard({
@@ -67,6 +69,7 @@ export default function ContentCard({
                                         onView,
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
+                                        viewerEmployeeId,
 }: ContentCardProps) {
     const cardRef = React.useRef<HTMLDivElement>(null);
     const cardVisible = useInViewOnce(cardRef);
@@ -134,6 +137,11 @@ export default function ContentCard({
 
     const content = entry.item as ContentWithCheckout;
     const checkedOut = content.isCheckedOut === true;
+    const showCheckoutOverlay =
+        checkedOut &&
+        (viewerEmployeeId == null ||
+            content.checkedOutById == null ||
+            content.checkedOutById !== viewerEmployeeId);
     const who = content.checkedOutBy;
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
@@ -225,7 +233,7 @@ export default function ContentCard({
                 <div
                     className={cn(
                         "absolute inset-0 z-10 flex flex-col",
-                        checkedOut && "brightness-[0.45]",
+                        showCheckoutOverlay && "brightness-[0.45]",
                     )}
                 >
                     <ContentCardThumbnail
@@ -236,7 +244,7 @@ export default function ContentCard({
                     />
                 </div>
 
-                {checkedOut ? (
+                {showCheckoutOverlay ? (
                     <>
                         <div className="pointer-events-none absolute inset-0 z-30 bg-black/35" aria-hidden />
                         <div className="pointer-events-none absolute left-2 top-2 z-40">
