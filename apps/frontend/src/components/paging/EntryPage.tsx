@@ -122,80 +122,80 @@ export default function EntryPage<T extends object>({
     }
 
     const entryBody = (
-            <div
-                className={
-                    contentClassName ??
-                    "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0"
-                }
-            >
-                {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
-                    <div
-                        className={CARD_GRID_LAYOUT_CLASS}
-                        aria-busy="true"
-                        aria-label="Loading documents"
-                    >
-                        {Array.from({ length: gridSkeletonCount }, (_, i) => (
-                            <ContentCardSkeleton key={i} />
-                        ))}
-                    </div>
-                ) : (view === "Grid" ? (
-                    showFavoritesWithEntries ? (
-                        <div className="flex flex-col gap-8">
-                            <section className="flex flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>Favorites</h2>
-                                {createCardGrid(favoritedEntries ?? [])}
-                            </section>
-                            <section className="flex flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>All documents</h2>
+            <>
+                <div
+                    className={
+                        contentClassName ??
+                        "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0"
+                    }
+                >
+                    {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
+                        <div
+                            className={CARD_GRID_LAYOUT_CLASS}
+                            aria-busy="true"
+                            aria-label="Loading documents"
+                        >
+                            {Array.from({ length: gridSkeletonCount }, (_, i) => (
+                                <ContentCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : (view === "Grid" ? (
+                        showFavoritesWithEntries ? (
+                            <div className="flex flex-col gap-8">
+                                <section className="flex flex-col gap-2">
+                                    <h2 className={favoritesHeadingClass}>Favorites</h2>
+                                    {createCardGrid(favoritedEntries ?? [])}
+                                </section>
+                                <section className="flex flex-col gap-2">
+                                    <h2 className={favoritesHeadingClass}>All documents</h2>
+                                    {resultCountLine}
+                                    {createCardGrid(entries)}
+                                </section>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
                                 {resultCountLine}
                                 {createCardGrid(entries)}
-                            </section>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-3">
-                            {resultCountLine}
-                            {createCardGrid(entries)}
-                        </div>
-                    )
-                ) : (
-                    showFavoritesWithEntries ? (
-                        <>
-                            <section className="flex flex-col gap-2 pb-6">
-                                <h2 className={favoritesHeadingClass}>Favorites</h2>
-                                {createCardList(favoritedEntries ?? [])}
-                            </section>
-                            <section className="flex min-h-0 flex-1 flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>All documents</h2>
-                                {resultCountLine}
-                                {createCardList(pageEntries)}
-                                <div className="sticky bottom-0 mt-auto border-t border-border/70 py-2">
-                                    <Pagination
-                                        docNum={entries.length}
-                                        docsPerPage={entriesPerPage}
-                                        pageNum={pageNum}
-                                        setPageNum={setPageNum}
-                                        updatePageEntries={updatePageEntries}
-                                    />
-                                </div>
-                            </section>
-                        </>
-                    ) : (
-                        <div className="flex min-h-0 flex-1 flex-col">
-                            {resultCountLine}
-                            {createCardList(pageEntries)}
-                            <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
-                                <Pagination
-                                    docNum={entries.length}
-                                    docsPerPage={entriesPerPage}
-                                    pageNum={pageNum}
-                                    setPageNum={setPageNum}
-                                    updatePageEntries={updatePageEntries}
-                                />
                             </div>
-                        </div>
-                    )
+                        )
+                    ) : (
+                        showFavoritesWithEntries ? (
+                            <>
+                                <section className="flex flex-col gap-2 pb-6">
+                                    <h2 className={favoritesHeadingClass}>Favorites</h2>
+                                    {createCardList(favoritedEntries ?? [])}
+                                </section>
+                                <section className="flex min-h-0 flex-1 flex-col gap-2">
+                                    <h2 className={favoritesHeadingClass}>All documents</h2>
+                                    {resultCountLine}
+                                    {createCardList(pageEntries)}
+                                </section>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex min-h-0 flex-1 flex-col">
+                                    {resultCountLine}
+                                    {createCardList(pageEntries)}
+                                </div>
+                            </>
+
+                        )
+                    ))}
+                </div>
+                {(view === "List" ? (
+                    <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
+                        <Pagination
+                            docNum={entries.length}
+                            docsPerPage={entriesPerPage}
+                            pageNum={pageNum}
+                            setPageNum={setPageNum}
+                            updatePageEntries={updatePageEntries}
+                        />
+                    </div>
+                ) : (
+                    <></>
                 ))}
-            </div>
+            </>
     );
 
     if (omitToolbar) {
