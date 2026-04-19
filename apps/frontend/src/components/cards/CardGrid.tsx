@@ -8,6 +8,7 @@ import type {
     CardState
 } from "@/components/cards/Card.tsx";
 import type {EntryProps} from "@/components/paging/EntryPage.tsx";
+import { cn } from "@/lib/utils.ts";
 
 /** Min track ~0.7× the prior 22rem (~15.4rem →15.5rem); `min(100%,…)` keeps one column on narrow viewports. */
 export const CARD_GRID_LAYOUT_CLASS =
@@ -52,7 +53,21 @@ export default function CardGrid({
                   }
                 : undefined,
         }
-        return renderCard(cardState);
+        return (
+            <div
+                key={entry.item.id}
+                data-marquee-entry-id={entry.item.id}
+                className={cn(
+                    "min-w-0",
+                    selectMode && "select-none",
+                )}
+                onDragStartCapture={
+                    selectMode ? (e) => e.preventDefault() : undefined
+                }
+            >
+                {renderCard(cardState)}
+            </div>
+        );
     }
 
     return (

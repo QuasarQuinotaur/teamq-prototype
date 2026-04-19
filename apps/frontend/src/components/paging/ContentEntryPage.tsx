@@ -132,6 +132,21 @@ export default function ContentEntryPage({
         });
     }, []);
 
+    const onMarqueeSelect = useCallback(
+        (entryIds: number[]) => {
+            if (bulkActionLoading) return;
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                for (const id of entryIds) {
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                }
+                return next;
+            });
+        },
+        [bulkActionLoading],
+    );
+
     const wrapRowOpen = useCallback(
         (opener: (entry: CardEntry) => void | Promise<void>) => {
             return (entry: CardEntry) => {
@@ -145,6 +160,14 @@ export default function ContentEntryPage({
         },
         [selectMode, bulkActionLoading, onToggleEntrySelect],
     );
+
+    const openDocumentMenuFromRow = useCallback((entry: CardEntry, e: React.MouseEvent) => {
+        e.preventDefault();
+        const el = document.querySelector<HTMLElement>(
+            `[data-document-menu-trigger="${entry.item.id}"]`,
+        );
+        el?.click();
+    }, []);
 
     useEffect(() => {
         setSplitMode(searchParams.get("split") === "1");
@@ -452,6 +475,17 @@ export default function ContentEntryPage({
         sortFunction,
     })
 
+    const selectAllFiltered = useCallback(() => {
+        if (bulkActionLoading) return;
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            for (const ent of queryEntries) {
+                next.add(ent.item.id);
+            }
+            return next;
+        });
+    }, [bulkActionLoading, queryEntries]);
+
     const closeFullscreen = useCallback(() => {
         setFullscreenDoc(null);
     }, []);
@@ -492,6 +526,16 @@ export default function ContentEntryPage({
 
     const documentsToolbarExtras: React.ReactNode[] = selectMode
         ? [
+              <Button
+                  key="select-all-filtered"
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={bulkActionLoading || queryEntries.length === 0}
+                  onClick={selectAllFiltered}
+              >
+                  Select all
+              </Button>,
               <Button
                   key="favorite-all"
                   type="button"
@@ -635,38 +679,40 @@ export default function ContentEntryPage({
             const editError = canModify ? null : "You do not have authorization to edit this content."
             const deleteError = canModify ? null : "You do not have authorization to delete this content."
 
-            return ModifyDropdown({
-                entry,
-                trigger,
-                ...formOfTypeProps,
-                handleDelete: handleDelete,
-                extraMenuItems,
-                editError,
-                deleteError,
-                documentCheckout: {
-                    checkedOutByOther,
-                    heldByMe,
-                    canAttemptCheckout: canModify,
-                    onCheckout: async () => {
-                        const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
-                            method: "POST",
-                            credentials: "include",
-                        });
-                        const ok = res.ok;
-                        if (ok) notifyContentCheckoutSync();
-                        return ok;
-                    },
-                    onCheckin: () => {
-                        void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
-                            method: "POST",
-                            credentials: "include",
-                        }).finally(() => {
-                            fetchContent();
-                            notifyContentCheckoutSync();
-                        });
-                    },
-                },
-            });
+            return (
+                <ModifyDropdown
+                    entry={entry}
+                    trigger={trigger}
+                    {...formOfTypeProps}
+                    handleDelete={handleDelete}
+                    extraMenuItems={extraMenuItems}
+                    editError={editError}
+                    deleteError={deleteError}
+                    documentCheckout={{
+                        checkedOutByOther,
+                        heldByMe,
+                        canAttemptCheckout: canModify,
+                        onCheckout: async () => {
+                            const res = await fetch(`${apiBase}/api/content/checkout/${item.id}`, {
+                                method: "POST",
+                                credentials: "include",
+                            });
+                            const ok = res.ok;
+                            if (ok) notifyContentCheckoutSync();
+                            return ok;
+                        },
+                        onCheckin: () => {
+                            void fetch(`${apiBase}/api/content/checkin/${item.id}`, {
+                                method: "POST",
+                                credentials: "include",
+                            }).finally(() => {
+                                fetchContent();
+                                notifyContentCheckoutSync();
+                            });
+                        },
+                    }}
+                />
+            );
         }
 
     const showContentTypeBadge = useMemo(() => {
@@ -734,6 +780,9 @@ export default function ContentEntryPage({
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
+                onMarqueeSelect={onMarqueeSelect}
+                marqueeBlocked={bulkActionLoading}
+                onDocumentRowContextMenu={openDocumentMenuFromRow}
                 onListRowClick={wrapRowOpen(openDocInLeftPane)}
                 omitToolbar
                 contentClassName={embeddedContentClassName}
@@ -765,6 +814,9 @@ export default function ContentEntryPage({
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
+                onMarqueeSelect={onMarqueeSelect}
+                marqueeBlocked={bulkActionLoading}
+                onDocumentRowContextMenu={openDocumentMenuFromRow}
                 onListRowClick={wrapRowOpen(openDocInRightPane)}
                 omitToolbar
                 contentClassName={embeddedContentClassName}
@@ -839,6 +891,9 @@ export default function ContentEntryPage({
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
+                onMarqueeSelect={onMarqueeSelect}
+                marqueeBlocked={bulkActionLoading}
+                onDocumentRowContextMenu={openDocumentMenuFromRow}
                 onListRowClick={wrapRowOpen(handleViewFullscreen)}
                 contentClassName={cn(
                     "flex flex-col flex-1 rounded-xl min-h-0 overflow-auto pt-2 pb-0",

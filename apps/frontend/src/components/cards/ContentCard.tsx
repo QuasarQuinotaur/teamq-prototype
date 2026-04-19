@@ -142,6 +142,21 @@ export default function ContentCard({
         }
     }
 
+    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+
+    function handleCardContextMenu(e: React.MouseEvent) {
+        if (!createOptionsElement) return;
+        const t = e.target;
+        if (
+            t instanceof Element &&
+            t.closest("a[href], input, textarea, select, [contenteditable='true']")
+        ) {
+            return;
+        }
+        e.preventDefault();
+        menuTriggerRef.current?.click();
+    }
+
     const content = entry.item as ContentWithCheckout;
     const checkedOut = content.isCheckedOut === true;
     const showCheckoutOverlay =
@@ -176,6 +191,7 @@ export default function ContentCard({
             ref={cardRef}
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
+            onContextMenu={handleCardContextMenu}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
         >
@@ -226,7 +242,14 @@ export default function ContentCard({
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                <Button
+                                    ref={menuTriggerRef}
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7 p-0"
+                                    data-document-menu-trigger={entry.item.id}
+                                >
                                     <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
