@@ -16,6 +16,7 @@ model Employee {
   dateOfBirth DateTime
   jobPosition String
   userPhoto   UserPhoto?
+  // userSettings UserSettings? //TODO ALI
 
   contentsOwned Content[] @relation("ownedContents") // relationship list
 
@@ -36,10 +37,11 @@ model Content {
   jobPositions       String[] // scalar list
   contentType        String
   dateAdded          DateTime         @default(now())
-  dateUpdated        DateTime         @updatedAt
+  dateUpdated        DateTime         @updatedAt // TODO check to make sure it is updated when checked in
+  dateReview         DateTime? // TODO
   expirationDate     DateTime
   employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
-  ownerId            Int
+  ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :(
   owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
   serviceRequests    ServiceRequest[] @relation("ContentRequests")
   notifications      Notification[]   @relation("NotificationContents")
@@ -73,10 +75,12 @@ model ServiceRequest {
   contents  Content[]  @relation("ContentRequests")
 }
 
+// TODO add possible custom message
 model Notification {
-  id       Int      @id @default(autoincrement())
-  type     String
-  dateSent DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  type      String
+  dateSent  DateTime @default(now())
+  customMsg String?
 
   dateRead DateTime?
 
@@ -94,3 +98,14 @@ model UserPhoto {
   path    String
   owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
+
+// model UserSettings {
+//   id          Int      @id @default(autoincrement())
+//   ownerId     Int      @unique
+//   theme       String   @default("Hanover Blue")
+//   iconSize    Stirng   @default("Meduim")
+//   textSize    String   @default("Meduim")
+//   tagsEnabled Boolean  @default(True)
+//   listEnabled Boolean  @default(False)
+//   owner       Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+// }
