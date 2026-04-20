@@ -149,9 +149,14 @@ export default function EntryPage<T extends object>({
                         </p>
                     </>
                 ) : (
-                    entries.length === 1
+                    <p
+                        className="text-sm text-muted-foreground pl-1"
+                        aria-live="polite"
+                    >
+                        {entries.length === 1
                             ? `1 ${displayedEntryLabels.one}`
-                            : `${entries.length} ${displayedEntryLabels.other}`
+                            : `${entries.length} ${displayedEntryLabels.other}`}
+                    </p>
                 ))}
             </section>
         ) : null;
