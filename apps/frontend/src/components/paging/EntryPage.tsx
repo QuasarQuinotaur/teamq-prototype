@@ -3,7 +3,7 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useCallback, useMemo, useState} from "react";
+import {type ChangeEvent, useCallback, useMemo, useState} from "react";
 import * as React from "react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
@@ -19,6 +19,7 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 import { cn } from "@/lib/utils.ts";
+import { Input } from "@/elements/input.tsx"
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
@@ -59,7 +60,7 @@ type EntryPageProps<T> = {
     forceGridView?: boolean;
     /** Extra classes on the scrollable content wrapper (e.g. tighter padding in split panes). */
     contentClassName?: string;
-    /** List view only: rows per page before pagination. Defaults to 6 (5 when omitToolbar). */
+    /** List view only: rows per page before pagination. Defaults to 10 (9 when omitToolbar). */
     listEntriesPerPage?: number;
     /** Passed to Toolbar: content after search (e.g. Cancel in multi-select). */
     toolbarLeadingSlot?: React.ReactNode;
@@ -91,16 +92,34 @@ export default function EntryPage<T extends object>({
         marqueeBlocked,
     } = entryProps;
 
+    function newNumEntries(numPerPage: ChangeEvent<HTMLInputElement, HTMLInputElement>) {
+        listEntriesPerPage = +numPerPage.target.value
+    }
+
+    const numEntriesInput = (
+        <>
+            <Input
+                className="w-5 border-0 border-b rounded-none p-0 h-auto text-center text-muted-foreground"
+                placeholder={String(listEntriesPerPage)}
+                onChange={newNumEntries}
+            />
+        </>
+    )
+
     const resultCountLine =
         displayedEntryLabels != null ? (
-            <p
-                className="px-10 text-sm text-muted-foreground"
-                aria-live="polite"
-            >
-                {entries.length === 1
-                    ? `1 ${displayedEntryLabels.one}`
-                    : `${entries.length} ${displayedEntryLabels.other}`}
-            </p>
+            <section className="flex px-10 flex-nowrap">
+                {numEntriesInput}
+                <p
+                    className="text-sm text-muted-foreground pl-1"
+                    aria-live="polite"
+                >
+                     of
+                    {entries.length === 1
+                        ? ` 1 ${displayedEntryLabels.one}`
+                        : ` ${entries.length} ${displayedEntryLabels.other}`}
+                </p>
+            </section>
         ) : null;
 
     const favoritesHeadingClass =
