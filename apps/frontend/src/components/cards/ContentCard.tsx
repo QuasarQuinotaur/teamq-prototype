@@ -20,9 +20,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import ContentCardThumbnail, {
     googleFaviconUrlForLink,
     isPlainWebPageLink,
-    useInViewOnce,
     useMicrolinkLinkPreview,
 } from "@/components/cards/ContentCardThumbnail.tsx";
+import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -73,12 +73,11 @@ export default function ContentCard({
                                         selected,
                                         onSelectToggle,
 }: ContentCardProps) {
-    const cardRef = React.useRef<HTMLDivElement>(null);
-    const cardVisible = useInViewOnce(cardRef);
+    const { loadAllowed } = useThumbnailBatch();
     const plainWebLink = isPlainWebPageLink(entry);
     const linkMicrolink = useMicrolinkLinkPreview(
         entry.link,
-        cardVisible && plainWebLink,
+        loadAllowed && plainWebLink,
     );
     const isExternalUrl = Boolean(entry.link && !isSupabasePath(entry.link));
     /** Microlink site logo when available; otherwise hostname favicon — for every URL-based link card. */
@@ -189,7 +188,6 @@ export default function ContentCard({
 
     return (
         <CardContainer
-            ref={cardRef}
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
             onContextMenu={handleCardContextMenu}
@@ -273,7 +271,6 @@ export default function ContentCard({
                 >
                     <ContentCardThumbnail
                         entry={entry}
-                        visible={cardVisible}
                         linkMicrolink={plainWebLink ? linkMicrolink : undefined}
                         linkTitleFaviconUrl={plainWebLink ? titleFaviconUrl : undefined}
                     />
