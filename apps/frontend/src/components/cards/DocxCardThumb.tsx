@@ -10,7 +10,8 @@ import { FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { DOCX_PREVIEW_RENDER_OPTIONS } from "@/lib/docx-preview-render.ts";
 
-function DocxThumbFallback(_: FallbackProps) {
+function DocxThumbFallback(props: FallbackProps) {
+    void props;
     return (
         <div className="flex size-full items-center justify-center bg-muted">
             <FileIcon className="size-10 text-muted-foreground" aria-hidden />
@@ -28,15 +29,32 @@ function DocxThumbError() {
 
 type DocxCardThumbProps = {
     url: string;
+    /** Fired once when render finished or an error placeholder is shown. */
+    onReady?: () => void;
 };
 
-export default function DocxCardThumb({ url }: DocxCardThumbProps) {
+export default function DocxCardThumb({ url, onReady }: DocxCardThumbProps) {
+    const onReadyRef = React.useRef(onReady);
+    React.useEffect(() => {
+        onReadyRef.current = onReady;
+    }, [onReady]);
+    const readyFired = React.useRef(false);
     const clipRef = React.useRef<HTMLDivElement>(null);
     const scaleBlockRef = React.useRef<HTMLDivElement>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(false);
     const [scale, setScale] = React.useState(0.22);
+
+    const fireReady = React.useCallback(() => {
+        if (readyFired.current) return;
+        readyFired.current = true;
+        onReadyRef.current?.();
+    }, []);
+
+    React.useEffect(() => {
+        readyFired.current = false;
+    }, [url]);
 
     React.useEffect(() => {
         const container = containerRef.current;
@@ -70,6 +88,7 @@ export default function DocxCardThumb({ url }: DocxCardThumbProps) {
             .then(() => {
                 if (cancelled) return;
                 setLoading(false);
+                fireReady();
                 requestAnimationFrame(() => {
                     updateScale();
                     const clip = clipRef.current;
@@ -85,6 +104,7 @@ export default function DocxCardThumb({ url }: DocxCardThumbProps) {
                     container.innerHTML = "";
                     setLoading(false);
                     setError(true);
+                    fireReady();
                 }
             });
 
@@ -93,7 +113,7 @@ export default function DocxCardThumb({ url }: DocxCardThumbProps) {
             resizeObserver?.disconnect();
             container.innerHTML = "";
         };
-    }, [url]);
+    }, [url, fireReady]);
 
     return (
         <div
@@ -107,7 +127,7 @@ export default function DocxCardThumb({ url }: DocxCardThumbProps) {
         >
             {loading ? (
                 <div
-                    className="absolute inset-0 z-10 animate-pulse bg-muted-foreground/10"
+                    className="absolute inset-0 z-10 bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none"
                     aria-hidden
                 />
             ) : null}

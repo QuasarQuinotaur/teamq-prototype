@@ -1,12 +1,14 @@
+/* eslint-disable react-hooks/preserve-manual-memoization -- entries array from parent each render */
 // Component encompassing the part of a page displaying entries
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useCallback, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import * as React from "react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
+import { ThumbnailBatchProvider } from "@/components/cards/ThumbnailBatchContext.tsx";
 import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {CARD_GRID_LAYOUT_CLASS, type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import ContentCardSkeleton from "@/components/cards/ContentCardSkeleton.tsx";
@@ -83,11 +85,8 @@ export default function EntryPage<T extends object>({
 }: EntryPageProps<T> & EntryProps) {
     const {
         entries,
-        createOptionsElement,
         listColumnOptions,
         selectMode,
-        isEntrySelected,
-        onToggleEntrySelect,
         onMarqueeSelect,
         marqueeBlocked,
     } = entryProps;
@@ -121,6 +120,20 @@ export default function EntryPage<T extends object>({
         setPageEntries(entries.slice(first, last))
     }, [entries, entriesPerPage])
 
+    const gridExpectedIds = useMemo(() => entries.map((e) => e.item.id), [entries]);
+
+    const gridBatchKey = useMemo(() => `grid-${gridExpectedIds.join(",")}`, [gridExpectedIds]);
+
+    const favoritesExpectedIds = useMemo(
+        () => (favoritedEntries ?? []).map((e) => e.item.id),
+        [favoritedEntries],
+    );
+
+    const favoritesBatchKey = useMemo(
+        () => `fav-${favoritesExpectedIds.join(",")}`,
+        [favoritesExpectedIds],
+    );
+
     // for view type (grid vs. list)
     // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
     const { view: contextView, setView } = useMainContext()
@@ -151,7 +164,7 @@ export default function EntryPage<T extends object>({
         )
     }
 
-    const marqueeCommit = onMarqueeSelect ?? ((_ids: number[]) => {});
+    const marqueeCommit = onMarqueeSelect ?? (() => {});
 
     const entryScrollInner = (
                 <>
@@ -170,18 +183,33 @@ export default function EntryPage<T extends object>({
                         <div className="flex flex-col gap-8">
                             <section className="flex flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>Favorites</h2>
-                                {createCardGrid(favoritedEntries ?? [])}
+                                <ThumbnailBatchProvider
+                                    batchKey={favoritesBatchKey}
+                                    expectedContentIds={favoritesExpectedIds}
+                                >
+                                    {createCardGrid(favoritedEntries ?? [])}
+                                </ThumbnailBatchProvider>
                             </section>
                             <section className="flex flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>All documents</h2>
                                 {resultCountLine}
-                                {createCardGrid(entries)}
+                                <ThumbnailBatchProvider
+                                    batchKey={gridBatchKey}
+                                    expectedContentIds={gridExpectedIds}
+                                >
+                                    {createCardGrid(entries)}
+                                </ThumbnailBatchProvider>
                             </section>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
                             {resultCountLine}
-                            {createCardGrid(entries)}
+                            <ThumbnailBatchProvider
+                                batchKey={gridBatchKey}
+                                expectedContentIds={gridExpectedIds}
+                            >
+                                {createCardGrid(entries)}
+                            </ThumbnailBatchProvider>
                         </div>
                     )
                 ) : (
