@@ -514,7 +514,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 // ======================================
 // DELETE ===============================
 // ======================================
-// TODO -NE make it ref the service instead
+// TODONE make it ref the service instead
 
 router.delete("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
