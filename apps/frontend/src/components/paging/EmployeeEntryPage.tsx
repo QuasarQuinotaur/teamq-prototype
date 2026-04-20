@@ -122,6 +122,8 @@ export default function EmployeeEntryPage() {
         <EntryPage
             entries={queryEntries}
             createOptionsElement={createOptionsElement}
+            listColumnOptions={{ omitExpiration: true }}
+            listEntriesPerPage={28}
             cardGridProps={{
                 renderCard: ((state) => (
                     // Uses employee card for grid

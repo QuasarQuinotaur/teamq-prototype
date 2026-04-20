@@ -18,6 +18,10 @@ export type CardState = {
     entry: CardEntry;
     badges: string[];
     createOptionsElement?: (trigger: React.ReactNode) => React.ReactNode;
+    /** Multi-select mode (documents): card shows a checkbox and primary click toggles selection. */
+    selectMode?: boolean;
+    selected?: boolean;
+    onSelectToggle?: () => void;
 }
 
 function CardContainer({

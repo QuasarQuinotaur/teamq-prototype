@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/elements/sidebar-elements.tsx"
-import {ChartBarIcon, ClockIcon, StarIcon, PersonIcon, FilesIcon, ListBulletsIcon} from "@phosphor-icons/react"
+import {ChartBarIcon, ClockIcon, PersonIcon, FilesIcon, ListBulletsIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
@@ -64,6 +64,8 @@ const data = {
         { title: "Workflow", url: "/documents/workflow" },
         { title: "Reference", url: "/documents/reference" },
         { title: "Tools", url: "/documents/tools" },
+        { title: "My documents", url: "/documents/my-documents" },
+        { title: "Checked out", url: "/documents/checked-out" },
       ],
     },
   ],
@@ -172,8 +174,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         nav-projects.tsx was deleted bc it is not useful for our sidebar, but it can be redownloaded from shadcn sidebar-08 */}
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="outline" size="lg">
-          <InboxIcon /> Inbox
+        <Button
+          variant="outline"
+          size="lg"
+          type="button"
+          className="w-full group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2"
+        >
+          <InboxIcon />
+          <span className="group-data-[collapsible=icon]:sr-only">Inbox</span>
         </Button>
       </SidebarFooter>
     </Sidebar>

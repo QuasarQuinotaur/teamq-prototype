@@ -1,10 +1,10 @@
 // Displays information about content (workflow, reference, tool)
 
 import * as React from "react"
-import {cn} from "@/lib/utils.ts"
+import {cn, isSupabasePath} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import {MoreHorizontalIcon} from "lucide-react";
+import { Check, MoreHorizontalIcon } from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -20,7 +20,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import ContentCardThumbnail, {
     googleFaviconUrlForLink,
     isPlainWebPageLink,
-    isSupabasePath,
     useInViewOnce,
     useMicrolinkLinkPreview,
 } from "@/components/cards/ContentCardThumbnail.tsx";
@@ -58,6 +57,8 @@ type ContentCardProps = {
     showContentTypeBadge?: boolean;
     /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
     showJobPositionBadge?: boolean;
+    /** When set, checkout dimmer/avatar/dots are hidden if this user holds the checkout (others still see them). */
+    viewerEmployeeId?: number | null;
 } & CardState;
 
 export default function ContentCard({
@@ -67,6 +68,10 @@ export default function ContentCard({
                                         onView,
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
+                                        viewerEmployeeId,
+                                        selectMode,
+                                        selected,
+                                        onSelectToggle,
 }: ContentCardProps) {
     const cardRef = React.useRef<HTMLDivElement>(null);
     const cardVisible = useInViewOnce(cardRef);
@@ -125,6 +130,10 @@ export default function ContentCard({
     }, []);
 
     function handleCardClick() {
+        if (selectMode && onSelectToggle) {
+            onSelectToggle();
+            return;
+        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
@@ -132,8 +141,28 @@ export default function ContentCard({
         }
     }
 
+    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+
+    function handleCardContextMenu(e: React.MouseEvent) {
+        if (!createOptionsElement) return;
+        const t = e.target;
+        if (
+            t instanceof Element &&
+            t.closest("a[href], input, textarea, select, [contenteditable='true']")
+        ) {
+            return;
+        }
+        e.preventDefault();
+        menuTriggerRef.current?.click();
+    }
+
     const content = entry.item as ContentWithCheckout;
     const checkedOut = content.isCheckedOut === true;
+    const showCheckoutOverlay =
+        checkedOut &&
+        (viewerEmployeeId == null ||
+            content.checkedOutById == null ||
+            content.checkedOutById !== viewerEmployeeId);
     const who = content.checkedOutBy;
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
@@ -156,20 +185,25 @@ export default function ContentCard({
     ]
     const expBadge = isExpired ? "Expired" : null;
 
+    const showBadges: boolean = false; // get this from settings page later
+
     return (
         <CardContainer
             ref={cardRef}
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
+            onContextMenu={handleCardContextMenu}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
         >
             <CardHeader className="pb-3 shrink-0">
                 <div className="flex w-full items-start justify-between gap-2">
+
+                    {/* TITLE + EXP BADGE (FIXED SYSTEM) */}
                     <div
                         className={cn(
                             "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out",
-                            cardHovered ? "max-h-24" : "max-h-[1.4em]",
+                            showBadges || cardHovered ? "max-h-32" : "max-h-[1.4em]"
                         )}
                     >
                         <div className="flex min-w-0 items-start gap-2">
@@ -181,6 +215,7 @@ export default function ContentCard({
                                     draggable={false}
                                 />
                             ) : null}
+
                             <CardTitle
                                 className={cn(
                                     "min-w-0 flex-1 break-words",
@@ -191,14 +226,14 @@ export default function ContentCard({
                             </CardTitle>
                         </div>
 
-                        {/* On hover: expiration — same motion as bottom badges */}
+                        {/* EXP BADGE */}
                         {expBadge && (
                             <div
                                 className={cn(
-                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out",
-                                    cardHovered
-                                        ? "translate-y-0"
-                                        : "translate-y-[calc(200%+1.25rem)]",
+                                    "flex gap-2 transition-all duration-500 ease-in-out",
+                                    showBadges || cardHovered
+                                        ? "opacity-100 mt-1"
+                                        : "opacity-0"
                                 )}
                             >
                                 <Badge className="bg-red-500/20 text-red-600 border-red-400/30">
@@ -206,12 +241,20 @@ export default function ContentCard({
                                 </Badge>
                             </div>
                         )}
-
                     </div>
+
+                    {/* OPTIONS */}
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                <Button
+                                    ref={menuTriggerRef}
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7 p-0"
+                                    data-document-menu-trigger={entry.item.id}
+                                >
                                     <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
@@ -220,12 +263,12 @@ export default function ContentCard({
                 </div>
             </CardHeader>
 
-            <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
+            <div className="flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl">
 
                 <div
                     className={cn(
                         "absolute inset-0 z-10 flex flex-col",
-                        checkedOut && "brightness-[0.45]",
+                        showCheckoutOverlay && "brightness-[0.45]",
                     )}
                 >
                     <ContentCardThumbnail
@@ -236,7 +279,7 @@ export default function ContentCard({
                     />
                 </div>
 
-                {checkedOut ? (
+                {showCheckoutOverlay ? (
                     <>
                         <div className="pointer-events-none absolute inset-0 z-30 bg-black/35" aria-hidden />
                         <div className="pointer-events-none absolute left-2 top-2 z-40">
@@ -253,22 +296,23 @@ export default function ContentCard({
                             className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center"
                             aria-label="Checked out"
                         >
-                            <span className="flex items-end gap-0.5">
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                            </span>
+            <span className="flex items-end gap-0.5">
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+            </span>
                         </div>
                     </>
                 ) : null}
 
+                {/* ROLE BADGES */}
                 {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
                     <div
                         className={cn(
-                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out",
-                            cardHovered
-                                ? "translate-y-0 scale-100"
-                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97]",
+                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-all duration-500 ease-in-out",
+                            showBadges || cardHovered
+                                ? "translate-y-0 scale-100 opacity-100"
+                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97] opacity-0",
                         )}
                     >
                         <div className="flex flex-wrap justify-end gap-2">
@@ -277,6 +321,19 @@ export default function ContentCard({
                     </div>
                 ) : null}
             </div>
+
+            {selectMode && selected ? (
+                <div
+                    className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
+                    aria-hidden
+                >
+                    <Check
+                        className="size-10 text-white drop-shadow-md"
+                        strokeWidth={2.75}
+                        aria-hidden
+                    />
+                </div>
+            ) : null}
         </CardContainer>
-    )
+    );
 }

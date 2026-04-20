@@ -14,6 +14,7 @@ import FilterButton, {type FilterButtonProps} from "@/components/paging/toolbar/
 import SortButton, {type SortButtonProps} from "@/components/paging/toolbar/SortButton.tsx";
 import ViewSelectorButton, {type ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import SearchBar, {type SearchBarProps} from "@/components/paging/toolbar/SearchBar.tsx";
+import { cn } from "@/lib/utils.ts";
 
 export type QueryProps<T> = {
     searchBarProps?: SearchBarProps,
@@ -27,12 +28,18 @@ type ToolbarProps<T> = {
     extraElements?: React.ReactNode[];
     /** When false, grid/list toggle is hidden (e.g. embedded grids in split view). */
     showViewSelector?: boolean;
+    /** Optional content after the search bar (e.g. Cancel in multi-select mode). */
+    toolbarLeadingSlot?: React.ReactNode;
+    /** Horizontally centered in the toolbar (e.g. “N selected”). */
+    toolbarCenterSlot?: React.ReactNode;
 };
 export default function Toolbar<T extends object>({
                                                       queryProps,
                                                       viewSelectorButtonProps,
                                                       extraElements,
                                                       showViewSelector = true,
+                                                      toolbarLeadingSlot,
+                                                      toolbarCenterSlot,
 }: ToolbarProps<T>) {
     const topRightElements = extraElements ? [...extraElements] : [];
     topRightElements.push(
@@ -43,38 +50,43 @@ export default function Toolbar<T extends object>({
         topRightElements.push(<ViewSelectorButton {...viewSelectorButtonProps} />);
     }
 
+    const hasToolbarCenter = Boolean(toolbarCenterSlot);
+
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4 w-full">
-                <NavigationMenu className={"max-w-full"}>
-                    {/*Sidebar Trigger Button*/}
-                    <>
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator
-                            orientation="vertical"
-                            className="mr-2 data-[orientation=vertical]"/>
-                    </>
-                    {/*Left Bar*/}
-                    <NavigationMenuList>
+            <div className="flex min-h-0 min-w-0 flex-1 items-center gap-2 px-4">
+                <NavigationMenu className="flex max-w-[min(100%,24rem)] flex-none shrink-0 items-center justify-start">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator
+                        orientation="vertical"
+                        className="mr-2 data-[orientation=vertical]"
+                    />
+                    <NavigationMenuList className="flex-none justify-start gap-2">
                         {queryProps.searchBarProps && (
                             <NavigationMenuItem className={"flex flex-col gap-2"}>
                                 <SearchBar {...queryProps.searchBarProps}/>
                             </NavigationMenuItem>
                         )}
                     </NavigationMenuList>
-                    <div className="flex-1"/>
-                    {/*Right Bar*/}
+                </NavigationMenu>
+                {toolbarLeadingSlot ? (
+                    <div className="flex shrink-0 items-center gap-2">{toolbarLeadingSlot}</div>
+                ) : null}
+                {hasToolbarCenter ? (
+                    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-2">
+                        {toolbarCenterSlot}
+                    </div>
+                ) : null}
+                <NavigationMenu
+                    className={cn("shrink-0", !hasToolbarCenter && "ml-auto")}
+                >
                     <NavigationMenuList>
                         <ButtonGroup className={"gap-1 overflow-hidden"}>
-                            {/*Todo: Overflow Handling?*/}
-                            {topRightElements.map((item) => {
-                                // Make all elements in the top right
-                                return (
-                                    <NavigationMenuItem>
-                                        {item}
-                                    </NavigationMenuItem>
-                                )
-                            })}
+                            {topRightElements.map((item, i) => (
+                                <NavigationMenuItem key={i}>
+                                    {item}
+                                </NavigationMenuItem>
+                            ))}
                         </ButtonGroup>
                     </NavigationMenuList>
                 </NavigationMenu>

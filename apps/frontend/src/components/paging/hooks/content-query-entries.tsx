@@ -6,11 +6,8 @@ import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import type {ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {SortFunction} from "@/components/paging/hooks/sort-function.tsx";
+import {isSupabasePath} from "@/lib/utils.ts";
 
-// TODO put in utils (copied from ContentCard, trying not to modify cards rn)
-function isSupabasePath(link: string) {
-    return !link.startsWith("http://") && !link.startsWith("https://");
-}
 
 type ContentQueryEntriesProps = {
     fieldsFilter: ContentFieldsFilter;

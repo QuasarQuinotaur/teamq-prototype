@@ -4,7 +4,7 @@ import * as React from "react";
 import { Document, Page } from "react-pdf";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { FileIcon, Link2Icon } from "lucide-react";
-import { cn } from "@/lib/utils.ts";
+import {cn, isSupabasePath} from "@/lib/utils.ts";
 import type { CardEntry } from "@/components/cards/Card.tsx";
 import "@/lib/pdf-config.ts";
 import DocxCardThumb from "@/components/cards/DocxCardThumb.tsx";
@@ -15,10 +15,6 @@ import {
 } from "@/lib/favicon-average-color.ts";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-
-export function isSupabasePath(link: string) {
-    return !link.startsWith("http://") && !link.startsWith("https://");
-}
 
 function getDisplayFileName(entry: CardEntry): string {
     const fromLink = entry.link.split("/").pop()?.split("?")[0] ?? "";

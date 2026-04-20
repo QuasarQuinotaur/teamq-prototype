@@ -325,10 +325,11 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return res.status(404).json({ error: "Content not found" });
         }
 
-        const isOwner = content.ownerId === employee.id;
+        const isJobPosition = content.jobPositions.includes(employee.jobPosition);
         const isAdmin = employee.jobPosition === "admin";
-        if (!isOwner && !isAdmin) {
-            return res.status(403).json({ error: "Not authorized to update this content" });
+
+        if (!isJobPosition && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to check in this content" });
         }
 
         if (content.isCheckedOut && content.checkedOutById !== employee.id) {
@@ -432,8 +433,17 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        if (content.isCheckedOut) {
-            res.status(409).json({ error: "Cannot delete while document is checked out" });
+        if (!content.isCheckedOut) {
+            res.status(403).json({
+                error: "Check out the document before deleting.",
+            });
+            return;
+        }
+
+        if (content.checkedOutById !== employee.id) {
+            res.status(409).json({
+                error: "Cannot delete while document is checked out by another user",
+            });
             return;
         }
 

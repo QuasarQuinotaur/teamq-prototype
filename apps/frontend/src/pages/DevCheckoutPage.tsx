@@ -113,9 +113,7 @@ export default function DevCheckoutPage() {
                 </Button>
             </div>
 
-            {loading ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : rows.length === 0 ? (
+            {!loading && rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No checked-out documents.</p>
             ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
