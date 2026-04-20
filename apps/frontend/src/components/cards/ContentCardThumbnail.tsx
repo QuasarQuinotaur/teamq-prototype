@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- utilities + default component */
 // Thumbnails for content cards: Discord-style link embeds (Microlink) and lightweight file previews.
 
 import * as React from "react";
@@ -13,6 +14,7 @@ import {
     rgbToCss,
     type Rgb,
 } from "@/lib/favicon-average-color.ts";
+import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -66,25 +68,6 @@ function directHttpFileKind(link: string): "image" | "document" | null {
     } catch {
         return null;
     }
-}
-
-export function useInViewOnce(ref: React.RefObject<HTMLElement | null>) {
-    const [visible, setVisible] = React.useState(false);
-    React.useEffect(() => {
-        const el = ref.current;
-        if (!el || visible) return;
-        const io = new IntersectionObserver(
-            ([e]) => {
-                if (e?.isIntersecting) {
-                    setVisible(true);
-                }
-            },
-            { rootMargin: "120px", threshold: 0.01 },
-        );
-        io.observe(el);
-        return () => io.disconnect();
-    }, [ref, visible]);
-    return visible;
 }
 
 function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
@@ -190,10 +173,6 @@ export function googleFaviconUrlForLink(href: string, size = 64): string | null 
     }
 }
 
-function PdfThumbFallback(_: FallbackProps) {
-    return <PdfLoadError />;
-}
-
 function PdfLoadError() {
     return (
         <div className="flex size-full items-center justify-center bg-muted">
@@ -202,10 +181,42 @@ function PdfLoadError() {
     );
 }
 
+function PdfDocumentError({ onReady }: { onReady: () => void }) {
+    React.useEffect(() => {
+        onReady();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- single-fire when error element mounts
+    }, []);
+    return <PdfLoadError />;
+}
+
 /** Renders only the first PDF page at low width (thumbnail), no interactive layers. */
-function PdfFirstPageThumbnail({ url }: { url: string }) {
+function PdfFirstPageThumbnailInner({ url, onReady }: { url: string; onReady: () => void }) {
+    const called = React.useRef(false);
+    const safeReady = React.useCallback(() => {
+        if (called.current) return;
+        called.current = true;
+        onReady();
+    }, [onReady]);
+
+    const safeReadyRef = React.useRef(safeReady);
+    React.useEffect(() => {
+        safeReadyRef.current = safeReady;
+    }, [safeReady]);
+
     const wrapRef = React.useRef<HTMLDivElement>(null);
     const [pageWidth, setPageWidth] = React.useState(160);
+
+    const ErrorBoundaryFallback = React.useMemo(
+        () =>
+            function PdfBoundaryFallback(props: FallbackProps) {
+                void props;
+                React.useEffect(() => {
+                    safeReadyRef.current();
+                }, []);
+                return <PdfLoadError />;
+            },
+        [],
+    );
 
     React.useEffect(() => {
         const el = wrapRef.current;
@@ -221,13 +232,14 @@ function PdfFirstPageThumbnail({ url }: { url: string }) {
 
     return (
         <div ref={wrapRef} className="flex size-full items-start justify-center overflow-hidden bg-muted">
-            <ErrorBoundary FallbackComponent={PdfThumbFallback}>
+            <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                 <Document
                     file={url}
+                    onLoadError={safeReady}
                     loading={
-                        <div className="mt-2 h-24 w-[85%] max-w-[200px] animate-pulse rounded-sm bg-muted-foreground/10" />
+                        <div className="mt-2 h-24 w-[85%] max-w-[200px] rounded-sm bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none" />
                     }
-                    error={<PdfLoadError />}
+                    error={<PdfDocumentError onReady={safeReady} />}
                 >
                     <Page
                         pageNumber={1}
@@ -235,6 +247,8 @@ function PdfFirstPageThumbnail({ url }: { url: string }) {
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
                         className="shadow-sm [&_.react-pdf__Page__canvas]:!h-auto"
+                        onRenderSuccess={safeReady}
+                        onRenderError={safeReady}
                     />
                 </Document>
             </ErrorBoundary>
@@ -256,22 +270,44 @@ function GenericFilePlaceholder({ label }: { label?: string }) {
 }
 
 function LinkPreviewLoading() {
-    return <div className="size-full animate-pulse bg-muted-foreground/10" aria-hidden />;
+    return (
+        <div
+            className="size-full bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none motion-reduce:opacity-90"
+            aria-hidden
+        />
+    );
 }
 
-function LinkPreviewImageOnly({ src }: { src: string }) {
+function LinkPreviewImageOnly({
+    src,
+    onReady,
+}: {
+    src: string;
+    onReady: () => void;
+}) {
+    const fired = React.useRef(false);
+    const safe = React.useCallback(() => {
+        if (fired.current) return;
+        fired.current = true;
+        onReady();
+    }, [onReady]);
     return (
         <img
             src={src}
             alt=""
             className="size-full object-cover object-center"
             draggable={false}
+            onLoad={safe}
+            onError={safe}
         />
     );
 }
 
 /** Thumbnail area when there is no hero image: URL / link icon only. */
-function LinkPreviewUrlIcon() {
+function LinkPreviewUrlIcon({ onReady }: { onReady: () => void }) {
+    React.useEffect(() => {
+        onReady();
+    }, [onReady]);
     return (
         <div className="flex size-full items-center justify-center bg-muted">
             <Link2Icon className="size-12 text-muted-foreground" aria-hidden />
@@ -280,8 +316,15 @@ function LinkPreviewUrlIcon() {
 }
 
 /** Solid fill from average favicon color when Microlink has no preview image (CORS permitting). */
-function LinkPreviewFaviconAverageColor({ faviconUrl }: { faviconUrl: string }) {
+function LinkPreviewFaviconAverageColor({
+    faviconUrl,
+    onReady,
+}: {
+    faviconUrl: string;
+    onReady: () => void;
+}) {
     const [rgb, setRgb] = React.useState<Rgb | null | undefined>(undefined);
+    const fired = React.useRef(false);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -294,11 +337,17 @@ function LinkPreviewFaviconAverageColor({ faviconUrl }: { faviconUrl: string }) 
         };
     }, [faviconUrl]);
 
+    React.useEffect(() => {
+        if (rgb === undefined || rgb === null || fired.current) return;
+        fired.current = true;
+        onReady();
+    }, [rgb, onReady]);
+
     if (rgb === undefined) {
         return <LinkPreviewLoading />;
     }
     if (rgb === null) {
-        return <LinkPreviewUrlIcon />;
+        return <LinkPreviewUrlIcon onReady={onReady} />;
     }
     return (
         <div
@@ -309,11 +358,29 @@ function LinkPreviewFaviconAverageColor({ faviconUrl }: { faviconUrl: string }) 
     );
 }
 
+/** Fires `onThumbReady` once when `ready` becomes true and `loadAllowed` is true. */
+function ThumbReadyGate({
+    contentId,
+    loadAllowed,
+    ready,
+}: {
+    contentId: number;
+    loadAllowed: boolean;
+    ready: boolean;
+}) {
+    const { onThumbReady } = useThumbnailBatch();
+    const done = React.useRef(false);
+    React.useEffect(() => {
+        if (!loadAllowed || !ready || done.current) return;
+        done.current = true;
+        onThumbReady(contentId);
+    }, [contentId, loadAllowed, ready, onThumbReady]);
+    return null;
+}
+
 type ContentCardThumbnailProps = {
     entry: CardEntry;
     className?: string;
-    /** When the card is near the viewport — enables lazy fetch for files / Microlink */
-    visible: boolean;
     /** Microlink state for plain web links; supplied by parent together with header favicon */
     linkMicrolink?: LinkMicrolinkState;
     /** Resolved favicon URL for plain web links (Microlink logo or Google hostname icon) — used for average-color thumb when there is no preview image */
@@ -321,21 +388,27 @@ type ContentCardThumbnailProps = {
 };
 
 /**
- * Lazy-loads file previews when `visible`; plain web links use `linkMicrolink` from parent.
+ * Loads previews when batch context allows; keeps pixels hidden until `revealThumbnails`.
  */
 export default function ContentCardThumbnail({
     entry,
     className,
-    visible,
     linkMicrolink,
     linkTitleFaviconUrl,
 }: ContentCardThumbnailProps) {
+    const { loadAllowed, revealThumbnails, onThumbReady } = useThumbnailBatch();
+    const contentId = entry.item.id;
+
+    const notifyOnce = React.useCallback(() => {
+        onThumbReady(contentId);
+    }, [contentId, onThumbReady]);
+
     const isFile = isSupabasePath(entry.link);
     const httpKind = !isFile && entry.link ? directHttpFileKind(entry.link) : null;
 
     const { url: signedUrl, loading: signedLoading, failed: signedFailed } = useSignedDownloadUrl(
         entry.item.id,
-        visible && isFile && Boolean(entry.link),
+        loadAllowed && isFile && Boolean(entry.link),
     );
 
     const fileName = getDisplayFileName(entry);
@@ -353,64 +426,87 @@ export default function ContentCardThumbnail({
             !IMAGE_EXT.has(ext),
     );
 
+    let inner: React.ReactNode = null;
+    let gate: React.ReactNode = null;
+
+    if (!loadAllowed) {
+        inner = <LinkPreviewLoading />;
+    } else if (isFile) {
+        if (!entry.link) {
+            inner = <GenericFilePlaceholder />;
+            gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        } else if (signedFailed) {
+            inner = <GenericFilePlaceholder />;
+            gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        } else if (signedLoading && !signedUrl) {
+            inner = <LinkPreviewLoading />;
+        } else if (showRasterImage && previewUrl) {
+            inner = (
+                <LinkPreviewImageOnly src={previewUrl} onReady={notifyOnce} />
+            );
+        } else if (showPdfThumb && previewUrl) {
+            inner = <PdfFirstPageThumbnailInner url={previewUrl} onReady={notifyOnce} />;
+        } else if (showDocxThumb && previewUrl) {
+            inner = <DocxCardThumb url={previewUrl} onReady={notifyOnce} />;
+        } else if (showGenericDoc && previewUrl) {
+            inner = <GenericFilePlaceholder label={ext || undefined} />;
+            gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        } else if (signedUrl && !signedLoading) {
+            inner = <GenericFilePlaceholder />;
+            gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        } else {
+            inner = <LinkPreviewLoading />;
+        }
+    } else if (!entry.link) {
+        inner = (
+            <LinkPreviewUrlIcon
+                onReady={notifyOnce}
+            />
+        );
+    } else if (httpKind === "image") {
+        inner = (
+            <LinkPreviewImageOnly src={entry.link} onReady={notifyOnce} />
+        );
+    } else if (httpKind === "document") {
+        if (ext === "pdf" || entry.link.toLowerCase().split("?")[0].endsWith(".pdf")) {
+            inner = <PdfFirstPageThumbnailInner url={entry.link} onReady={notifyOnce} />;
+        } else if (ext === "docx") {
+            inner = <DocxCardThumb url={entry.link} onReady={notifyOnce} />;
+        } else {
+            inner = <GenericFilePlaceholder label={ext || undefined} />;
+            gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        }
+    } else if (linkMicrolink && !linkMicrolink.done) {
+        inner = <LinkPreviewLoading />;
+    } else if (linkMicrolink?.fullImageUrl) {
+        inner = (
+            <LinkPreviewImageOnly src={linkMicrolink.fullImageUrl} onReady={notifyOnce} />
+        );
+    } else if (linkTitleFaviconUrl) {
+        inner = (
+            <LinkPreviewFaviconAverageColor faviconUrl={linkTitleFaviconUrl} onReady={notifyOnce} />
+        );
+    } else {
+        inner = <LinkPreviewUrlIcon onReady={notifyOnce} />;
+    }
+
     return (
         <div className={cn("relative size-full overflow-hidden rounded-b-xl bg-muted", className)}>
-            {!visible ? (
-                <LinkPreviewLoading />
-            ) : isFile ? (
-                !entry.link ? (
-                    <GenericFilePlaceholder />
-                ) : signedFailed ? (
-                    <GenericFilePlaceholder />
-                ) : signedLoading && !signedUrl ? (
+            {!revealThumbnails ? (
+                <div className="absolute inset-0 z-20">
                     <LinkPreviewLoading />
-                ) : showRasterImage && previewUrl ? (
-                    <img
-                        src={previewUrl}
-                        alt=""
-                        className="size-full object-cover object-top"
-                        draggable={false}
-                    />
-                ) : showPdfThumb && previewUrl ? (
-                    <PdfFirstPageThumbnail url={previewUrl} />
-                ) : showDocxThumb && previewUrl ? (
-                    <DocxCardThumb url={previewUrl} />
-                ) : showGenericDoc && previewUrl ? (
-                    <GenericFilePlaceholder label={ext || undefined} />
-                ) : signedUrl && !signedLoading ? (
-                    <GenericFilePlaceholder />
-                ) : (
-                    <LinkPreviewLoading />
-                )
-            ) : !entry.link ? (
-                <div className="flex size-full items-center justify-center">
-                    <Link2Icon className="size-12 text-muted-foreground" aria-hidden />
                 </div>
-            ) : httpKind === "image" ? (
-                <img
-                    src={entry.link}
-                    alt=""
-                    className="size-full object-cover object-top"
-                    loading="lazy"
-                    draggable={false}
-                />
-            ) : httpKind === "document" ? (
-                ext === "pdf" || entry.link.toLowerCase().split("?")[0].endsWith(".pdf") ? (
-                    <PdfFirstPageThumbnail url={entry.link} />
-                ) : ext === "docx" ? (
-                    <DocxCardThumb url={entry.link} />
-                ) : (
-                    <GenericFilePlaceholder label={ext || undefined} />
-                )
-            ) : linkMicrolink && !linkMicrolink.done ? (
-                <LinkPreviewLoading />
-            ) : linkMicrolink?.fullImageUrl ? (
-                <LinkPreviewImageOnly src={linkMicrolink.fullImageUrl} />
-            ) : linkTitleFaviconUrl ? (
-                <LinkPreviewFaviconAverageColor faviconUrl={linkTitleFaviconUrl} />
-            ) : (
-                <LinkPreviewUrlIcon />
-            )}
+            ) : null}
+            <div
+                className={cn(
+                    "relative size-full",
+                    !revealThumbnails && "invisible",
+                )}
+                aria-hidden={!revealThumbnails}
+            >
+                {inner}
+                {gate}
+            </div>
         </div>
     );
 }
