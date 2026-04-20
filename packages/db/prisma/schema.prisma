@@ -37,11 +37,11 @@ model Content {
   jobPositions       String[] // scalar list
   contentType        String
   dateAdded          DateTime         @default(now())
-  dateUpdated        DateTime         @updatedAt // TODO check to make sure it is updated when checked in
+  dateUpdated        DateTime         @updatedAt // TODO -ne? check to make sure it is updated when checked in
   dateReview         DateTime? // TODO
   expirationDate     DateTime
   employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
-  ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :(
+  ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
   owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
   serviceRequests    ServiceRequest[] @relation("ContentRequests")
   notifications      Notification[]   @relation("NotificationContents")
@@ -75,7 +75,7 @@ model ServiceRequest {
   contents  Content[]  @relation("ContentRequests")
 }
 
-// TODO add possible custom message
+// TODO -ne add possible custom message
 model Notification {
   id        Int      @id @default(autoincrement())
   type      String

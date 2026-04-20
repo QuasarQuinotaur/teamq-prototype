@@ -40,7 +40,7 @@ class NotificationRepository {
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
-                dateRead:  {not: null}
+                dateRead:  null
             },
             orderBy: { id: "asc" },
             include: {
@@ -54,7 +54,7 @@ class NotificationRepository {
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
-                dateRead: null
+                dateRead: {not: null}
             },
             orderBy: { id: "asc" },
             include: {
@@ -67,18 +67,18 @@ class NotificationRepository {
     //do we need any more???
 
     async create(data: {
-        type?: string;
-        dateSent?: Date;
-        dateRead?: Date;
-        employeeNotifiedID?: number;
+        type: string;
+        employeeNotifiedID: number;
         contentIds?: number[];
+        customMsg?: string;
     }) {
         return prisma.notification.create({
             data: {
                 type: data.type,
-                dateSent: data.dateSent,
-                dateRead: data.dateRead,
-                employeeNotifiedID: data.employeeNotifiedID,
+                customMsg: data.customMsg,
+                employeeNotified: {
+                    connect: { id: data.employeeNotifiedID }
+                },
                 contentsUsed: data.contentIds
                     ? {
                         connect: data.contentIds.map(id => ({ id }))
@@ -86,6 +86,33 @@ class NotificationRepository {
                     : undefined,
             }
         });
+    }
+
+    //TODO -ne: for giving the same notification to multiple peeps
+    async createMany(data: {
+        type: string;
+        employeeIds: number[];
+        contentIds?: number[];
+        customMsg?: string;
+    }) {
+        return Promise.all(
+            data.employeeIds.map(empId =>
+                prisma.notification.create({
+                    data: {
+                        type: data.type,
+                        customMsg: data.customMsg,
+                        employeeNotified: {
+                            connect: { id: empId }
+                        },
+                        contentsUsed: data.contentIds
+                            ? {
+                                connect: data.contentIds.map(id => ({ id }))
+                            }
+                            : undefined,
+                    }
+                })
+            )
+        );
     }
 
     async update(id: number, data: {
@@ -116,6 +143,7 @@ class NotificationRepository {
             where: {id}
         })
     }
+
 }
 
 export { NotificationRepository };

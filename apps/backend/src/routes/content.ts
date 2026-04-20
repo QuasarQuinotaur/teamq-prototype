@@ -2,6 +2,7 @@ import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Router } from "express";
 import { getEmployeeFromRequest } from "../app.ts";
+
 import {
     uploadBuffer,
     getSignedUrl,
@@ -15,6 +16,8 @@ const { requiresAuth } = pkg;
 import multer from "multer";
 
 import { ContentRepository } from "../ContentRepository.ts";
+import { contentService } from "../services.ts"
+
 import {exec} from "node:child_process";
 import {readFile} from "fs/promises";
 const contentRepo = new ContentRepository();
@@ -511,55 +514,25 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 // ======================================
 // DELETE ===============================
 // ======================================
+// TODO -NE make it ref the service instead
 
 router.delete("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
+
     if (isNaN(id)) {
-        res.status(400).json({ error: "Invalid id" });
+        res.status(400).json({error: "Invalid id"});
         return;
     }
 
     try {
         const employee = await getEmployeeFromRequest(req);
+
         if (!employee) {
-            res.status(404).json({ error: "No linked employee account found" });
-            return;
+            return res.status(404).json({error: "No linked employee account found"});
         }
+        await contentService.deleteContent(id, employee);
 
-        const content = await contentRepo.getById(id);
-
-        if (!content) {
-            res.status(404).json({ error: "Content not found" });
-            return;
-        }
-
-        if (content.isCheckedOut) {
-            res.status(409).json({ error: "Cannot delete while document is checked out" });
-            return;
-        }
-
-        const isOwner = content.ownerId === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
-        if (!isOwner && !isAdmin) {
-            res.status(403).json({ error: "Not authorized to delete this content" });
-            return;
-        }
-
-        const filePath = content.filePath;
-        const isExternalLink =
-            !!filePath &&
-            (filePath.startsWith("http://") || filePath.startsWith("https://"));
-
-        if (filePath && !isExternalLink) {
-            await deleteFile(filePath);
-        }
-
-        await contentRepo.delete(id);
-
-        const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
-        await unlink(thumbFsPath).catch(() => {});
-
-        res.json({ success: true });
+        res.json({success: true});
     } catch (err) {
         console.error(err);
         res.status(500).json({
@@ -567,6 +540,62 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         });
     }
 });
+
+// router.delete("/:id", requiresAuth(), async (req, res) => {
+//     const id = Number(req.params.id);
+//     if (isNaN(id)) {
+//         res.status(400).json({ error: "Invalid id" });
+//         return;
+//     }
+//
+//     try {
+//         const employee = await getEmployeeFromRequest(req);
+//         if (!employee) {
+//             res.status(404).json({ error: "No linked employee account found" });
+//             return;
+//         }
+//
+//         const content = await contentRepo.getById(id);
+//
+//         if (!content) {
+//             res.status(404).json({ error: "Content not found" });
+//             return;
+//         }
+//
+//         if (content.isCheckedOut) {
+//             res.status(409).json({ error: "Cannot delete while document is checked out" });
+//             return;
+//         }
+//
+//         const isOwner = content.ownerId === employee.id;
+//         const isAdmin = employee.jobPosition === "admin";
+//         if (!isOwner && !isAdmin) {
+//             res.status(403).json({ error: "Not authorized to delete this content" });
+//             return;
+//         }
+//
+//         const filePath = content.filePath;
+//         const isExternalLink =
+//             !!filePath &&
+//             (filePath.startsWith("http://") || filePath.startsWith("https://"));
+//
+//         if (filePath && !isExternalLink) {
+//             await deleteFile(filePath);
+//         }
+//
+//         await contentRepo.delete(id);
+//
+//         const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
+//         await unlink(thumbFsPath).catch(() => {});
+//
+//         res.json({ success: true });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({
+//             error: err instanceof Error ? err.message : "Delete failed",
+//         });
+//     }
+// });
 
 
 export default router;
