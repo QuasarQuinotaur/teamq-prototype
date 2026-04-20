@@ -112,7 +112,7 @@ export default function EntryPage<T extends object>({
 
     // Pagination (list view)
     const entriesPerPage =
-        listEntriesPerPage ?? (omitToolbar ? 5 : 6);
+        listEntriesPerPage ?? (omitToolbar ? 9 : 10);
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
     const updatePageEntries = useCallback((viewPageNum: number) => {
@@ -237,7 +237,11 @@ export default function EntryPage<T extends object>({
                 >
                     {entryScrollInner}
                 </div>
-                {bottomPagination}
+                {(view === "List" ? (
+                    bottomPagination
+                ) : (
+                    <></>
+                ))}
             </SelectMarqueeLayer>
     );
 
