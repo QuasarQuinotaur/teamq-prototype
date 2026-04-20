@@ -468,6 +468,155 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
     }
 });
 
+// ===================================
+// POST (Tag to content)
+// ===================================
+router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        const tagId = Number(req.params.tagId);
+
+        if (Number.isNaN(contentId) || Number.isNaN(tagId)) {
+            res.status(400).json({ error: "Invalid content id or tag id" });
+            return;
+        }
+
+        const tag = await prisma.tag.findFirst({
+            where: {
+                id: tagId,
+                ownerId: employee.id,
+            },
+        });
+
+        if (!tag) {
+            res.status(404).json({ error: "Tag not found" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        const contentTag = await contentRepo.addTag(contentId, tagId);
+
+        res.json({
+            success: true,
+            contentTag,
+        });
+    } catch (err: any) {
+        console.error(err);
+
+        if (err.code === "P2002") {
+            res.status(409).json({
+                error: "That tag is already attached to this content",
+            });
+            return;
+        }
+
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to attach tag",
+        });
+    }
+});
+
+// ===================================
+// DELETE (Tag from content)
+// ===================================
+router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        const tagId = Number(req.params.tagId);
+
+        if (Number.isNaN(contentId) || Number.isNaN(tagId)) {
+            res.status(400).json({ error: "Invalid content id or tag id" });
+            return;
+        }
+
+        const tag = await prisma.tag.findFirst({
+            where: {
+                id: tagId,
+                ownerId: employee.id,
+            },
+        });
+
+        if (!tag) {
+            res.status(404).json({ error: "Tag not found" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        await contentRepo.removeTag(contentId, tagId);
+
+        res.json({ success: true });
+    } catch (err: any) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to remove tag from content",
+        });
+    }
+});
+
+// ===================================
+// GET (All tags for one content item)
+// ===================================
+router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+
+        if (Number.isNaN(contentId)) {
+            res.status(400).json({ error: "Invalid content id" });
+            return;
+        }
+
+        const content = await contentRepo.getTags(contentId);
+
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        const tags = content.tags.map((ct) => ct.tag);
+
+        res.json({
+            success: true,
+            tags,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to load tags",
+        });
+    }
+});
 
 export default router;
 
