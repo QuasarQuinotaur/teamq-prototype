@@ -26,6 +26,7 @@ model Employee {
 
   notifications  Notification[] @relation("NotificationEmployees")
   contentChecked Content[]      @relation("CheckedOutContent")
+  tagsCreated    Tag[]
 }
 
 model Content {
@@ -48,6 +49,8 @@ model Content {
   checkedOutOn   DateTime?
   checkedOutById Int?
   checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+
+  tags ContentTag[]
 
   @@index([ownerId])
   @@index([contentType])
@@ -93,4 +96,27 @@ model UserPhoto {
   ownerId Int      @unique
   path    String
   owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id      Int      @id @default(autoincrement())
+  ownerId Int
+  tagName String
+  owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  contents ContentTag[]
+
+  @@unique([ownerId, tagName])
+  @@index([tagName])
+}
+
+model ContentTag {
+  contentId Int
+  tagId     Int
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, tagId])
+  @@index([tagId])
 }
