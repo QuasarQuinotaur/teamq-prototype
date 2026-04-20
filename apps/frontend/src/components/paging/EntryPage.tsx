@@ -92,15 +92,41 @@ export default function EntryPage<T extends object>({
         marqueeBlocked,
     } = entryProps;
 
+    const favoritesHeadingClass =
+        "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
+
+    const showFavoritesWithEntries =
+        showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
+
+    // for view type (grid vs. list)
+    // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
+    const { view: contextView, setView } = useMainContext()
+    const view = forceGridView ? "Grid" : contextView
+    const viewSelectorButtonProps: ViewSelectorButtonProps = {
+        view, setView
+    }
+
+    // Pagination (list view)
+    const [entriesPerPage, setEntriesPerPage] =
+        useState(listEntriesPerPage ?? (omitToolbar ? 9 : 10));
+    const [pageEntries, setPageEntries] = useState<CardEntry[]>()
+    const [pageNum, setPageNum] = useState<number>(1);
+    const updatePageEntries = useCallback((viewPageNum: number) => {
+        const first = entriesPerPage*(viewPageNum-1)
+        const last = entriesPerPage*(viewPageNum)
+        setPageEntries(entries.slice(first, last))
+    }, [entries, entriesPerPage])
+
     function newNumEntries(numPerPage: ChangeEvent<HTMLInputElement, HTMLInputElement>) {
-        listEntriesPerPage = +numPerPage.target.value
+        setEntriesPerPage(+numPerPage.target.value)
+
     }
 
     const numEntriesInput = (
         <>
             <Input
                 className="w-5 border-0 border-b rounded-none p-0 h-auto text-center text-muted-foreground"
-                placeholder={String(listEntriesPerPage)}
+                placeholder={String(entriesPerPage)}
                 onChange={newNumEntries}
             />
         </>
@@ -109,35 +135,26 @@ export default function EntryPage<T extends object>({
     const resultCountLine =
         displayedEntryLabels != null ? (
             <section className="flex px-10 flex-nowrap">
-                {numEntriesInput}
-                <p
-                    className="text-sm text-muted-foreground pl-1"
-                    aria-live="polite"
-                >
-                     of
-                    {entries.length === 1
-                        ? ` 1 ${displayedEntryLabels.one}`
-                        : ` ${entries.length} ${displayedEntryLabels.other}`}
-                </p>
+                {( view === "List" ? (
+                    <>
+                        {numEntriesInput}
+                        <p
+                        className="text-sm text-muted-foreground pl-1"
+                        aria-live="polite"
+                        >
+                        of
+                        {entries.length === 1
+                            ? ` 1 ${displayedEntryLabels.one}`
+                            : ` ${entries.length} ${displayedEntryLabels.other}`}
+                        </p>
+                    </>
+                ) : (
+                    entries.length === 1
+                            ? `1 ${displayedEntryLabels.one}`
+                            : `${entries.length} ${displayedEntryLabels.other}`
+                ))}
             </section>
         ) : null;
-
-    const favoritesHeadingClass =
-        "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
-
-    const showFavoritesWithEntries =
-        showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
-
-    // Pagination (list view)
-    const entriesPerPage =
-        listEntriesPerPage ?? (omitToolbar ? 9 : 10);
-    const [pageEntries, setPageEntries] = useState<CardEntry[]>()
-    const [pageNum, setPageNum] = useState<number>(1);
-    const updatePageEntries = useCallback((viewPageNum: number) => {
-        const first = entriesPerPage*(viewPageNum-1)
-        const last = entriesPerPage*(viewPageNum)
-        setPageEntries(entries.slice(first, last))
-    }, [entries, entriesPerPage])
 
     const gridExpectedIds = useMemo(() => entries.map((e) => e.item.id), [entries]);
 
@@ -152,14 +169,6 @@ export default function EntryPage<T extends object>({
         () => `fav-${favoritesExpectedIds.join(",")}`,
         [favoritesExpectedIds],
     );
-
-    // for view type (grid vs. list)
-    // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
-    const { view: contextView, setView } = useMainContext()
-    const view = forceGridView ? "Grid" : contextView
-    const viewSelectorButtonProps: ViewSelectorButtonProps = {
-        view, setView
-    }
 
     function createCardGrid(gridEntries: CardEntry[]) {
         return (
