@@ -336,7 +336,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return res.status(403).json({ error: "Content is checked out by another user" });
         }
 
-        const { name, link, expirationDate, contentType } = req.body;
+        const { name, link, expirationDate, contentType, newOwnerID } = req.body;
 
         const jobPositions = parseJobPositions(req.body as Record<string, unknown>);
         if (
@@ -347,6 +347,27 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         ) {
             res.status(400).json({ error: "Missing required fields" });
             return;
+        }
+
+        const isOwner = content.ownerId === employee.id;
+        const parsedNewOwnerId = newOwnerID ? Number(newOwnerID) : undefined;
+
+        if (parsedNewOwnerId && parsedNewOwnerId !== content.ownerId) {
+            if (!isOwner && !isAdmin) {
+                return res.status(403).json({
+                    error: "Only the current owner or admin can change ownership",
+                });
+            }
+        }
+
+        if (parsedNewOwnerId) {
+            const newOwner = await prisma.employee.findUnique({
+                where: { id: parsedNewOwnerId },
+            });
+
+            if (!newOwner) {
+                return res.status(400).json({ error: "New owner does not exist" });
+            }
         }
 
         const hasFile = !!req.file;
@@ -363,6 +384,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         let finalLink = "";
+
 
         if (req.file) {
             const uploaded = await uploadBuffer(
@@ -382,13 +404,13 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 title: name.trim(),
                 filePath: finalLink,
                 fileSize: req.file?.size ?? undefined,
-                ownerId: employee.id,
                 jobPositions,
                 contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
             include: {
                 owner: true,
