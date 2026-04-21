@@ -19,12 +19,12 @@ export default function ButtonSelector<T extends Record<string, OptionDefinition
 ) {
 
     return (
-        <Item variant={"outline"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
+        <Item variant={"muted"} className={"gap-0 p-0 overflow-hidden flex-nowrap"}>
             {Object.entries(options).map(([option, definition]) => (
                 <Button
                     key={option}
                     id={option}
-                    variant={option === value ? "default" : "ghost"}
+                    variant={option === value ? "outline" : "ghost"}
                     onClick={() => {
                         if (option != value) {
                             onChange(option as keyof T);

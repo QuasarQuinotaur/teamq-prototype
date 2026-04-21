@@ -439,7 +439,7 @@ export default function Dashboard() {
                 label="To do"
                 value={counts.todo}
                 icon={ListTodoIcon}
-                accent="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                accent="bg-muted text-slate-500"
                 className="min-h-0"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=todo`}
               />
@@ -447,7 +447,7 @@ export default function Dashboard() {
                 label="Done"
                 value={counts.done}
                 icon={CheckCircle2Icon}
-                accent="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                accent="bg-muted text-emerald-500"
                 className="min-h-0"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=done`}
               />
@@ -455,7 +455,7 @@ export default function Dashboard() {
                 label="Due this week"
                 value={counts.dueWeek}
                 icon={CalendarDaysIcon}
-                accent="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                accent="bg-muted text-amber-500"
                 className="min-h-0"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=week`}
               />
@@ -463,7 +463,7 @@ export default function Dashboard() {
                 label="Overdue"
                 value={counts.overdue}
                 icon={AlertCircleIcon}
-                accent="bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                accent="bg-muted text-red-500"
                 className="min-h-0"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=overdue`}
               />

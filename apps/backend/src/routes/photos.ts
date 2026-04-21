@@ -112,6 +112,7 @@ router.delete("/photo/:id", requiresAuth(), async (req, res) => {
 // GET ===============================
 // ===================================
 
+// photo from signed in employee
 router.get("/photo", requiresAuth(), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
@@ -136,6 +137,35 @@ router.get("/photo", requiresAuth(), async (req, res) => {
         console.error(err);
         res.status(500).json({
             error: err instanceof Error ? err.message : "Failed to load profile photo",
+        });
+    }
+});
+
+// photo from employee ID
+router.get("/photo/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const photo = await prisma.userPhoto.findUnique({
+            where: { ownerId: id },
+        });
+        if (!photo) {
+            res.status(404).json({ error: "No profile photo found" });
+            return;
+        }
+        const signedUrl = await getSignedUrl(photo.path);
+        res.json({
+            success: true,
+            url: signedUrl,
+            photo,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to find profile photo",
         });
     }
 });

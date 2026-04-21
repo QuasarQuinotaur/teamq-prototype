@@ -39,10 +39,20 @@ router.get("/new", requiresAuth(), async (req, res) => { //get new
     }
 
     const notifications = await notificationRepo.gettByEmpIdNew(employee.id);
-    res.json(notifications);
+
+    if (notifications.length > 0) {
+        await notificationRepo.markManyAsNotified(notifications.map(({ id }) => id));
+    }
+
+    res.json(
+        notifications.map((notification) => ({
+            ...notification,
+            employeeWasNotified: true
+        }))
+    );
 });
 
-router.get("/old", requiresAuth(), async (req, res) => { //get old
+router.get("/unread", requiresAuth(), async (req, res) => { //get unread (dateRead == null)
     const employee = await getEmployeeFromRequest(req);
 
     if (!employee) {
@@ -50,8 +60,49 @@ router.get("/old", requiresAuth(), async (req, res) => { //get old
         return;
     }
 
-    const notifications = await notificationRepo.gettByEmpIdOld(employee.id);
+    const notifications = await notificationRepo.gettByEmpIdUnread(employee.id);
     res.json(notifications);
+});
+
+router.get("/read", requiresAuth(), async (req, res) => { //get read
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        res.status(404).json({ error: "No linked employee account found" });
+        return;
+    }
+
+    const notifications = await notificationRepo.gettByEmpIdRead(employee.id);
+    res.json(notifications);
+});
+
+router.get("/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid id" });
+    }
+
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No linked employee account found" });
+        }
+
+        const notification = await notificationRepo.gettById(id);
+        if (!notification) {
+            return res.status(404).json({ error: "Notification not found" });
+        }
+
+        const isOwner = notification.employeeNotifiedID === employee.id;
+        const isAdmin = employee.jobPosition === "admin";
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to view this notification" });
+        }
+
+        res.json(notification);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Fetch failed" });
+    }
 });
 
 
@@ -113,8 +164,7 @@ router.post("/upload", requiresAuth(), async (req, res) => {
 // ===================================
 // PUT ===============================
 // ===================================
-//change notification from new (would make a little red circle or
-// something on indox) -> old (in inbox but not marked as new)
+// mark as notified (removes from "new")
 router.put("/update/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -142,9 +192,79 @@ router.put("/update/:id", requiresAuth(), async (req, res) => {
         }
 
         const notificationOld = await notificationRepo.update(id, {
-            dateRead: new Date() //set to now
+            employeeWasNotified: true
         });
         res.json(notificationOld);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
+    }
+});
+
+// mark as read (used by notification detail view)
+router.put("/read/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const notification = await notificationRepo.gettById(id);
+
+        if (!notification) {
+            return res.status(404).json({ error: "Notification not found" });
+        }
+
+        const isOwner = notification.employeeNotifiedID === employee.id;
+        const isAdmin = employee.jobPosition === "admin";
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to update this notification" });
+        }
+
+        const notificationRead = await notificationRepo.update(id, {
+            dateRead: new Date(),
+            employeeWasNotified: true
+        });
+        res.json(notificationRead);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
+    }
+});
+
+router.put("/unread/:id", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid id" });
+    }
+
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No linked employee account found" });
+        }
+
+        const notification = await notificationRepo.gettById(id);
+        if (!notification) {
+            return res.status(404).json({ error: "Notification not found" });
+        }
+
+        const isOwner = notification.employeeNotifiedID === employee.id;
+        const isAdmin = employee.jobPosition === "admin";
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to update this notification" });
+        }
+
+        const notificationUnread = await notificationRepo.update(id, {
+            dateRead: null,
+            employeeWasNotified: true
+        });
+        res.json(notificationUnread);
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
     }

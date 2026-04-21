@@ -1,4 +1,4 @@
-import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { Router } from "express";
 import { getEmployeeFromRequest } from "../app.ts";
@@ -6,20 +6,14 @@ import { getEmployeeFromRequest } from "../app.ts";
 import {
     uploadBuffer,
     getSignedUrl,
-    deleteFile,
-    downloadBuffer,
 } from "../lib/supabase.ts";
-import { pdf } from "pdf-to-img";
 import pkg from "express-openid-connect";
 import { prisma } from "db";
 const { requiresAuth } = pkg;
 import multer from "multer";
 
 import { ContentRepository } from "../ContentRepository.ts";
-import { contentService } from "../services.ts"
-
-import {exec} from "node:child_process";
-import {readFile} from "fs/promises";
+import { contentService } from "../services.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -138,103 +132,6 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
     }
 });
-
-router.get("/:id/thumbnail", requiresAuth(), async (req, res) => {
-    const id = Number(req.params.id);
-
-    if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid id" });
-    }
-
-    try {
-        const content = await contentRepo.getById(id);
-        if (!content) {
-            return res.status(404).json({ error: "Not found" });
-        }
-
-        const storagePath = content.filePath;
-
-        // skip invalid or external links
-        if (
-            !storagePath?.trim() ||
-            storagePath.startsWith("http://") ||
-            storagePath.startsWith("https://")
-        ) {
-            return res.json({ thumbnailUrl: null });
-        }
-
-        const ext = storagePath.split(".").pop()?.toLowerCase();
-
-        const thumbRel = `/tmp/thumbnails/${id}.png`;
-        const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
-
-        // CACHE CHECK
-        try {
-            await stat(thumbFsPath);
-            return res.json({ thumbnailUrl: thumbRel });
-        } catch {
-            // continue if not found
-        }
-
-        await mkdir(path.dirname(thumbFsPath), { recursive: true });
-
-        // download file
-        const buf = await downloadBuffer(storagePath);
-
-        const tempDocx = path.join(process.cwd(), "tmp", `file-${id}.docx`);
-        const tempPdf = path.join(process.cwd(), "tmp", `file-${id}.pdf`);
-
-        // ======================
-        // PDF HANDLING
-        // ======================
-        if (ext === "pdf") {
-            const doc = await pdf(buf, { scale: 0.85 });
-            const firstPage = await doc.getPage(1);
-            await writeFile(thumbFsPath, firstPage);
-
-            return res.json({ thumbnailUrl: thumbRel });
-        }
-
-        // ======================
-        // DOCX HANDLING
-        // ======================
-        if (ext === "docx") {
-            // save DOCX temporarily
-            await writeFile(tempDocx, buf);
-
-            // convert DOCX → PDF
-            await new Promise((resolve, reject) => {
-                exec(
-                    `soffice --headless --convert-to pdf --outdir "${path.dirname(tempPdf)}" "${tempDocx}"`,
-                    (err) => (err ? reject(err) : resolve(null))
-                );
-            });
-
-            // small delay to ensure file exists
-            await new Promise((r) => setTimeout(r, 500));
-
-            // read generated PDF
-            const pdfBuf = await readFile(tempPdf);
-
-            const doc = await pdf(pdfBuf, { scale: 0.85 });
-            const firstPage = await doc.getPage(1);
-
-            await writeFile(thumbFsPath, firstPage);
-
-            return res.json({ thumbnailUrl: thumbRel });
-        }
-
-        // ======================
-        // OTHER FILE TYPES HANDLING
-        // ======================
-        return res.json({ thumbnailUrl: null });
-
-    } catch (err) {
-        console.error("Thumbnail generation failed", err);
-        return res.json({ thumbnailUrl: null });
-    }
-});
-
 
 // ====================================
 // POST ===============================
@@ -429,10 +326,11 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return res.status(404).json({ error: "Content not found" });
         }
 
-        const isOwner = content.ownerId === employee.id;
+        const isJobPosition = content.jobPositions.includes(employee.jobPosition);
         const isAdmin = employee.jobPosition === "admin";
-        if (!isOwner && !isAdmin) {
-            return res.status(403).json({ error: "Not authorized to update this content" });
+
+        if (!isJobPosition && !isAdmin) {
+            return res.status(403).json({ error: "Not authorized to check in this content" });
         }
 
         if (content.isCheckedOut && content.checkedOutById !== employee.id) {
@@ -532,12 +430,27 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         }
         await contentService.deleteContent(id, employee);
 
-        res.json({success: true});
+        const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
+        await unlink(thumbFsPath).catch(() => {});
+
+        res.json({ success: true });
     } catch (err) {
+        const message = err instanceof Error ? err.message : "Delete failed";
+        if (message === "Content not found") {
+            return res.status(404).json({ error: message });
+        }
+        if (
+            message === "Check out the document before deleting." ||
+            message === "Not authorized to delete this content"
+        ) {
+            return res.status(403).json({ error: message });
+        }
+        if (message === "Cannot delete while document is checked out by another user") {
+            return res.status(409).json({ error: message });
+        }
+
         console.error(err);
-        res.status(500).json({
-            error: err instanceof Error ? err.message : "Delete failed",
-        });
+        res.status(500).json({ error: message });
     }
 });
 

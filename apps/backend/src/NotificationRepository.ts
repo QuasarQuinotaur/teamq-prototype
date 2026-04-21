@@ -40,7 +40,7 @@ class NotificationRepository {
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
-                dateRead:  null
+                employeeWasNotified: false
             },
             orderBy: { id: "asc" },
             include: {
@@ -50,7 +50,21 @@ class NotificationRepository {
         });
     }
 
-    async gettByEmpIdOld(employeeNotifiedID: number){
+    async gettByEmpIdUnread(employeeNotifiedID: number){
+        return prisma.notification.findMany({
+            where: {
+                employeeNotifiedID,
+                dateRead: null
+            },
+            orderBy: { id: "asc" },
+            include: {
+                employeeNotified: true,
+                contentsUsed: true
+            }
+        });
+    }
+
+    async gettByEmpIdRead(employeeNotifiedID: number){
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
@@ -118,7 +132,8 @@ class NotificationRepository {
     async update(id: number, data: {
         type?: string;
         dateSent?: Date;
-        dateRead?: Date;
+        dateRead?: Date | null;
+        employeeWasNotified?: boolean;
         employeeNotifiedID?: number;
         contentIds?: number[];
     }) {
@@ -128,6 +143,7 @@ class NotificationRepository {
                 type: data.type,
                 dateSent: data.dateSent,
                 dateRead: data.dateRead,
+                employeeWasNotified: data.employeeWasNotified,
                 employeeNotifiedID: data.employeeNotifiedID,
                 contentsUsed: data.contentIds
                     ? {
@@ -142,6 +158,21 @@ class NotificationRepository {
         return prisma.notification.delete({
             where: {id}
         })
+    }
+
+    async markManyAsNotified(ids: number[]) {
+        if (!ids.length) {
+            return;
+        }
+
+        await prisma.notification.updateMany({
+            where: {
+                id: { in: ids }
+            },
+            data: {
+                employeeWasNotified: true
+            }
+        });
     }
 
 }

@@ -128,7 +128,7 @@ function Navbar() {
                         <DropdownMenuItem onClick={() => navigate("/documents/profile")}>
                             Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem onClick={()=> navigate("/documents/settings")}>Settings</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                             className="text-destructive" 

@@ -1,7 +1,8 @@
-import Confetti, { type ConfettiHandle } from '@/components/Confetti';
+import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
+import { Badge } from '@/elements/badge';
+import { Separator } from '@/elements/separator';
 import { cn } from '@/lib/utils';
-import { useRef } from 'react';
 
 function ImagePlaceholder({ label }: { label: string }) {
     return (
@@ -64,11 +65,21 @@ function FeatureSection({
 }
 
 function Home() {
-    const confettiRef = useRef<ConfettiHandle>(null);
-
     return (
         <div className="min-w-full bg-white text-lg">
-            <Hero />
+            <section className="flex min-h-[100svh] flex-col">
+                <section className="sticky top-0 z-30 border-b border-sky-200/70 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+                    <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-3 text-center sm:px-6">
+                        <span className="font-heading text-[11px] font-semibold uppercase tracking-[0.18em] text-hanover-blue">
+                            Disclaimer
+                        </span>
+                        <p className="text-sm leading-relaxed text-sky-950/90">
+                            This website has been created for WPI&apos;s CS 3733 Software Engineering as a class project and is not in use by Hanover Insurance.
+                        </p>
+                    </div>
+                </section>
+                <Hero className="min-h-0 flex-1" />
+            </section>
             <FeatureSection
                 eyebrow="Heritage"
                 title="Strength that spans generations."
@@ -89,27 +100,24 @@ function Home() {
                 description="As a premier property and casualty franchise, The Hanover leverages advanced data analytics and a people-first approach to protect the cars people drive, the businesses they own, and the places they call home."
                 imageLabel="Placeholder for technology or protection imagery"
             />
-            <Confetti ref={confettiRef} />
-            <footer className="border-t border-border bg-gradient-to-b from-sky-50/40 to-white px-6 py-12 md:px-12 lg:px-16">
-                <button
-                    type="button"
-                    onClick={() => confettiRef.current?.fire()}
-                    className={cn(
-                        'mx-auto flex w-full max-w-3xl flex-col gap-1 rounded-2xl border border-sky-200/90 bg-white/80 px-6 py-5 text-center shadow-sm',
-                        'text-pretty text-sm leading-relaxed text-sky-950/90 transition',
-                        'hover:border-sky-300 hover:bg-sky-50/50 hover:shadow-md',
-                        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hanover-blue',
-                        'cursor-pointer active:scale-[0.998]'
-                    )}
-                >
-                    <span className="font-heading text-xs font-semibold uppercase tracking-[0.18em] text-hanover-blue">
-                        Disclaimer
-                    </span>
-                    <span>
-                        This website has been created for WPI&apos;s CS 3733 Software Engineering as a
-                        class project and is not in use by Hanover Insurance.
-                    </span>
-                </button>
+            <footer className="border-t border-border bg-gradient-to-b from-sky-50/40 to-white px-6 py-10 md:px-12 lg:px-16">
+                <div className="mx-auto max-w-6xl">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <Link
+                            to="/"
+                            className="inline-flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-muted/50"
+                        >
+                            <img src="/CombinationMark.png" alt="Hanover Insurance logo" className="h-9 w-auto object-contain" />
+                        </Link>
+                        <Badge variant="secondary" className="px-2.5 py-0.5 text-xs">
+                            WPI CS 3733 Class Project
+                        </Badge>
+                    </div>
+                    <Separator className="my-5 bg-border/70" />
+                    <p className="text-center text-sm text-muted-foreground">
+                        Built for educational use by WPI students. Not an official Hanover Insurance production application.
+                    </p>
+                </div>
             </footer>
         </div>
     );

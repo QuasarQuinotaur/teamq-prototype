@@ -15,19 +15,22 @@ class ContentService {
     async deleteContent(id: number, employee: Employee) {
         const content = await this.contentRepo.getById(id);
 
-        if (!content) throw new Error("Not found");
+        if (!content) throw new Error("Content not found");
+
+        if (!content.isCheckedOut) {
+            throw new Error("Check out the document before deleting.");
+        }
+
+        if (content.checkedOutById !== employee.id) {
+            throw new Error("Cannot delete while document is checked out by another user");
+        }
 
         // authorization (move from route)
         const isOwner = content.ownerId === employee.id;
         const isAdmin = employee.jobPosition === "admin";
 
         if (!isOwner && !isAdmin) {
-            throw new Error("Not authorized");
-        }
-
-        //  checkout rule
-        if (content.isCheckedOut) {
-            throw new Error("Cannot delete checked-out content");
+            throw new Error("Not authorized to delete this content");
         }
 
         //  get favorites BEFORE deletion
@@ -48,11 +51,11 @@ class ContentService {
 
         //  notify users (SYSTEM GENERATED)
         if (favs?.employeesFavorited.length) {
+            const deletedBy = `${employee.firstName} ${employee.lastName}`;
             await this.notificationRepo.createMany({
-                type: "CONTENT_DELETED_FAVORITED",
-                customMsg: `Content "${content.title}" was deleted`,
+                type: "One of your favorite documents was deleted",
+                customMsg: `"${content.title}" was permanently deleted by ${deletedBy}. This document has been removed from your favorites and is no longer accessible.`,
                 employeeIds: favs.employeesFavorited.map(emp => emp.id),
-                contentIds: [content.id], //TODO idk we want this but like its there :D
             });
         }
     }

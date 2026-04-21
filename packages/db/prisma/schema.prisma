@@ -79,6 +79,7 @@ model Notification {
   type      String
   dateSent  DateTime @default(now())
   customMsg String?
+  employeeWasNotified Boolean @default(false)
 
   dateRead DateTime?
 
@@ -87,7 +88,7 @@ model Notification {
   employeeNotified Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
   contentsUsed     Content[] @relation("NotificationContents") //"contents a part of notification (can be none)"
 
-  @@index([employeeNotifiedID, dateRead]) // index for O(log(n)) time
+  @@index([employeeNotifiedID, employeeWasNotified]) // index for O(log(n)) time
 }
 
 model UserPhoto {

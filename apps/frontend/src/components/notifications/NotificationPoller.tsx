@@ -9,7 +9,7 @@ type NotificationPayload = {
   dateSent?: string;
 };
 
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 3000;
 
 export default function NotificationPoller() {
   const seenNotificationIds = useRef<Set<number>>(new Set());

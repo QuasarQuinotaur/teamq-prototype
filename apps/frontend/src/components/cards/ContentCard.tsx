@@ -1,10 +1,10 @@
 // Displays information about content (workflow, reference, tool)
 
 import * as React from "react"
-import {cn} from "@/lib/utils.ts"
+import {cn, isSupabasePath} from "@/lib/utils.ts"
 import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import {FileIcon, MoreHorizontalIcon} from "lucide-react";
+import { Check, MoreHorizontalIcon } from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -13,11 +13,16 @@ import {
     CardHeader,
     CardTitle
 } from "@/components/cards/Card.tsx";
-import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 import type {Content} from "db";
 import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
+import ContentCardThumbnail, {
+    googleFaviconUrlForLink,
+    isPlainWebPageLink,
+    useMicrolinkLinkPreview,
+} from "@/components/cards/ContentCardThumbnail.tsx";
+import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -28,10 +33,6 @@ type ContentWithCheckout = Content & {
         profileImageUrl?: string;
     } | null;
 };
-
-function isSupabasePath(link: string) {
-    return !link.startsWith("http://") && !link.startsWith("https://");
-}
 
 async function viewItem(link: string, item: object & { id: number }) {
     if (isSupabasePath(link)) {
@@ -56,6 +57,8 @@ type ContentCardProps = {
     showContentTypeBadge?: boolean;
     /** When false, hides the entry's job-position badge (still shows extra `badges` from CardState). */
     showJobPositionBadge?: boolean;
+    /** When set, checkout dimmer/avatar/dots are hidden if this user holds the checkout (others still see them). */
+    viewerEmployeeId?: number | null;
 } & CardState;
 
 export default function ContentCard({
@@ -65,16 +68,32 @@ export default function ContentCard({
                                         onView,
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
+                                        viewerEmployeeId,
+                                        selectMode,
+                                        selected,
+                                        onSelectToggle,
 }: ContentCardProps) {
-    // Favicon-based image
-    const linkDomain = entry.link
-        .replace('https://', '')
-        .replace('http://', '')
-        .split('/')[0];
-
-    const linkFavicon = `https://www.google.com/s2/favicons?sz=128&domain=${linkDomain}`;
-
-    const cardColor = stringToAccentBgClass(entry.title)
+    const { loadAllowed } = useThumbnailBatch();
+    const plainWebLink = isPlainWebPageLink(entry);
+    const linkMicrolink = useMicrolinkLinkPreview(
+        entry.link,
+        loadAllowed && plainWebLink,
+    );
+    const isExternalUrl = Boolean(entry.link && !isSupabasePath(entry.link));
+    /** Microlink site logo when available; otherwise hostname favicon — for every URL-based link card. */
+    const titleFaviconUrl = React.useMemo(() => {
+        if (!isExternalUrl || !entry.link) return null;
+        const fallback = googleFaviconUrlForLink(entry.link);
+        if (!plainWebLink) return fallback;
+        if (linkMicrolink.done && linkMicrolink.faviconUrl) return linkMicrolink.faviconUrl;
+        return fallback;
+    }, [
+        isExternalUrl,
+        entry.link,
+        plainWebLink,
+        linkMicrolink.done,
+        linkMicrolink.faviconUrl,
+    ]);
 
     const [cardHovered, setCardHovered] = React.useState(false);
     /** After collapse animation, restore single-line ellipsis; cleared on hover. */
@@ -109,79 +128,11 @@ export default function ContentCard({
         };
     }, []);
 
-    // Get the pdf preview from the backend
-    const [thumbnail, setThumbnail] = React.useState<string | null>(null);
-    React.useEffect(() => {
-        const fetchThumbnail = async () => {
-            try {
-                // only for your stored files
-                if (!isSupabasePath(entry.link)) return;
-
-                const id = (entry.item as { id: number }).id;
-
-                const res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/thumbnail`,
-                    { credentials: "include" }
-                );
-
-                if (!res.ok) return;
-
-                const data = await res.json();
-
-                setThumbnail(data.thumbnailUrl);
-            } catch (err) {
-                console.error("Thumbnail fetch failed", err);
-            }
-        };
-
-        fetchThumbnail();
-    }, [entry]);
-
-    // Get the discord-style link preview from the backend
-    const [preview, setPreview] = React.useState<{
-        title?: string;
-        description?: string;
-        image?: string | null;
-    } | null>(null);
-
-
-    React.useEffect(() => {
-        // wrap function bc useEffect can't be async
-        const fetchPreview = async () => {
-            try {
-                // only run for external links, not PDFs or other stored files
-                if (isSupabasePath(entry.link)) return;
-
-
-                // call backend route
-                const res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/link-preview?url=${encodeURIComponent(entry.link)}`
-                );
-
-
-                if (!res.ok) return;
-
-
-                // convert response in JS object
-                const data = await res.json();
-
-
-                // store data, triger re-render
-                setPreview(data);
-
-
-            } catch (err) {
-                // log errors but don't break UI
-                console.error("Preview fetch failed", err);
-            }
-        };
-
-
-        fetchPreview();
-    }, [entry]); //" run this code whenever entry changes (for new cards)"
-
-
     function handleCardClick() {
+        if (selectMode && onSelectToggle) {
+            onSelectToggle();
+            return;
+        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
@@ -189,8 +140,28 @@ export default function ContentCard({
         }
     }
 
+    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+
+    function handleCardContextMenu(e: React.MouseEvent) {
+        if (!createOptionsElement) return;
+        const t = e.target;
+        if (
+            t instanceof Element &&
+            t.closest("a[href], input, textarea, select, [contenteditable='true']")
+        ) {
+            return;
+        }
+        e.preventDefault();
+        menuTriggerRef.current?.click();
+    }
+
     const content = entry.item as ContentWithCheckout;
     const checkedOut = content.isCheckedOut === true;
+    const showCheckoutOverlay =
+        checkedOut &&
+        (viewerEmployeeId == null ||
+            content.checkedOutById == null ||
+            content.checkedOutById !== viewerEmployeeId);
     const who = content.checkedOutBy;
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
@@ -213,38 +184,54 @@ export default function ContentCard({
     ]
     const expBadge = isExpired ? "Expired" : null;
 
+    const showBadges: boolean = false; // get this from settings page later
+
     return (
         <CardContainer
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
             onClick={handleCardClick}
+            onContextMenu={handleCardContextMenu}
             onPointerEnter={handleCardPointerEnter}
             onPointerLeave={handleCardPointerLeave}
         >
             <CardHeader className="pb-3 shrink-0">
                 <div className="flex w-full items-start justify-between gap-2">
+
+                    {/* TITLE + EXP BADGE (FIXED SYSTEM) */}
                     <div
                         className={cn(
-                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out motion-reduce:transition-none",
-                            cardHovered ? "max-h-24" : "max-h-[1.4em]",
+                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out",
+                            showBadges || cardHovered ? "max-h-32" : "max-h-[1.4em]"
                         )}
                     >
-                        <CardTitle
-                            className={cn(
-                                "min-w-0 break-words",
-                                titleCollapsedClamp && "line-clamp-1",
-                            )}
-                        >
-                            {entry.title}
-                        </CardTitle>
+                        <div className="flex min-w-0 items-start gap-2">
+                            {titleFaviconUrl ? (
+                                <img
+                                    src={titleFaviconUrl}
+                                    alt=""
+                                    className="mt-0.5 size-4 shrink-0 rounded-sm"
+                                    draggable={false}
+                                />
+                            ) : null}
 
-                        {/* On hover: expiration — same motion as bottom badges */}
+                            <CardTitle
+                                className={cn(
+                                    "min-w-0 flex-1 break-words",
+                                    titleCollapsedClamp && "line-clamp-1",
+                                )}
+                            >
+                                {entry.title}
+                            </CardTitle>
+                        </div>
+
+                        {/* EXP BADGE */}
                         {expBadge && (
                             <div
                                 className={cn(
-                                    "flex gap-2 py-1 transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:transition-none",
-                                    cardHovered
-                                        ? "translate-y-0"
-                                        : "translate-y-[calc(200%+1.25rem)]",
+                                    "flex gap-2 transition-all duration-500 ease-in-out",
+                                    showBadges || cardHovered
+                                        ? "opacity-100 mt-1"
+                                        : "opacity-0"
                                 )}
                             >
                                 <Badge className="bg-red-500/20 text-red-600 border-red-400/30">
@@ -252,12 +239,20 @@ export default function ContentCard({
                                 </Badge>
                             </div>
                         )}
-
                     </div>
+
+                    {/* OPTIONS */}
                     {createOptionsElement != null && (
                         <CardAction className="shrink-0" onClick={(e) => e.stopPropagation()}>
                             {createOptionsElement(
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0">
+                                <Button
+                                    ref={menuTriggerRef}
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7 p-0"
+                                    data-document-menu-trigger={entry.item.id}
+                                >
                                     <MoreHorizontalIcon className="h-4 w-4" />
                                 </Button>
                             )}
@@ -266,48 +261,22 @@ export default function ContentCard({
                 </div>
             </CardHeader>
 
-            <div className={"flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl"}>
+            <div className="flex-1 min-h-0 relative z-20 overflow-hidden rounded-b-xl">
 
                 <div
                     className={cn(
                         "absolute inset-0 z-10 flex flex-col",
-                        checkedOut && "brightness-[0.45]",
+                        showCheckoutOverlay && "brightness-[0.45]",
                     )}
                 >
-                    {thumbnail ? (
-                        // PDFs
-                        <img
-                            src={`${import.meta.env.VITE_BACKEND_URL}${thumbnail}`}
-                            className="w-full h-full object-cover"
-                            alt=""
-                        />
-                    ) : preview?.image ? (
-                        // LINKS - discord style preview
-                        <div className="w-full h-full flex items-center justify-center">
-                            <img
-                                src={preview.image}
-                                className="max-w-full max-h-full object-contain"
-                            />
-                        </div>
-
-                    ) : entry.link.startsWith("http") ? (
-                        // FALLBACK 1 ->  FAVICON
-                        <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                            <img
-                                src={linkFavicon}
-                                className="max-w-[60%] max-h-[60%] object-contain"
-                                alt=""
-                            />
-                        </div>
-                    ) : (
-                        // FALLBACK 2 -> COLOR CARD
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <FileIcon className="w-12 h-12 text-muted-foreground" />
-                        </div>
-                    )}
+                    <ContentCardThumbnail
+                        entry={entry}
+                        linkMicrolink={plainWebLink ? linkMicrolink : undefined}
+                        linkTitleFaviconUrl={plainWebLink ? titleFaviconUrl : undefined}
+                    />
                 </div>
 
-                {checkedOut ? (
+                {showCheckoutOverlay ? (
                     <>
                         <div className="pointer-events-none absolute inset-0 z-30 bg-black/35" aria-hidden />
                         <div className="pointer-events-none absolute left-2 top-2 z-40">
@@ -324,22 +293,23 @@ export default function ContentCard({
                             className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center"
                             aria-label="Checked out"
                         >
-                            <span className="flex items-end gap-0.5">
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                                <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
-                            </span>
+            <span className="flex items-end gap-0.5">
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+              <span className="checkout-dots-dot inline-block h-1 w-1 rounded-full bg-white" />
+            </span>
                         </div>
                     </>
                 ) : null}
 
+                {/* ROLE BADGES */}
                 {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
                     <div
                         className={cn(
-                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-transform duration-500 ease-in-out motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:transition-none",
-                            cardHovered
-                                ? "translate-y-0 scale-100"
-                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97]",
+                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-all duration-500 ease-in-out",
+                            showBadges || cardHovered
+                                ? "translate-y-0 scale-100 opacity-100"
+                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97] opacity-0",
                         )}
                     >
                         <div className="flex flex-wrap justify-end gap-2">
@@ -348,6 +318,19 @@ export default function ContentCard({
                     </div>
                 ) : null}
             </div>
+
+            {selectMode && selected ? (
+                <div
+                    className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
+                    aria-hidden
+                >
+                    <Check
+                        className="size-10 text-white drop-shadow-md"
+                        strokeWidth={2.75}
+                        aria-hidden
+                    />
+                </div>
+            ) : null}
         </CardContainer>
-    )
+    );
 }

@@ -8,6 +8,8 @@ import Tools from "@/pages/Tools";
 import Recent from "@/pages/Recent.tsx";
 import Workflow from "@/pages/Workflow";
 import AllDocuments from "@/pages/AllDocuments.tsx";
+import MyDocuments from "@/pages/MyDocuments.tsx";
+import CheckedOut from "@/pages/CheckedOut.tsx";
 import Employees from "@/pages/Employees.tsx";
 import ServiceRequestsPage from "@/pages/ServiceRequestsPage.tsx";
 import NewServiceRequestPage from "@/pages/NewServiceRequestPage.tsx";
@@ -17,6 +19,9 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
 import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
+import Settings from "@/pages/Settings.tsx";
+import Notifications from "@/pages/Notifications.tsx";
+import NotificationDetail from "@/pages/NotificationDetail.tsx";
 
 
 export const router = createBrowserRouter([
@@ -52,6 +57,14 @@ export const router = createBrowserRouter([
                                 element: <AllDocuments />,
                             },
                             {
+                                path: "my-documents",
+                                element: <MyDocuments />,
+                            },
+                            {
+                                path: "checked-out",
+                                element: <CheckedOut />,
+                            },
+                            {
                                 path: "workflow",
                                 element: <Workflow />,
                             },
@@ -82,6 +95,18 @@ export const router = createBrowserRouter([
                             {
                                 path: "test",
                                 element: <Test />
+                            },
+                            {
+                                path: "settings",
+                                element: <Settings />
+                            },
+                            {
+                                path: "notifications",
+                                element: <Notifications />
+                            },
+                            {
+                                path: "notifications/:id",
+                                element: <NotificationDetail />
                             },
                             {
                                 element: <RoleGuard allowedRole="admin" />,

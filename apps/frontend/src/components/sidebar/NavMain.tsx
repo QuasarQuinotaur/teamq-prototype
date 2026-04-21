@@ -15,6 +15,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/elements/sidebar-elements.tsx"
 import { CaretRightIcon } from "@phosphor-icons/react"
 import { NavLink, useLocation } from "react-router-dom"
@@ -35,6 +36,7 @@ export type NavMainItem = {
 
 function NavMainRow({ item }: { item: NavMainItem }) {
   const location = useLocation()
+  const { state } = useSidebar()
   const hasSubItems = Boolean(item.items?.length)
 
   const routeInGroup =
@@ -47,8 +49,12 @@ function NavMainRow({ item }: { item: NavMainItem }) {
   )
 
   React.useEffect(() => {
-    if (routeInGroup) setSubOpen(true)
-  }, [routeInGroup])
+    if (state === "collapsed") {
+      setSubOpen(false)
+    } else if (routeInGroup) {
+      setSubOpen(true)
+    }
+  }, [state, routeInGroup])
 
   return (
       <Collapsible
