@@ -106,6 +106,40 @@ class ContentRepository {
             where: { id }
         });
     }
+    async recordView(employeeId: number, contentId: number) {
+        return prisma.recentContentView.upsert({
+            where: {
+                employeeId_contentId: {
+                    employeeId,
+                    contentId,
+                },
+            },
+            update: {
+                lastViewedAt: new Date(),
+            },
+            create: {
+                employeeId,
+                contentId,
+                lastViewedAt: new Date(),
+            },
+        });
+    }
+
+    async getRecentViews(employeeId: number, take = 10) {
+        return prisma.recentContentView.findMany({
+            where: { employeeId },
+            orderBy: { lastViewedAt: "desc" },
+            take,
+            include: {
+                content: {
+                    include: {
+                        owner: true,
+                        checkedOutBy: { include: { userPhoto: true } },
+                    },
+                },
+            },
+        });
+    }
 }
 
 export { ContentRepository };
