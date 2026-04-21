@@ -182,6 +182,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
             id: e.id,
             firstName: e.firstName,
             lastName: e.lastName,
+            jobPosition: e.jobPosition,
           }))
         );
 

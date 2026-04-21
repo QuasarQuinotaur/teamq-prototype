@@ -8,7 +8,6 @@ import {
   Trash2,
   Mail,
   ArrowUpDown,
-  ListFilter,
   X,
   Loader2,
 } from "lucide-react";
@@ -235,7 +234,6 @@ export default function Notifications() {
 
   // filters / sort
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
   // bulk select
@@ -406,18 +404,11 @@ export default function Notifications() {
     }
   }, [selectedIds]);
 
-  const uniqueTypes = useMemo(
-    () => Array.from(new Set(notifications.map((n) => n.type))).sort(),
-    [notifications],
-  );
-
   const processed = useMemo(() => {
     let result = [...notifications];
 
     if (statusFilter === "unread") result = result.filter((n) => n.dateRead == null);
     else if (statusFilter === "read") result = result.filter((n) => n.dateRead != null);
-
-    if (typeFilter !== "all") result = result.filter((n) => n.type === typeFilter);
 
     result.sort((a, b) => {
       switch (sortKey) {
@@ -433,7 +424,7 @@ export default function Notifications() {
     });
 
     return result;
-  }, [notifications, statusFilter, typeFilter, sortKey]);
+  }, [notifications, statusFilter, sortKey]);
 
   const allVisibleSelected =
     processed.length > 0 && processed.every((n) => selectedIds.has(n.id));
@@ -446,12 +437,10 @@ export default function Notifications() {
     });
   };
 
-  const isFiltered =
-    statusFilter !== "all" || typeFilter !== "all" || sortKey !== "newest";
+  const isFiltered = statusFilter !== "all" || sortKey !== "newest";
 
   const clearFilters = () => {
     setStatusFilter("all");
-    setTypeFilter("all");
     setSortKey("newest");
   };
 
@@ -508,36 +497,6 @@ export default function Notifications() {
             </button>
           ))}
         </div>
-
-        {/* Type filter */}
-        {uniqueTypes.length > 1 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-                  typeFilter !== "all" && "border-foreground/40 font-medium",
-                )}
-              >
-                <ListFilter className="size-3.5" />
-                {typeFilter === "all" ? "Type" : typeFilter}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={typeFilter} onValueChange={setTypeFilter}>
-                <DropdownMenuRadioItem value="all">All types</DropdownMenuRadioItem>
-                {uniqueTypes.map((t) => (
-                  <DropdownMenuRadioItem key={t} value={t}>
-                    {t}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
 
         {/* Sort */}
         <DropdownMenu>
