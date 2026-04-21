@@ -17,6 +17,7 @@ import photoRoutes from "./routes/photos.ts";
 import employeeRouter from "./routes/employee.ts";
 import favoritesRouter from "./routes/favorites.ts";
 import linkPreviewRouter from "./routes/linkPreview.ts";
+import notificationRoutes from "./routes/notification.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -60,6 +61,7 @@ app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);
 app.use('/api', linkPreviewRouter);
 app.use("/api/favorites", favoritesRouter);
+app.use("/api/notifications", notificationRoutes);
 
 
 export async function getEmployeeFromRequest(req: express.Request) {

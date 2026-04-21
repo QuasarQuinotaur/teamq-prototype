@@ -40,7 +40,7 @@ class NotificationRepository {
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
-                dateRead:  {not: null}
+                employeeWasNotified: false
             },
             orderBy: { id: "asc" },
             include: {
@@ -50,7 +50,7 @@ class NotificationRepository {
         });
     }
 
-    async gettByEmpIdOld(employeeNotifiedID: number){
+    async gettByEmpIdUnread(employeeNotifiedID: number){
         return prisma.notification.findMany({
             where: {
                 employeeNotifiedID,
@@ -64,21 +64,35 @@ class NotificationRepository {
         });
     }
 
+    async gettByEmpIdRead(employeeNotifiedID: number){
+        return prisma.notification.findMany({
+            where: {
+                employeeNotifiedID,
+                dateRead: {not: null}
+            },
+            orderBy: { id: "asc" },
+            include: {
+                employeeNotified: true,
+                contentsUsed: true
+            }
+        });
+    }
+
     //do we need any more???
 
     async create(data: {
-        type?: string;
-        dateSent?: Date;
-        dateRead?: Date;
-        employeeNotifiedID?: number;
+        type: string;
+        employeeNotifiedID: number;
         contentIds?: number[];
+        customMsg?: string;
     }) {
         return prisma.notification.create({
             data: {
                 type: data.type,
-                dateSent: data.dateSent,
-                dateRead: data.dateRead,
-                employeeNotifiedID: data.employeeNotifiedID,
+                customMsg: data.customMsg,
+                employeeNotified: {
+                    connect: { id: data.employeeNotifiedID }
+                },
                 contentsUsed: data.contentIds
                     ? {
                         connect: data.contentIds.map(id => ({ id }))
@@ -88,10 +102,38 @@ class NotificationRepository {
         });
     }
 
+    //TODO -ne: for giving the same notification to multiple peeps
+    async createMany(data: {
+        type: string;
+        employeeIds: number[];
+        contentIds?: number[];
+        customMsg?: string;
+    }) {
+        return Promise.all(
+            data.employeeIds.map(empId =>
+                prisma.notification.create({
+                    data: {
+                        type: data.type,
+                        customMsg: data.customMsg,
+                        employeeNotified: {
+                            connect: { id: empId }
+                        },
+                        contentsUsed: data.contentIds
+                            ? {
+                                connect: data.contentIds.map(id => ({ id }))
+                            }
+                            : undefined,
+                    }
+                })
+            )
+        );
+    }
+
     async update(id: number, data: {
         type?: string;
         dateSent?: Date;
-        dateRead?: Date;
+        dateRead?: Date | null;
+        employeeWasNotified?: boolean;
         employeeNotifiedID?: number;
         contentIds?: number[];
     }) {
@@ -101,6 +143,7 @@ class NotificationRepository {
                 type: data.type,
                 dateSent: data.dateSent,
                 dateRead: data.dateRead,
+                employeeWasNotified: data.employeeWasNotified,
                 employeeNotifiedID: data.employeeNotifiedID,
                 contentsUsed: data.contentIds
                     ? {
@@ -116,6 +159,22 @@ class NotificationRepository {
             where: {id}
         })
     }
+
+    async markManyAsNotified(ids: number[]) {
+        if (!ids.length) {
+            return;
+        }
+
+        await prisma.notification.updateMany({
+            where: {
+                id: { in: ids }
+            },
+            data: {
+                employeeWasNotified: true
+            }
+        });
+    }
+
 }
 
 export { NotificationRepository };

@@ -1,0 +1,5 @@
+ALTER TABLE "Content"
+ADD COLUMN IF NOT EXISTS "dateReview" TIMESTAMP(3);
+
+ALTER TABLE "Notification"
+ADD COLUMN IF NOT EXISTS "customMsg" TEXT;

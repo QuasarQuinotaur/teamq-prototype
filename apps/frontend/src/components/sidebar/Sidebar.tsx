@@ -16,6 +16,7 @@ import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
 import axios from "axios"
+import { Link } from "react-router-dom";
 
 const data = {
   // user: {
@@ -119,15 +120,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const [employee, setEmployee] = useState<{ jobPosition: string } | null>(null);
 
-    const api = axios.create({
-        baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
-        withCredentials: true,
-    });
-
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await api.get('/me');
+                const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+                  withCredentials: true,
+                });
                 setEmployee(response.data);
             } catch (error) {
                 console.error("Not logged in or no employee record found", error);
@@ -175,13 +173,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <Button
+          asChild
           variant="outline"
           size="lg"
-          type="button"
           className="w-full group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2"
         >
-          <InboxIcon />
-          <span className="group-data-[collapsible=icon]:sr-only">Inbox</span>
+          <Link to="/documents/notifications">
+            <InboxIcon />
+            <span className="group-data-[collapsible=icon]:sr-only">Inbox</span>
+          </Link>
         </Button>
       </SidebarFooter>
     </Sidebar>

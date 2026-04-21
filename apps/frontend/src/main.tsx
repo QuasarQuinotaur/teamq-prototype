@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/elements/tooltip.tsx";
 import "./index.css";
 import { Auth0Provider } from "@auth0/auth0-react";
 import { applyTheme, getStoredTheme } from "@/lib/theme.ts";
+import { Toaster } from "sonner";
 
 applyTheme(getStoredTheme());
 
@@ -18,6 +19,7 @@ createRoot(document.getElementById("root")!).render(
     >
       <TooltipProvider>
         <RouterProvider router={router} />
+        <Toaster richColors />
       </TooltipProvider>
     </Auth0Provider>
   </StrictMode>

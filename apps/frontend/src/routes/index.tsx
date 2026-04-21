@@ -20,6 +20,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
 import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 import Settings from "@/pages/Settings.tsx";
+import Notifications from "@/pages/Notifications.tsx";
+import NotificationDetail from "@/pages/NotificationDetail.tsx";
 
 
 export const router = createBrowserRouter([
@@ -97,6 +99,14 @@ export const router = createBrowserRouter([
                             {
                                 path: "settings",
                                 element: <Settings />
+                            },
+                            {
+                                path: "notifications",
+                                element: <Notifications />
+                            },
+                            {
+                                path: "notifications/:id",
+                                element: <NotificationDetail />
                             },
                             {
                                 element: <RoleGuard allowedRole="admin" />,
