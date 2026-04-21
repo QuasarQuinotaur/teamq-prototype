@@ -12,7 +12,15 @@ import {
   useComboboxAnchor,
 } from "@/components/Combobox.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
+import { ButtonGroup } from "@/elements/buttons/button-group.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/DropdownMenu.tsx";
 import { JOB_POSITION_TYPE_MAP } from "@/components/input/constants.tsx";
+import { ChevronDownIcon } from "lucide-react";
 
 export type AssignEmployeeOption = {
   id: number;
@@ -30,15 +38,8 @@ type AssignEmployeesComboboxProps = {
   disabled?: boolean;
 };
 
-const POSITION_KEY_TO_LABEL: Record<string, string> = {
-  admin: "admin",
-  underwriter: "underwriter",
-  "business-analyst": "business analyst",
-};
-
-function addAllLabel(positionKey: string): string {
-  const display = JOB_POSITION_TYPE_MAP[positionKey as keyof typeof JOB_POSITION_TYPE_MAP];
-  return display ? `Add all ${display}s` : `Add all ${positionKey}s`;
+function groupLabel(positionKey: string): string {
+  return JOB_POSITION_TYPE_MAP[positionKey as keyof typeof JOB_POSITION_TYPE_MAP] ?? positionKey;
 }
 
 export function AssignEmployeesCombobox({
@@ -64,14 +65,12 @@ export function AssignEmployeesCombobox({
   const addAllGroups = React.useMemo(() => {
     const groups: { key: string; ids: number[] }[] = [];
 
-    for (const positionKey of Object.keys(POSITION_KEY_TO_LABEL)) {
-      const needle = POSITION_KEY_TO_LABEL[positionKey];
+    for (const positionKey of Object.keys(JOB_POSITION_TYPE_MAP)) {
       const matched = employees.filter(
-          (e) => (e.jobPosition ?? "").toLowerCase() === needle
+          (e) => (e.jobPosition ?? "").toLowerCase() === positionKey.toLowerCase()
       );
       if (matched.length === 0) continue;
 
-      // Only include IDs that are not yet selected
       const unselected = matched.filter((e) => !value.includes(e.id));
       if (unselected.length === 0) continue;
 
@@ -81,8 +80,15 @@ export function AssignEmployeesCombobox({
     return groups;
   }, [employees, value]);
 
-  function handleAddAll(ids: number[]) {
-    const merged = Array.from(new Set([...value, ...ids]));
+  // Track which group is selected for the "Add all" split button
+  const [selectedGroupKey, setSelectedGroupKey] = React.useState<string | null>(null);
+
+  // Keep selected key valid as groups change (e.g. a group becomes fully selected)
+  const activeGroup = addAllGroups.find((g) => g.key === selectedGroupKey) ?? addAllGroups[0] ?? null;
+
+  function handleAddAll() {
+    if (!activeGroup) return;
+    const merged = Array.from(new Set([...value, ...activeGroup.ids]));
     onValueChange(merged);
   }
 
@@ -121,23 +127,42 @@ export function AssignEmployeesCombobox({
           </ComboboxContent>
         </Combobox>
 
-        {/* "Add all …" shortcut buttons — only rendered when there are unselected employees in that group */}
-        {addAllGroups.length > 0 && !disabled ? (
-            <div className="flex flex-wrap gap-1.5">
-              {addAllGroups.map(({ key, ids }) => (
+        {/* Split button: main action + dropdown to choose which group to add */}
+        {activeGroup && !disabled ? (
+            <ButtonGroup className="w-fit">
+              <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                  onClick={handleAddAll}
+              >
+                Add all {groupLabel(activeGroup.key)}s
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
-                      key={key}
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-7 px-2.5 text-xs text-muted-foreground"
-                      onClick={() => handleAddAll(ids)}
-                      disabled={disabled}
+                      className="px-1.5 text-muted-foreground"
+                      aria-label="Choose group to add"
                   >
-                    {addAllLabel(key)}
+                    <ChevronDownIcon />
                   </Button>
-              ))}
-            </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {addAllGroups.map(({ key }) => (
+                      <DropdownMenuItem
+                          key={key}
+                          onSelect={() => setSelectedGroupKey(key)}
+                      >
+                        {groupLabel(key)}s
+                      </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </ButtonGroup>
         ) : null}
       </div>
   );
