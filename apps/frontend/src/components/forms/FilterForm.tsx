@@ -8,6 +8,7 @@ import {handleKeyChange} from "@/lib/utils.ts";
 import {FieldGroup, FieldSet} from "@/components/forms/Field.tsx";
 import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
+import type {Tag} from "db";
 
 export type FilterFormProps<T> = {
     emptyFields?: T;
@@ -15,6 +16,7 @@ export type FilterFormProps<T> = {
     fields: T;
     setFields: (fieldFilters: T) => void;
     createFieldsElement: CreateFieldsElement<T>;
+    tagList?: Tag[]
 }
 export default function FilterForm<T extends object>({
                                                          emptyFields,
@@ -22,6 +24,7 @@ export default function FilterForm<T extends object>({
                                                          fields,
                                                          setFields,
                                                          createFieldsElement,
+                                                         tagList
 }: FilterFormProps<T>) {
 
     // Sets a key within the field to be updated
@@ -55,6 +58,7 @@ export default function FilterForm<T extends object>({
                             {createFieldsElement({
                                 fields,
                                 setKey,
+                                tagList
                             })}
                         </FieldGroup>
                     </FieldSet>

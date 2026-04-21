@@ -61,7 +61,7 @@ export default function DocumentFormFields({
         })
     }, [updateFileResetter]);
 
-    const compact = isUpdate
+    const compact = false
     const inputReadable = cn(compact ? "h-8 text-sm" : "h-9 md:text-base", "min-h-8 w-full min-w-0")
 
     return (
@@ -76,7 +76,7 @@ export default function DocumentFormFields({
             <div
                 className={cn(
                     "flex flex-col",
-                    compact ? "gap-5 sm:gap-6" : "gap-10 sm:gap-12"
+                    compact ? "gap-5 sm:gap-6" : "gap-6 sm:gap-8"
                 )}
             >
                 <section
@@ -238,41 +238,47 @@ export default function DocumentFormFields({
                 <section
                     aria-label="Scheduling"
                     className={cn(
-                        "grid min-w-0 grid-cols-1 sm:grid-cols-2",
+                        "flex flex-col gap-4 min-w-0",
                         compact ? "gap-4 sm:gap-x-6 sm:gap-y-4" : "gap-7 sm:gap-x-10 sm:gap-y-6"
                     )}
                 >
-                    <FieldInput
-                        id={"document-add-form-job-positions"}
-                        label={"Job Positions"}
-                        required
-                        createElement={(id) => (
-                            <JobPositionMultiInput
-                                id={id}
-                                jobPositions={fields.jobPositions}
-                                setJobPositions={(positions) => {
-                                    setKey("jobPositions", positions)
-                                }}
-                            />
-                        )}
-                    />
-                    <FieldInput
-                        id={"document-add-form-expiration"}
-                        label={"Expiration Date"}
-                        required
-                        createElement={(id) => (
-                            <DateSelectInput
-                                id={id}
-                                placeholder={"Expiration Date"}
-                                date={fields.expirationDate}
-                                setDate={(date) => {
-                                    setKey("expirationDate", date)
-                                }}
-                                dateString={dateStrings.expiration}
-                                setDateString={dateStrings.setExpiration}
-                            />
-                        )}
-                    />
+                    <div className={cn(
+                        "grid grid-cols-1 sm:grid-cols-2 min-w-0",
+                        compact ? "gap-4 sm:gap-x-6 sm:gap-y-4" : "gap-7 sm:gap-x-10 sm:gap-y-6"
+                    )}>
+
+                        <FieldInput
+                            id={"document-add-form-job-positions"}
+                            label={"Job Positions"}
+                            required
+                            createElement={(id) => (
+                                <JobPositionMultiInput
+                                    id={id}
+                                    jobPositions={fields.jobPositions}
+                                    setJobPositions={(positions) => {
+                                        setKey("jobPositions", positions)
+                                    }}
+                                />
+                            )}
+                        />
+                        <FieldInput
+                            id={"document-add-form-expiration"}
+                            label={"Expiration Date"}
+                            required
+                            createElement={(id) => (
+                                <DateSelectInput
+                                    id={id}
+                                    placeholder={"Expiration Date"}
+                                    date={fields.expirationDate}
+                                    setDate={(date) => {
+                                        setKey("expirationDate", date)
+                                    }}
+                                    dateString={dateStrings.expiration}
+                                    setDateString={dateStrings.setExpiration}
+                                />
+                            )}
+                        />
+                    </div>
                 </section>
             </div>
         </div>

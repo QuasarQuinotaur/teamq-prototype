@@ -106,6 +106,55 @@ class ContentRepository {
             where: { id }
         });
     }
+    async getTags(contentId: number) {
+        return prisma.content.findUnique({
+            where: { id: contentId },
+            include: {
+                tags: {
+                    include: {
+                        tag: true
+                    }
+                }
+            }
+        });
+    }
+
+    async addTag(contentId: number, tagId: number) {
+        return prisma.contentTag.create({
+            data: {
+                contentId,
+                tagId
+            }
+        });
+    }
+
+    async removeTag(contentId: number, tagId: number) {
+        return prisma.contentTag.delete({
+            where: {
+                contentId_tagId: {
+                    contentId,
+                    tagId
+                }
+            }
+        });
+
+    }
+    async getByTag(tagId: number) {
+        return prisma.content.findMany({
+            where: {
+                tags: {
+                    some: {
+                        tagId: tagId
+                    }
+                }
+            },
+            orderBy: { id: "asc" },
+            include: {
+                owner: true,
+                checkedOutBy: { include: { userPhoto: true } },
+            },
+        });
+    }
 }
 
 export { ContentRepository };

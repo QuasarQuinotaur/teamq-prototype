@@ -1,3 +1,4 @@
+import type {ComboboxEntryObject} from "@/components/input/ComboboxMapInput.tsx";
 
 export const CONTENT_TYPE_MAP = {
     reference: "Reference",

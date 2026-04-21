@@ -18,6 +18,7 @@ import {FieldGroup, FieldSet} from "@/components/forms/Field.tsx";
 import {cn, handleKeyChange} from "@/lib/utils.ts";
 import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
+import type {Tag} from "db";
 
 
 type FormActionsProps = {
@@ -70,6 +71,8 @@ export type FormFieldsProps<T> = {
     fields: T,
     // Changes fields key to new value
     setKey: <K extends keyof T>(key: K, value: T[K]) => void;
+    /** List of all active tags. */
+    tagList?: Tag[]
 }
 export type CreateFieldsElement<T> = (props: FormFieldsProps<T>) => React.ReactNode
 
@@ -84,6 +87,8 @@ type FormProps<T> = {
     // Return an error to display + prevent submitting
     getFieldsError?: (fields: T) => boolean | string | null | undefined;
     noFixedHeight?: boolean;
+    /** When true, the dialog to confirm updating won't appear */
+    noUpdateConfirm?: boolean;
 }
 export default function Form<T extends object>({
                                                    state = {},
@@ -94,6 +99,7 @@ export default function Form<T extends object>({
                                                    resetFields,
                                                    getFieldsError,
                                                    noFixedHeight,
+                                                   noUpdateConfirm,
                                                    ...actionsProps
 }: FormProps<T> & FormActionsProps) {
     const scrollBodyNaturalHeight = noFixedHeight ?? state.noFixedHeight
@@ -163,7 +169,7 @@ export default function Form<T extends object>({
         }
         setValidationError(null);
 
-        if (state.baseItem) {
+        if (!noUpdateConfirm && state.baseItem) {
             // Updating item, show dialog
             setConfirmOpen(true);
         } else {

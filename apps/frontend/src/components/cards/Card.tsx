@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import {cn} from "@/lib/utils.ts"
+import type {Tag} from "db";
 
+export type CardItem = object & {
+    id: number,
+}
 export type CardEntry = {
-    item: object & { id: number };
+    item: CardItem;
     title: string;
     link: string;
     owner?: string;
@@ -12,7 +16,7 @@ export type CardEntry = {
     badge?: string;
     image?: string;
     expirationDate?: Date | null;
-
+    tags?: Tag[],
 }
 export type CardState = {
     entry: CardEntry;

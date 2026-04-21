@@ -15,7 +15,7 @@ import {
 } from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
-import BadgeList from "@/elements/badge-list.tsx";
+import BadgeList, {type BadgeInfo} from "@/elements/badge-list.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import ContentCardThumbnail, {
     googleFaviconUrlForLink,
@@ -182,7 +182,12 @@ export default function ContentCard({
         ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
         ...badges,
     ]
-    const expBadge = isExpired ? "Expired" : null;
+    const expBadge: BadgeInfo | null = isExpired ? {node: "Expired", color: "red"} : null;
+
+    const tagBadges: BadgeInfo[] = entry.tags ? entry.tags.map(tag => {
+        return {node: tag.tagName, color: tag.color}
+    }) : [];
+    const titleBadges = [expBadge, ...tagBadges];
 
     const showBadges: boolean = false; // get this from settings page later
 
@@ -225,7 +230,7 @@ export default function ContentCard({
                         </div>
 
                         {/* EXP BADGE */}
-                        {expBadge && (
+                        {titleBadges.length && (
                             <div
                                 className={cn(
                                     "flex gap-2 transition-all duration-500 ease-in-out",
@@ -234,9 +239,7 @@ export default function ContentCard({
                                         : "opacity-0"
                                 )}
                             >
-                                <Badge className="bg-red-500/20 text-red-600 border-red-400/30">
-                                    {expBadge}
-                                </Badge>
+                                <BadgeList badges={titleBadges}/>
                             </div>
                         )}
                     </div>

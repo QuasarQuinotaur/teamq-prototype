@@ -7,17 +7,20 @@ import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx"
 import ContentTypeMultiInput from "@/components/input/ContentTypeMultiInput.tsx";
 import DocumentTypeInput from "@/components/input/DocumentTypeInput.tsx";
 import type {DocumentType} from "@/components/input/constants.tsx";
+import TagMultiInput from "@/components/input/TagMultiInput.tsx";
 
 
 export type ContentFieldsFilter = {
     contentTypes?: string[];
     jobPositions?: string[];
     documentTypes?: DocumentType[];
+    tagIds?: number[];
 }
 
 export default function FilterDocumentFields({
                                                  fields,
                                                  setKey,
+                                                 tagList
 }: FormFieldsProps<ContentFieldsFilter>) {
     return (
         <>
@@ -56,6 +59,20 @@ export default function FilterDocumentFields({
                         documentTypes={fields.documentTypes ?? []}
                         setDocumentTypes={(types) => {
                             setKey("documentTypes", types)
+                        }}
+                    />
+                )}
+            />
+            <FieldInput
+                id={"filter-documents-tag"}
+                label={"By Tag"}
+                createElement={(id) => (
+                    <TagMultiInput
+                        id={id}
+                        tagList={tagList}
+                        tagIds={fields.tagIds ?? []}
+                        setTagIds={(tagIds) => {
+                            setKey("tagIds", tagIds)
                         }}
                     />
                 )}

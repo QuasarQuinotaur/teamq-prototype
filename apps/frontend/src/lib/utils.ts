@@ -8,6 +8,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Takes different color formats (e.g. #HEX or HEX) into #HEX format */
+export function formatHex(color: string): string {
+  return "#" + color.replace("#", "");
+}
+
 export function formatDate(date: Date | undefined): string {
   if (!date) {
     return ""

@@ -4,19 +4,32 @@ import {
     Combobox,
     ComboboxChip,
     ComboboxChips,
-    ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxSeparator,
     ComboboxValue,
     useComboboxAnchor
 } from "@/components/Combobox.tsx";
 import * as React from "react";
 import {type ComponentProps} from "react";
+import {boolean} from "mathjs";
+
+export type ComboboxEntryProps = {
+    isApplied?: boolean,
+    isChip?: boolean,
+}
+export type ComboboxEntry = React.ReactNode | ((props: ComboboxEntryProps) => React.ReactNode)
 
 export type ComboboxMapInputProps<T extends string> = {
-    map: {[K in T]: string};
+    map: {[K in T]: ComboboxEntry};
     values: T[];
     setValues: (newValues: T[]) => void;
     placeholder?: string;
     emptyText?: string;
+    footerElement?: React.ReactNode;
 } & ComponentProps<typeof ComboboxChipsInput>
 export default function ComboboxMapInput<T extends string>({
                                                                map,
@@ -24,10 +37,19 @@ export default function ComboboxMapInput<T extends string>({
                                                                setValues,
                                                                placeholder,
                                                                emptyText,
+                                                               footerElement,
                                                                ...props
 }: ComboboxMapInputProps<T>) {
     const anchor = useComboboxAnchor()
     const allItems = Object.keys(map) as T[]
+
+    function getMapNode(value: T, props: ComboboxEntryProps): React.ReactNode {
+        const entry: ComboboxEntry = map[value]
+        if (typeof entry === "function") {
+            return entry(props)
+        }
+        return entry
+    }
 
     return (
         <Combobox
@@ -39,12 +61,15 @@ export default function ComboboxMapInput<T extends string>({
                 setValues(newValues)
             }}
         >
-            <ComboboxChips ref={anchor} className="w-full max-w-xs">
+            <ComboboxChips ref={anchor} className="w-full max-w-full">
                 <ComboboxValue>
                     <>
                         {values.map((value) => (
                             <ComboboxChip key={value}>
-                                {map[value]}
+                                {getMapNode(value, {
+                                    isApplied: true,
+                                    isChip: true
+                                })}
                             </ComboboxChip>
                         ))}
                         <ComboboxChipsInput
@@ -57,12 +82,20 @@ export default function ComboboxMapInput<T extends string>({
             <ComboboxContent anchor={anchor} className={"pointer-events-auto"}>
                 {emptyText && <ComboboxEmpty>{emptyText}</ComboboxEmpty>}
                 <ComboboxList>
-                    {(item) => (
-                        <ComboboxItem key={item} value={item}>
-                            {map[item]}
+                    {(value: T) => (
+                        <ComboboxItem key={value} value={value}>
+                            {getMapNode(value, {
+                                isApplied: values.includes(value)
+                            })}
                         </ComboboxItem>
                     )}
                 </ComboboxList>
+                {footerElement && (
+                    <div className={"m-1"}>
+                        <ComboboxSeparator/>
+                        {footerElement}
+                    </div>
+                )}
             </ComboboxContent>
         </Combobox>
     )
