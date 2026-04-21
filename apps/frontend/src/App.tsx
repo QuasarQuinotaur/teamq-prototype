@@ -1,15 +1,14 @@
-import { Outlet } from 'react-router-dom'
-import Navbar from './components/Navbar'
+import { Outlet } from "react-router-dom";
+import ErrorWrapper from "./pages/Error";
 
-function App() {
+export default function App() {
   return (
-    <div className="app-shell">
-      <Navbar />
-      <main className='pt-25 pb-20'>
-        <Outlet /> 
-      </main>
-    </div>
-  )
+    <ErrorWrapper>
+      <div className="app-shell">
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    </ErrorWrapper>
+  );
 }
-
-export default App

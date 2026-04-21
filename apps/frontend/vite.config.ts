@@ -5,12 +5,23 @@ import path from "path"
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss()
   ],
+  envDir: path.resolve(__dirname, "../../"),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    exclude: ['pdfjs-dist'],
+  },
+  preview: {
+    host: true,
+    allowedHosts: ['localhost', '.onrender.com'],
+    proxy: {
+      '/api': 'http://localhost:3000'
+  }
   },
 })

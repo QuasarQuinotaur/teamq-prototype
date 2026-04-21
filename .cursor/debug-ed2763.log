@@ -1,0 +1,3 @@
+{"sessionId":"ed2763","location":"ServiceRequests.tsx:Delete","message":"Delete menu item onSelect fired","data":{"numericId":8,"hasDeleteHandler":false},"timestamp":1776222122298,"hypothesisId":"H1"}
+{"sessionId":"ed2763","location":"serviceRequests.ts:DELETE","message":"DELETE /servicereqs handler entered","data":{"rawParam":"8","parsedId":8,"invalidId":false},"timestamp":1776222293045,"hypothesisId":"H2"}
+{"sessionId":"ed2763","location":"serviceRequests.ts:DELETE","message":"DELETE /servicereqs handler entered","data":{"rawParam":"16","parsedId":16,"invalidId":false},"timestamp":1776224414226,"hypothesisId":"H2"}

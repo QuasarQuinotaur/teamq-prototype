@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,95 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model Employee {
+  id          Int        @id @default(autoincrement())
+  auth0Id     String?    @unique
+  email       String     @unique
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  jobPosition String
+  userPhoto   UserPhoto?
+
+  contentsOwned Content[] @relation("ownedContents") // relationship list
+
+  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table yippee)
+
+  createdRequests  ServiceRequest[] @relation("OwnedRequests")
+  assignedRequests ServiceRequest[] @relation("EmployeeRequests")
+
+  notifications  Notification[] @relation("NotificationEmployees")
+  contentChecked Content[]      @relation("CheckedOutContent")
+}
+
+model Content {
+  id                 Int              @id @default(autoincrement())
+  title              String
+  filePath           String? // path in Supabase bucket
+  fileSize           Int?
+  jobPositions       String[] // scalar list
+  contentType        String
+  dateAdded          DateTime         @default(now())
+  dateUpdated        DateTime         @updatedAt
+  dateReview         DateTime? // TODO
+  expirationDate     DateTime
+  employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
+  ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
+  owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequests    ServiceRequest[] @relation("ContentRequests")
+  notifications      Notification[]   @relation("NotificationContents")
+
+  isCheckedOut   Boolean   @default(false)
+  checkedOutOn   DateTime?
+  checkedOutById Int?
+  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+
+  @@index([ownerId])
+  @@index([contentType])
+  @@index([expirationDate])
+  @@index([isCheckedOut, checkedOutOn])
+}
+
+// Service Request:
+
+model ServiceRequest {
+  id          Int       @id @default(autoincrement())
+  title       String?
+  description String?
+  dateCreated DateTime  @default(now())
+  dateDue     DateTime?
+  priority    String?
+  status      String    @default("to-do") // allowed: to-do | done (DB CHECK)
+
+  ownerId Int
+  owner   Employee @relation("OwnedRequests", fields: [ownerId], references: [id])
+
+  employees Employee[] @relation("EmployeeRequests")
+  contents  Content[]  @relation("ContentRequests")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String
+  dateSent  DateTime @default(now())
+  customMsg String?
+  employeeWasNotified Boolean @default(false)
+
+  dateRead DateTime?
+
+  employeeNotifiedID Int
+
+  employeeNotified Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
+  contentsUsed     Content[] @relation("NotificationContents") //"contents a part of notification (can be none)"
+
+  @@index([employeeNotifiedID, employeeWasNotified]) // index for O(log(n)) time
+}
+
+model UserPhoto {
+  id      Int      @id @default(autoincrement())
+  ownerId Int      @unique
+  path    String
+  owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

@@ -4,10 +4,21 @@
 	"scripts": {
 		"dev": "turbo run dev",
 		"build": "turbo run build",
-		"start": "turbo run start"
+		"start": "turbo run start",
+		"db:generate": "turbo run db:generate"
 	},
 	"packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
 	"devDependencies": {
+		"@types/express": "^5.0.6",
 		"turbo": "^2.8.21"
+	},
+	"dependencies": {
+		"@prisma/adapter-pg": "^7.6.0",
+		"add": "^2.0.6",
+		"docx-preview": "^0.3.7",
+		"dotenv": "^17.4.1",
+		"express": "^5.2.1",
+		"radix-ui": "^1.4.3",
+		"fuse.js": "^7.3.0"
 	}
 }
