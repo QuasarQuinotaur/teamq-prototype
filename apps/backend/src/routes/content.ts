@@ -8,9 +8,10 @@ import {
     getSignedUrl,
 } from "../lib/supabase.ts";
 import pkg from "express-openid-connect";
-import { prisma } from "db";
+import { prisma, type Prisma } from "db";
 const { requiresAuth } = pkg;
 import multer from "multer";
+import type express from "express";
 
 import { ContentRepository } from "../ContentRepository.ts";
 import { contentService } from "../services.ts";
@@ -86,23 +87,242 @@ async function releaseStaleCheckouts(): Promise<void> {
     });
 }
 
+function parseQueryStringList(
+    q: express.Request["query"],
+    key: string,
+): string[] {
+    const v = q[key];
+    if (v === undefined) return [];
+    if (Array.isArray(v)) {
+        return v
+            .flatMap((s) => String(s).split(","))
+            .map((s) => s.trim())
+            .filter(Boolean);
+    }
+    return String(v)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+}
+
+function parseQueryIdList(
+    q: express.Request["query"],
+    key: string,
+): number[] {
+    return parseQueryStringList(q, key)
+        .map((s) => Number(s))
+        .filter((n) => !Number.isNaN(n));
+}
+
+function queryTruthy(q: express.Request["query"], key: string): boolean {
+    const v = q[key];
+    if (v === undefined) return false;
+    const s = Array.isArray(v) ? v[0] : v;
+    return s === "1" || s === "true" || s === "yes";
+}
+
+function whereDocumentTypes(
+    documentTypes: string[],
+): Prisma.ContentWhereInput | null {
+    const parts: Prisma.ContentWhereInput[] = [];
+    if (documentTypes.includes("links")) {
+        parts.push({ filePath: { startsWith: "http" } });
+    }
+    if (documentTypes.includes("files")) {
+        parts.push({
+            AND: [
+                { filePath: { not: null } },
+                { NOT: { filePath: { startsWith: "http" } } },
+            ],
+        });
+    }
+    if (parts.length === 0) return null;
+    if (parts.length === 1) return parts[0]!;
+    return { OR: parts };
+}
+
+type ContentListOrder =
+    | {
+          kind: "prisma";
+          orderBy:
+              | Prisma.ContentOrderByWithRelationInput
+              | Prisma.ContentOrderByWithRelationInput[];
+      }
+    | { kind: "jobPosition"; ascending: boolean };
+
+type ParsedListQuery = {
+    where: Prisma.ContentWhereInput;
+    order: ContentListOrder;
+};
+
+/**
+ * If `query` is empty, legacy clients get the full list ordered by id (e.g. admin check-in, dev).
+ * Otherwise, optional filter/sort come from the query string.
+ */
+function parseContentListQuery(
+    query: express.Request["query"],
+    employee: { id: number } | null,
+): ParsedListQuery | { legacyNoQuery: true } {
+    if (Object.keys(query).length === 0) {
+        return { legacyNoQuery: true };
+    }
+
+    const ands: Prisma.ContentWhereInput[] = [];
+
+    const onlyFavorites = queryTruthy(query, "onlyFavorites");
+    const onlyMine = queryTruthy(query, "onlyMine");
+    const onlyMyCheckouts = queryTruthy(query, "onlyMyCheckouts");
+
+    if (onlyFavorites) {
+        if (!employee) {
+            throw new Error("UNAUTHORIZED_EMPLOYEE");
+        }
+        ands.push({
+            employeesFavorited: { some: { id: employee.id } },
+        });
+    }
+    if (onlyMine) {
+        if (!employee) {
+            throw new Error("UNAUTHORIZED_EMPLOYEE");
+        }
+        ands.push({ ownerId: employee.id });
+    }
+    if (onlyMyCheckouts) {
+        if (!employee) {
+            throw new Error("UNAUTHORIZED_EMPLOYEE");
+        }
+        ands.push({
+            isCheckedOut: true,
+            checkedOutById: employee.id,
+        });
+    }
+
+    const contentTypes = parseQueryStringList(query, "contentTypes");
+    if (contentTypes.length > 0) {
+        ands.push({ contentType: { in: contentTypes } });
+    }
+    const jobPositions = parseQueryStringList(query, "jobPositions");
+    if (jobPositions.length > 0) {
+        ands.push({ jobPositions: { hasSome: jobPositions } });
+    }
+    const tagIds = parseQueryIdList(query, "tagIds");
+    if (tagIds.length > 0) {
+        ands.push({
+            tags: { some: { tagId: { in: tagIds } } },
+        });
+    }
+    const documentTypes = parseQueryStringList(query, "documentTypes");
+    const docWhere = whereDocumentTypes(documentTypes);
+    if (docWhere) ands.push(docWhere);
+
+    const qRaw = query["q"];
+    const q = typeof qRaw === "string" ? qRaw.trim() : "";
+    if (q.length > 0) {
+        ands.push({ title: { contains: q, mode: "insensitive" } });
+    }
+
+    const where: Prisma.ContentWhereInput =
+        ands.length > 0 ? { AND: ands } : {};
+
+    const sortBy = parseQueryStringList(query, "sortBy")[0] ?? "title";
+    const sortMethod =
+        parseQueryStringList(query, "sortMethod")[0] ?? "ascending";
+    const desc = sortMethod === "descending";
+    const ord = (field: "title" | "contentType" | "expirationDate") =>
+        [
+            { [field]: desc ? "desc" : "asc" } as Prisma.ContentOrderByWithRelationInput,
+            { title: "asc" },
+        ] satisfies Prisma.ContentOrderByWithRelationInput[];
+
+    let order: ContentListOrder;
+    if (sortBy === "contentType") {
+        order = { kind: "prisma", orderBy: ord("contentType") };
+    } else if (sortBy === "expirationDate") {
+        order = { kind: "prisma", orderBy: ord("expirationDate") };
+    } else if (sortBy === "jobPosition") {
+        order = { kind: "jobPosition", ascending: !desc };
+    } else {
+        // title (default) or unknown
+        order = {
+            kind: "prisma",
+            orderBy: { title: desc ? "desc" : "asc" },
+        };
+    }
+
+    return { where, order };
+}
+
+type ContentListRow = Awaited<
+    ReturnType<typeof contentRepo.listWithFilters>
+>[number];
+
+/**
+ * In-memory job position sort, mirroring the browser (sorted positions joined by comma, then title).
+ */
+function sortContentsByJobPosition(
+    rows: ContentListRow[],
+    ascending: boolean,
+): ContentListRow[] {
+    const mult = ascending ? 1 : -1;
+    return [...rows].sort((a, b) => {
+        const sa = [...a.jobPositions].sort().join(",");
+        const sb = [...b.jobPositions].sort().join(",");
+        const c = sa.localeCompare(sb);
+        if (c !== 0) return c * mult;
+        return mult * a.title.localeCompare(b.title);
+    });
+}
+
 // ===================================
 // GET ===============================
 // ===================================
 
 router.get("/", requiresAuth(), async (req, res) => {
-    await releaseStaleCheckouts();
-    const contents = await contentRepo.getAll();
-    const enriched = await Promise.all(
-        contents.map(async (c) => {
-            if (!c.checkedOutBy) {
-                return { ...c, checkedOutBy: null };
+    try {
+        await releaseStaleCheckouts();
+        const employee = await getEmployeeFromRequest(req);
+
+        let contents: Awaited<ReturnType<typeof contentRepo.listWithFilters>>;
+
+        const parsed = parseContentListQuery(req.query, employee);
+        if ("legacyNoQuery" in parsed) {
+            contents = await contentRepo.getAll();
+        } else {
+            if (parsed.order.kind === "prisma") {
+                contents = await contentRepo.listWithFilters(
+                    parsed.where,
+                    parsed.order.orderBy,
+                );
+            } else {
+                const unsorted = await contentRepo.listWithFilters(parsed.where, {
+                    id: "asc",
+                });
+                contents = sortContentsByJobPosition(
+                    unsorted,
+                    parsed.order.ascending,
+                );
             }
-            const mapped = await employeeWithProfileUrl(c.checkedOutBy);
-            return { ...c, checkedOutBy: mapped };
-        }),
-    );
-    res.json(enriched);
+        }
+
+        const enriched = await Promise.all(
+            contents.map(async (c) => {
+                if (!c.checkedOutBy) {
+                    return { ...c, checkedOutBy: null };
+                }
+                const mapped = await employeeWithProfileUrl(c.checkedOutBy);
+                return { ...c, checkedOutBy: mapped };
+            }),
+        );
+        res.json(enriched);
+    } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED_EMPLOYEE") {
+            res.status(400).json({
+                error: "Employee record required for this request",
+            });
+            return;
+        }
+        res.status(500).json({ error: err });
+    }
 });
 
 

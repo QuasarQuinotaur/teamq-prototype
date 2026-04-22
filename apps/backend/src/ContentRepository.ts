@@ -1,13 +1,30 @@
-import { prisma } from "db";
+import { prisma, type Prisma } from "db";
+
+const contentCatalogInclude = {
+    owner: true,
+    checkedOutBy: { include: { userPhoto: true } },
+    tags: { include: { tag: true } },
+} satisfies Prisma.ContentInclude;
 
 class ContentRepository {
     async getAll() {
+        return this.listWithFilters({}, { id: "asc" });
+    }
+
+    /**
+     * List content for catalog with tags in one query (avoids N+1 tag fetches).
+     * Pass `{}` and `{ id: "asc" }` for the full catalog (same as legacy getAll ordering).
+     */
+    async listWithFilters(
+        where: Prisma.ContentWhereInput,
+        orderBy:
+            | Prisma.ContentOrderByWithRelationInput
+            | Prisma.ContentOrderByWithRelationInput[],
+    ) {
         return prisma.content.findMany({
-            orderBy: { id: "asc" },
-            include: {
-                owner: true,
-                checkedOutBy: { include: { userPhoto: true } },
-            },
+            where,
+            orderBy,
+            include: contentCatalogInclude,
         });
     }
 
@@ -41,6 +58,7 @@ class ContentRepository {
             include: {
                 owner: true,
                 checkedOutBy: { include: { userPhoto: true } },
+                tags: { include: { tag: true } },
             },
         });
     }
