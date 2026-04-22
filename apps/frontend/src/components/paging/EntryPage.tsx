@@ -5,6 +5,7 @@
 
 import {type ChangeEvent, useCallback, useMemo, useState} from "react";
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
@@ -96,6 +97,22 @@ export default function EntryPage<T extends object>({
     const favoritesHeadingClass =
         "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
+    const [favoritesOpen, setFavoritesOpen] = useState(true);
+
+    const favoritesHeading = (
+        <button
+            type="button"
+            onClick={() => setFavoritesOpen((o) => !o)}
+            className="flex items-center gap-1 px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground transition-colors"
+        >
+            Favorites
+            <ChevronDown
+                className="size-3.5 transition-transform duration-200"
+                style={{ transform: favoritesOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+            />
+        </button>
+    );
+
     const showFavoritesWithEntries =
         showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
 
@@ -112,11 +129,28 @@ export default function EntryPage<T extends object>({
         useState(listEntriesPerPage ?? (omitToolbar ? 9 : 10));
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
+    const [displayedPage, setDisplayedPage] = useState<number>(1);
+
+    // When favorites are shown in list view, page 1 has fewer regular-item slots.
+    const numFav =
+        showFavoritesWithEntries && view === "List"
+            ? (favoritedEntries?.length ?? 0)
+            : 0;
+    const slotsPage1 = Math.max(0, entriesPerPage - numFav);
+
     const updatePageEntries = useCallback((viewPageNum: number) => {
-        const first = entriesPerPage*(viewPageNum-1)
-        const last = entriesPerPage*(viewPageNum)
-        setPageEntries(entries.slice(first, last))
-    }, [entries, entriesPerPage])
+        setDisplayedPage(viewPageNum);
+        let first: number;
+        let last: number;
+        if (viewPageNum === 1) {
+            first = 0;
+            last = slotsPage1;
+        } else {
+            first = slotsPage1 + entriesPerPage * (viewPageNum - 2);
+            last = first + entriesPerPage;
+        }
+        setPageEntries(entries.slice(first, last));
+    }, [entries, entriesPerPage, slotsPage1])
 
     function newNumEntries(numPerPage: ChangeEvent<HTMLInputElement, HTMLInputElement>) {
         setEntriesPerPage(+numPerPage.target.value)
@@ -220,13 +254,15 @@ export default function EntryPage<T extends object>({
                     showFavoritesWithEntries ? (
                         <div className="flex flex-col gap-8">
                             <section className="flex flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>Favorites</h2>
-                                <ThumbnailBatchProvider
-                                    batchKey={favoritesBatchKey}
-                                    expectedContentIds={favoritesExpectedIds}
-                                >
-                                    {createCardGrid(favoritedEntries ?? [])}
-                                </ThumbnailBatchProvider>
+                                {favoritesHeading}
+                                {favoritesOpen && (
+                                    <ThumbnailBatchProvider
+                                        batchKey={favoritesBatchKey}
+                                        expectedContentIds={favoritesExpectedIds}
+                                    >
+                                        {createCardGrid(favoritedEntries ?? [])}
+                                    </ThumbnailBatchProvider>
+                                )}
                             </section>
                             <section className="flex flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>All documents</h2>
@@ -253,10 +289,12 @@ export default function EntryPage<T extends object>({
                 ) : (
                     showFavoritesWithEntries ? (
                         <>
-                            <section className="flex flex-col gap-2 pb-6">
-                                <h2 className={favoritesHeadingClass}>Favorites</h2>
-                                {createCardList(favoritedEntries ?? [])}
-                            </section>
+                            {displayedPage === 1 && (
+                                <section className="flex flex-col gap-2 pb-6">
+                                    {favoritesHeading}
+                                    {favoritesOpen && createCardList(favoritedEntries ?? [])}
+                                </section>
+                            )}
                             <section className="flex min-h-0 flex-1 flex-col gap-2">
                                 <h2 className={favoritesHeadingClass}>All documents</h2>
                                 {resultCountLine}
@@ -273,10 +311,14 @@ export default function EntryPage<T extends object>({
                 </>
     );
 
+    // When favorites occupy slots on page 1, the effective document count for
+    // pagination is inflated by numFav so the page total stays correct.
+    const paginationDocNum = entries.length + numFav;
+
     const bottomPagination = (
         <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
             <Pagination
-                docNum={entries.length}
+                docNum={paginationDocNum}
                 docsPerPage={entriesPerPage}
                 pageNum={pageNum}
                 setPageNum={setPageNum}
