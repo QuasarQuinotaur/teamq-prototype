@@ -397,10 +397,13 @@ export default function ContentEntryPage({
                     employee,
                     employeeMap,
                 );
-                setEntries((prev) => [
-                    ...prev.filter((entry) => entry.item.id !== contentId),
-                    mapEntry,
-                ]);
+                setEntries((prev) => {
+                    const has = prev.some((e) => e.item.id === contentId);
+                    if (!has) return [...prev, mapEntry];
+                    return prev.map((entry) =>
+                        entry.item.id === contentId ? mapEntry : entry,
+                    );
+                });
             });
     }
 
