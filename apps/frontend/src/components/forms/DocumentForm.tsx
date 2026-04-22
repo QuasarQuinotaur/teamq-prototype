@@ -129,7 +129,10 @@ export default function DocumentForm(state: FormState) {
             documentFields.expirationDate!.toISOString(),
         );
         formData.append("contentType", documentFields.contentType);
-        formData.append("newOwnerID", documentFields.newOwnerID.toString())
+
+        if (isUpdate) {
+            formData.append("newOwnerID", documentFields.newOwnerID.toString())
+        }
         if (documentFields.file) {
             formData.append("file", documentFields.file);
         } else if (documentFields.link.trim()) {

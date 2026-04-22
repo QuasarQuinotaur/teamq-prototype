@@ -41,7 +41,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
             .then((data: Employee) => {
                 setMyName(`${data.firstName} ${data.lastName}`);
                 setMyID(data.id);
-                setPermissions(data.id === ownerID || !ownerID);
+                setPermissions((data.id === ownerID || !ownerID) && isUpdate);
             })
             .finally(() => setLoading(false));
     }
