@@ -13,17 +13,17 @@ import {useEffect, useRef, useState} from "react";
 import ColorPresetPickerInput, {type PresetColor} from "@/components/input/ColorPresetPickerInput.tsx";
 
 const TAG_PRESET_COLORS: PresetColor[] = [
-    {color: "#ff0000", name: "Red"},
-    {color: "#ff7300", name: "Orange"},
-    {color: "#f8d238", name: "Yellow"},
-    {color: "#00ff00", name: "Lime"},
-    {color: "#009846", name: "Green"},
-    {color: "#19e3ff", name: "Cyan"},
-    {color: "#0073ff", name: "Blue"},
-    {color: "#003473", name: "Navy"},
-    {color: "#7300ff", name: "Purple"},
-    {color: "#ff00ff", name: "Pink"},
-    {color: "#c6006c", name: "Magenta"},
+    {color: "#fc2c03", name: "Red"},
+    {color: "#ff8400", name: "Orange"},
+    {color: "#fcdc49", name: "Yellow"},
+    {color: "#a6f587", name: "Lime"},
+    {color: "#45ed66", name: "Green"},
+    {color: "#8bf7fc", name: "Cyan"},
+    {color: "#418bf2", name: "Blue"},
+    {color: "#4c63e0", name: "Navy"},
+    {color: "#964ce0", name: "Purple"},
+    {color: "#fc92f9", name: "Pink"},
+    {color: "#f51b8b", name: "Magenta"},
     {color: "#636363", name: "Gray"},
 ]
 

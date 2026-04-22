@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import {cn, isSupabasePath} from "@/lib/utils.ts"
-import {Badge} from "@/elements/badge.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
-import { Check, MoreHorizontalIcon } from "lucide-react";
+import { BookOpen, Check, GitBranch, MoreHorizontalIcon, Wrench } from "lucide-react";
 import {
     type CardEntry,
     type CardState,
@@ -16,6 +15,7 @@ import {
 import type {Content} from "db";
 import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import BadgeList, {type BadgeInfo} from "@/elements/badge-list.tsx";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/elements/tooltip.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
 import ContentCardThumbnail, {
     googleFaviconUrlForLink,
@@ -23,6 +23,7 @@ import ContentCardThumbnail, {
     useMicrolinkLinkPreview,
 } from "@/components/cards/ContentCardThumbnail.tsx";
 import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
+import useMainContext from "@/components/auth/hooks/main-context.tsx";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -51,6 +52,63 @@ async function viewItem(link: string, item: object & { id: number }) {
     }
 }
 
+const BADGE_NAMED_COLORS: Record<string, string> = { red: "ff0000", blue: "0000ff" };
+
+const CONTENT_TYPE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    tool: Wrench,
+    reference: BookOpen,
+    workflow: GitBranch,
+};
+
+/** Height of each folder tab in px — also drives the 45° angle length. */
+const TAB_H = 10;
+/** Flat visible width of each tab (not counting the diagonal). */
+const TAB_FLAT = 45;
+
+function FolderTabs({ badges }: { badges: (string | BadgeInfo | null)[] }) {
+    const valid = badges.filter((b): b is string | BadgeInfo => b != null && b !== "");
+    if (!valid.length) return null;
+    const tabFlat = valid.length === 1 ? TAB_FLAT * 1.2 : TAB_FLAT;
+    // Trapezoid: flat left, flat top, 45° diagonal on right, flat bottom
+    const clip = `polygon(0px 0px, ${tabFlat}px 0px, ${tabFlat + TAB_H}px ${TAB_H}px, 0px ${TAB_H}px)`;
+    return (
+        <div className="absolute top-0 left-1" style={{ height: TAB_H }}>
+            {valid.map((badge, i) => {
+                const color = typeof badge === "object" && "color" in badge ? badge.color : undefined;
+                const hex = color ? (BADGE_NAMED_COLORS[color] ?? color.replace("#", "")) : null;
+                const label = typeof badge === "string" ? badge : String(badge.node ?? "");
+                return (
+                    <TooltipProvider key={i} delayDuration={1000}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className="absolute top-0 cursor-default"
+                                    style={{
+                                        left: i * tabFlat,
+                                        zIndex: valid.length - i,
+                                        width: tabFlat + TAB_H,
+                                        height: TAB_H,
+                                        background: i > 0
+                                            ? `linear-gradient(to top right, rgba(0,0,0,0.22) 0%, transparent 65%), ${hex ? `#${hex}` : `var(--primary)`}`
+                                            : hex ? `#${hex}` : `var(--primary)`,
+                                        clipPath: clip,
+                                        borderTopLeftRadius: i === 0 ? 4 : 0,
+                                    }}
+                                />
+                            </TooltipTrigger>
+                            {label && (
+                                <TooltipContent side="top">
+                                    {label}
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            })}
+        </div>
+    );
+}
+
 type ContentCardProps = {
     onView?: (entry: CardEntry) => void;
     /** When false, hides the entry's content-type badge (still shows extra `badges` from CardState). */
@@ -74,6 +132,7 @@ export default function ContentCard({
                                         onSelectToggle,
 }: ContentCardProps) {
     const { loadAllowed } = useThumbnailBatch();
+    const { tagsEnabled } = useMainContext();
     const plainWebLink = isPlainWebPageLink(entry);
     const linkMicrolink = useMicrolinkLinkPreview(
         entry.link,
@@ -95,37 +154,17 @@ export default function ContentCard({
         linkMicrolink.faviconUrl,
     ]);
 
-    const [cardHovered, setCardHovered] = React.useState(false);
-    /** After collapse animation, restore single-line ellipsis; cleared on hover. */
-    const [titleCollapsedClamp, setTitleCollapsedClamp] = React.useState(true);
-    const titleCollapseTimerRef = React.useRef<number | null>(null);
-
-    /** Matches header `transition-[max-height]` / badge motion so line-clamp restores after collapse finishes. */
-    const CARD_HOVER_TRANSITION_MS = 500;
-
-    function handleCardPointerEnter() {
-        if (titleCollapseTimerRef.current != null) {
-            window.clearTimeout(titleCollapseTimerRef.current);
-            titleCollapseTimerRef.current = null;
-        }
-        setTitleCollapsedClamp(false);
-        setCardHovered(true);
-    }
-
-    function handleCardPointerLeave() {
-        setCardHovered(false);
-        titleCollapseTimerRef.current = window.setTimeout(() => {
-            setTitleCollapsedClamp(true);
-            titleCollapseTimerRef.current = null;
-        }, CARD_HOVER_TRANSITION_MS);
-    }
+    const titleRef = React.useRef<HTMLDivElement>(null);
+    const [isTitleTruncated, setIsTitleTruncated] = React.useState(false);
 
     React.useEffect(() => {
-        return () => {
-            if (titleCollapseTimerRef.current != null) {
-                window.clearTimeout(titleCollapseTimerRef.current);
-            }
-        };
+        const el = titleRef.current;
+        if (!el) return;
+        const check = () => setIsTitleTruncated(el.scrollHeight > el.clientHeight);
+        check();
+        const ro = new ResizeObserver(check);
+        ro.observe(el);
+        return () => ro.disconnect();
     }, []);
 
     function handleCardClick() {
@@ -177,38 +216,29 @@ export default function ContentCard({
     const isExpired =
         content.expirationDate &&
         new Date(content.expirationDate) < new Date();
-    const roleBadges = [
-        ...jobPositionLabels,
-        ...(showContentTypeBadge ? [CONTENT_TYPE_MAP[content.contentType]] : []),
-        ...badges,
-    ]
     const expBadge: BadgeInfo | null = isExpired ? {node: "Expired", color: "red"} : null;
 
     const tagBadges: BadgeInfo[] = entry.tags ? entry.tags.map(tag => {
         return {node: tag.tagName, color: tag.color}
     }) : [];
-    const titleBadges = [expBadge, ...tagBadges];
+    const allBadges = [expBadge, ...tagBadges, ...badges];
 
-    const showBadges: boolean = false; // get this from settings page later
+    const showBadges = tagsEnabled;
 
     return (
+        <div className="relative" style={{ paddingTop: TAB_H }}>
+        {!showBadges && <FolderTabs badges={allBadges} />}
         <CardContainer
-            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer pb-0 shadow-sm"
+            className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer shadow-sm rounded-t-md"
+            style={{ paddingBottom: 0 }}
             onClick={handleCardClick}
             onContextMenu={handleCardContextMenu}
-            onPointerEnter={handleCardPointerEnter}
-            onPointerLeave={handleCardPointerLeave}
         >
-            <CardHeader className="pb-3 shrink-0">
+            <CardHeader className="pb-3 shrink-0 rounded-t-md">
                 <div className="flex w-full items-start justify-between gap-2">
 
-                    {/* TITLE + EXP BADGE (FIXED SYSTEM) */}
-                    <div
-                        className={cn(
-                            "min-w-0 flex-1 overflow-hidden transition-[max-height] duration-500 ease-in-out",
-                            showBadges || cardHovered ? "max-h-32" : "max-h-[1.4em]"
-                        )}
-                    >
+                    {/* TITLE + META BADGES */}
+                    <div className="min-w-0 flex-1 overflow-hidden">
                         <div className="flex min-w-0 items-start gap-2">
                             {titleFaviconUrl ? (
                                 <img
@@ -219,27 +249,44 @@ export default function ContentCard({
                                 />
                             ) : null}
 
-                            <CardTitle
-                                className={cn(
-                                    "min-w-0 flex-1 break-words",
-                                    titleCollapsedClamp && "line-clamp-1",
-                                )}
-                            >
-                                {entry.title}
-                            </CardTitle>
+                            <TooltipProvider>
+                                <Tooltip open={isTitleTruncated ? undefined : false}>
+                                    <TooltipTrigger asChild>
+                                        <CardTitle
+                                            ref={titleRef}
+                                            className="min-w-0 flex-1 break-words line-clamp-1"
+                                        >
+                                            {entry.title}
+                                        </CardTitle>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                        {entry.title}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
 
-                        {/* EXP BADGE */}
-                        {titleBadges.length && (
-                            <div
-                                className={cn(
-                                    "flex gap-2 transition-all duration-500 ease-in-out",
-                                    showBadges || cardHovered
-                                        ? "opacity-100 mt-1"
-                                        : "opacity-0"
-                                )}
-                            >
-                                <BadgeList badges={titleBadges}/>
+                        {/* DOC TYPE + ROLE SUBTITLE */}
+                        {(() => {
+                            const TypeIcon = CONTENT_TYPE_ICON_MAP[content.contentType];
+                            const typeLabel = showContentTypeBadge ? CONTENT_TYPE_MAP[content.contentType] : null;
+                            const roleLabel = showJobPositionBadge && jobPositionLabels.length > 0 ? jobPositionLabels.join(", ") : null;
+                            if (!typeLabel && !roleLabel) return null;
+                            return (
+                                <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground/80">
+                                    {typeLabel && TypeIcon && (
+                                        <TypeIcon className="size-3 shrink-0" />
+                                    )}
+                                    {typeLabel && <span>{typeLabel}</span>}
+                                    {typeLabel && roleLabel && <span className="opacity-50">·</span>}
+                                    {roleLabel && <span className="truncate">{roleLabel}</span>}
+                                </div>
+                            );
+                        })()}
+
+                        {showBadges && allBadges.some((b) => b != null && b !== "") && (
+                            <div className="mt-1">
+                                <BadgeList badges={allBadges} />
                             </div>
                         )}
                     </div>
@@ -305,21 +352,6 @@ export default function ContentCard({
                     </>
                 ) : null}
 
-                {/* ROLE BADGES */}
-                {roleBadges.some((b) => b != null && String(b).trim() !== "") ? (
-                    <div
-                        className={cn(
-                            "absolute z-40 bottom-2 right-2 flex max-w-[calc(100%-1rem)] flex-col items-end gap-1 origin-bottom transition-all duration-500 ease-in-out",
-                            showBadges || cardHovered
-                                ? "translate-y-0 scale-100 opacity-100"
-                                : "pointer-events-none translate-y-[calc(200%+1.25rem)] scale-[0.97] opacity-0",
-                        )}
-                    >
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <BadgeList badges={roleBadges} />
-                        </div>
-                    </div>
-                ) : null}
             </div>
 
             {selectMode && selected ? (
@@ -335,5 +367,6 @@ export default function ContentCard({
                 </div>
             ) : null}
         </CardContainer>
+        </div>
     );
 }

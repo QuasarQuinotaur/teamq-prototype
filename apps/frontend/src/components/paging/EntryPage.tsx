@@ -13,6 +13,7 @@ import {type CardEntry} from "@/components/cards/Card.tsx";
 import CardGrid, {CARD_GRID_LAYOUT_CLASS, type CardGridProps} from "@/components/cards/CardGrid.tsx";
 import ContentCardSkeleton from "@/components/cards/ContentCardSkeleton.tsx";
 import CardList from "@/components/cards/CardList.tsx";
+import CardListSkeleton from "@/components/cards/CardListSkeleton.tsx";
 import SelectMarqueeLayer from "@/components/paging/SelectMarqueeLayer.tsx";
 import type {ViewSelectorButtonProps} from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
@@ -202,15 +203,19 @@ export default function EntryPage<T extends object>({
     const entryScrollInner = (
                 <>
                 {gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0 ? (
-                    <div
-                        className={CARD_GRID_LAYOUT_CLASS}
-                        aria-busy="true"
-                        aria-label="Loading documents"
-                    >
-                        {Array.from({ length: gridSkeletonCount }, (_, i) => (
-                            <ContentCardSkeleton key={i} />
-                        ))}
-                    </div>
+                    view === "List" ? (
+                        <CardListSkeleton rows={gridSkeletonCount} />
+                    ) : (
+                        <div
+                            className={CARD_GRID_LAYOUT_CLASS}
+                            aria-busy="true"
+                            aria-label="Loading documents"
+                        >
+                            {Array.from({ length: gridSkeletonCount }, (_, i) => (
+                                <ContentCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    )
                 ) : (view === "Grid" ? (
                     showFavoritesWithEntries ? (
                         <div className="flex flex-col gap-8">
