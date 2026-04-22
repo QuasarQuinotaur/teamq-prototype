@@ -108,6 +108,15 @@ function ComboboxContent({
         alignOffset={alignOffset}
         anchor={anchor}
         className="isolate z-50"
+        onWheel={(e) => {
+          e.stopPropagation();
+          const isScrollingDown = e.deltaY > 0;
+          if (isScrollingDown) {
+            e.currentTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+          } else {
+            e.currentTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+          }
+        }}
       >
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"

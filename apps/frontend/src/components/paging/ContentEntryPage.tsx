@@ -877,7 +877,7 @@ export default function ContentEntryPage({
     }
 
     const gridSkeletonCount =
-        loading && entries.length === 0 && !onlyMyCheckouts
+        loading && entries.length === 0
             ? SKELETON_GRID_SLOTS
             : null;
 
