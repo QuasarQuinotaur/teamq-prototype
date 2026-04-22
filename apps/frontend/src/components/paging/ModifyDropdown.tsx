@@ -14,20 +14,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/DropdownMenu.tsx";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/dialog/AlertDialog.tsx";
 import { LockKeyIcon, LockKeyOpenIcon, PencilIcon, TrashIcon } from "@phosphor-icons/react";
 import type { FormState } from "@/components/forms/Form.tsx";
 import { FormOfType, type FormType, type FormOfTypeProps } from "@/components/forms/FormOfType.tsx";
+import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog.tsx";
 
 const DEFAULT_UPDATE_FORM_HEADERS: { [P in FormType]: string } = {
     Document: "Update Document",
@@ -169,34 +159,19 @@ export default function ModifyDropdown({
                     <>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        onSelect={(e) => {
-                                            e.preventDefault();
-                                        }}
-                                    >
-                                        <TrashIcon />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent size="sm">
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            variant="destructive"
-                                            onClick={() => handleDelete(entry)}
-                                        >
-                                            Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <DeleteConfirmDialog
+                                onDelete={() => handleDelete(entry)}
+                            >
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                >
+                                    <TrashIcon />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DeleteConfirmDialog>
                         </DropdownMenuGroup>
                     </>
                 )}

@@ -95,3 +95,5 @@ Theron Boozer - SCRUM Master
 Kylie Welcher - Project Manager
 
 Abyshek Sukumar - Product Owner 
+
+Rashi Roselin - Documentation Lead

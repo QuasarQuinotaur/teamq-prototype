@@ -2,10 +2,10 @@ import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { Router } from "express";
 import { getEmployeeFromRequest } from "../app.ts";
+
 import {
     uploadBuffer,
     getSignedUrl,
-    deleteFile,
 } from "../lib/supabase.ts";
 import pkg from "express-openid-connect";
 import { prisma } from "db";
@@ -13,6 +13,7 @@ const { requiresAuth } = pkg;
 import multer from "multer";
 
 import { ContentRepository } from "../ContentRepository.ts";
+import { contentService } from "../services.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -102,6 +103,25 @@ router.get("/", requiresAuth(), async (req, res) => {
         }),
     );
     res.json(enriched);
+});
+
+
+router.get("/:id", requiresAuth(), async (req, res) => { // get content
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        res.json({ content: content });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
 });
 
 router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
@@ -433,72 +453,253 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
 // ======================================
 // DELETE ===============================
 // ======================================
+// TODONE make it ref the service instead
 
 router.delete("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
+
     if (isNaN(id)) {
-        res.status(400).json({ error: "Invalid id" });
+        res.status(400).json({error: "Invalid id"});
         return;
     }
 
     try {
         const employee = await getEmployeeFromRequest(req);
+
         if (!employee) {
-            res.status(404).json({ error: "No linked employee account found" });
-            return;
+            return res.status(404).json({error: "No linked employee account found"});
         }
-
-        const content = await contentRepo.getById(id);
-
-        if (!content) {
-            res.status(404).json({ error: "Content not found" });
-            return;
-        }
-
-        if (!content.isCheckedOut) {
-            res.status(403).json({
-                error: "Check out the document before deleting.",
-            });
-            return;
-        }
-
-        if (content.checkedOutById !== employee.id) {
-            res.status(409).json({
-                error: "Cannot delete while document is checked out by another user",
-            });
-            return;
-        }
-
-        const isOwner = content.ownerId === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
-        if (!isOwner && !isAdmin) {
-            res.status(403).json({ error: "Not authorized to delete this content" });
-            return;
-        }
-
-        const filePath = content.filePath;
-        const isExternalLink =
-            !!filePath &&
-            (filePath.startsWith("http://") || filePath.startsWith("https://"));
-
-        if (filePath && !isExternalLink) {
-            await deleteFile(filePath);
-        }
-
-        await contentRepo.delete(id);
+        await contentService.deleteContent(id, employee);
 
         const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
         await unlink(thumbFsPath).catch(() => {});
 
         res.json({ success: true });
     } catch (err) {
+        const message = err instanceof Error ? err.message : "Delete failed";
+        if (message === "Content not found") {
+            return res.status(404).json({ error: message });
+        }
+        if (
+            message === "Check out the document before deleting." ||
+            message === "Not authorized to delete this content"
+        ) {
+            return res.status(403).json({ error: message });
+        }
+        if (message === "Cannot delete while document is checked out by another user") {
+            return res.status(409).json({ error: message });
+        }
+
         console.error(err);
+        res.status(500).json({ error: message });
+    }
+});
+
+// router.delete("/:id", requiresAuth(), async (req, res) => {
+//     const id = Number(req.params.id);
+//     if (isNaN(id)) {
+//         res.status(400).json({ error: "Invalid id" });
+//         return;
+//     }
+//
+//     try {
+//         const employee = await getEmployeeFromRequest(req);
+//         if (!employee) {
+//             res.status(404).json({ error: "No linked employee account found" });
+//             return;
+//         }
+//
+//         const content = await contentRepo.getById(id);
+//
+//         if (!content) {
+//             res.status(404).json({ error: "Content not found" });
+//             return;
+//         }
+//
+//         if (content.isCheckedOut) {
+//             res.status(409).json({ error: "Cannot delete while document is checked out" });
+//             return;
+//         }
+//
+//         const isOwner = content.ownerId === employee.id;
+//         const isAdmin = employee.jobPosition === "admin";
+//         if (!isOwner && !isAdmin) {
+//             res.status(403).json({ error: "Not authorized to delete this content" });
+//             return;
+//         }
+//
+//         const filePath = content.filePath;
+//         const isExternalLink =
+//             !!filePath &&
+//             (filePath.startsWith("http://") || filePath.startsWith("https://"));
+//
+//         if (filePath && !isExternalLink) {
+//             await deleteFile(filePath);
+//         }
+//
+//         await contentRepo.delete(id);
+//
+//         const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
+//         await unlink(thumbFsPath).catch(() => {});
+//
+//         res.json({ success: true });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({
+//             error: err instanceof Error ? err.message : "Delete failed",
+//         });
+//     }
+// });
+
+// ===================================
+// POST (Tag to content)
+// ===================================
+router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        const tagId = Number(req.params.tagId);
+
+        if (Number.isNaN(contentId) || Number.isNaN(tagId)) {
+            res.status(400).json({ error: "Invalid content id or tag id" });
+            return;
+        }
+
+        const tag = await prisma.tag.findFirst({
+            where: {
+                id: tagId,
+                ownerId: employee.id,
+            },
+        });
+
+        if (!tag) {
+            res.status(404).json({ error: "Tag not found" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        const contentTag = await contentRepo.addTag(contentId, tagId);
+
+        res.json({
+            success: true,
+            contentTag,
+        });
+    } catch (err: any) {
+        console.error(err);
+
+        if (err.code === "P2002") {
+            res.status(409).json({
+                error: "That tag is already attached to this content",
+            });
+            return;
+        }
+
         res.status(500).json({
-            error: err instanceof Error ? err.message : "Delete failed",
+            error: err instanceof Error ? err.message : "Failed to attach tag",
         });
     }
 });
 
+// ===================================
+// DELETE (Tag from content)
+// ===================================
+router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        const tagId = Number(req.params.tagId);
+
+        if (Number.isNaN(contentId) || Number.isNaN(tagId)) {
+            res.status(400).json({ error: "Invalid content id or tag id" });
+            return;
+        }
+
+        const tag = await prisma.tag.findFirst({
+            where: {
+                id: tagId,
+                ownerId: employee.id,
+            },
+        });
+
+        if (!tag) {
+            res.status(404).json({ error: "Tag not found" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        await contentRepo.removeTag(contentId, tagId);
+
+        res.json({ success: true });
+    } catch (err: any) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to remove tag from content",
+        });
+    }
+});
+
+// ===================================
+// GET (All tags for one content item)
+// ===================================
+router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+
+        if (Number.isNaN(contentId)) {
+            res.status(400).json({ error: "Invalid content id" });
+            return;
+        }
+
+        const content = await contentRepo.getTags(contentId);
+
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        const tags = content.tags.map((ct) => ct.tag);
+
+        res.json({
+            success: true,
+            tags,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to load tags",
+        });
+    }
+});
 
 export default router;
 

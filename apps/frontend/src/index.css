@@ -121,6 +121,7 @@
 
 :root {
   /*----------Variable Setup-----------*/
+  font-size: medium;
   --app-font-sans: "Geist Variable", sans-serif;
   --app-font-heading: "Inter Variable", sans-serif;
   --background: var(--theme-background);

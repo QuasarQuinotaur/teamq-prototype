@@ -1,4 +1,4 @@
-import type {Content, Employee} from "db";
+import type {Content, Employee, Tag} from "db";
 import Detail from "@/components/paging/details/Detail.tsx";
 import {formatDate, formatDateWithTime, isSupabasePath} from "@/lib/utils.ts";
 import path from "path";
@@ -6,21 +6,25 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import {Avatar, AvatarFallback, AvatarImage} from "@/elements/avatar.tsx";
 import {Separator} from "@/elements/separator.tsx";
+import BadgeList from "@/elements/badge-list.tsx";
+import TagElement from "@/components/paging/tags/TagElement.tsx";
 
 
 export type ContentDetailsProps = {
     content: Content;
+    tags?: Tag[];
 }
 export default function ContentDetails({
-                                           content
+                                           content,
+                                           tags
 }: ContentDetailsProps) {
-    console.log(content);
     const filePath = content.filePath;
     const ownerId = content.ownerId;
     const expirationDate = new Date(content.expirationDate)
 
     const isExpired = Date.now() > expirationDate.getTime()
     const isFile = isSupabasePath(filePath);
+    const showLinkDetail = !isFile
 
     const [owner, setOwner] = useState<Employee | null>()
     const [ownerPhoto, setOwnerPhoto] = useState<string | null>(null)
@@ -84,7 +88,7 @@ export default function ContentDetails({
                             </div>
                         }
                     />
-                    <Detail
+                    {showLinkDetail && <Detail
                         label={isFile ? "File Path" : "URL"}
                         value={isFile ? filePath : (
                             <a
@@ -95,18 +99,34 @@ export default function ContentDetails({
                                 <u>{filePath}</u>
                             </a>
                         )}
-                    />
+                    />}
                     <Detail
                         label={"Status"}
                         value={isExpired ? "Expired" : "Active"}
                     />
-                    <Detail
-                        label={"Tags"}
-                        value={"(To be added)"}
-                    />
+                    {tags && tags.length > 0 && (
+                        <Detail
+                            label={"Tags"}
+                            value={(
+                                <BadgeList badges={tags.map(tag => ({
+                                    node: (
+                                        <TagElement
+                                            tag={tag}
+                                            tagFilled={true}
+                                            noWrap={true}
+                                        />
+                                    )
+                                }))}/>
+                            )}
+                        />
+                    )}
                 </div>
                 <Separator className={"mb-4 mt-4"} />
-                <div  className={"flex flex-col gap-3"}>
+                <div className={"flex flex-col gap-3"}>
+                    {/*<Detail*/}
+                    {/*    label={"Next Review Date"}*/}
+                    {/*    value={"(To be added)"}*/}
+                    {/*/>*/}
                     <Detail
                         label={"Expiration Date"}
                         value={formatDate(expirationDate)}

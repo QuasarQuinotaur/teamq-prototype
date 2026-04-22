@@ -231,15 +231,16 @@ type FieldInputProps = {
   label: string;
   required?: boolean;
   createElement: (id: string) => React.ReactNode;
-}
+} & React.ComponentProps<typeof Field>
 function FieldInput({
                       id,
                       label,
                       required = false,
-                      createElement
+                      createElement,
+                      ...props
 }: FieldInputProps) {
   return (
-    <Field>
+    <Field {...props}>
       <FieldLabel htmlFor={id}>
         {required ? <div className={"flex gap-1"}>
           {/*Add a little asterisk if required*/}

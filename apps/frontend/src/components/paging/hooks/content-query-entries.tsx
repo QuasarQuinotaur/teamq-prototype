@@ -18,7 +18,7 @@ export default function useContentQueryEntries({
                                                    sortFunction,
                                                    ...props
 }: ContentQueryEntriesProps) {
-    const filterEntry = useCallback(entry => {
+    const filterEntry = useCallback((entry: CardEntry) => {
         const c = entry.item as Content
         const matchContentType = (
             !fieldsFilter.contentTypes || fieldsFilter.contentTypes.length === 0 ||
@@ -42,7 +42,15 @@ export default function useContentQueryEntries({
                 (type == "files" && path && isSupabasePath(path))
             ))
         )
-        return matchDocumentTypes;
+        if (!matchDocumentTypes) {
+            return false;
+        }
+        if (fieldsFilter.tagIds && fieldsFilter.tagIds.length > 0) {
+            const entryTagIds = entry.tags && entry.tags.map(tag => tag.id);
+            return (entryTagIds && fieldsFilter.tagIds.some((tagId) =>
+                    entryTagIds.includes(tagId)))
+        }
+        return true;
     }, [fieldsFilter])
     const mapEntries = useCallback((from: CardEntry[]) => {
         return (sortFunction ? sortFunction(from) : from).filter(filterEntry)

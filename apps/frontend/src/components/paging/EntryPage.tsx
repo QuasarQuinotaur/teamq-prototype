@@ -3,7 +3,7 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {useCallback, useMemo, useState} from "react";
+import {type ChangeEvent, useCallback, useMemo, useState} from "react";
 import * as React from "react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
@@ -19,6 +19,7 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 import { cn } from "@/lib/utils.ts";
+import { Input } from "@/elements/input.tsx"
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
@@ -59,7 +60,7 @@ type EntryPageProps<T> = {
     forceGridView?: boolean;
     /** Extra classes on the scrollable content wrapper (e.g. tighter padding in split panes). */
     contentClassName?: string;
-    /** List view only: rows per page before pagination. Defaults to 6 (5 when omitToolbar). */
+    /** List view only: rows per page before pagination. Defaults to 10 (9 when omitToolbar). */
     listEntriesPerPage?: number;
     /** Passed to Toolbar: content after search (e.g. Cancel in multi-select). */
     toolbarLeadingSlot?: React.ReactNode;
@@ -91,27 +92,23 @@ export default function EntryPage<T extends object>({
         marqueeBlocked,
     } = entryProps;
 
-    const resultCountLine =
-        displayedEntryLabels != null ? (
-            <p
-                className="px-10 text-sm text-muted-foreground"
-                aria-live="polite"
-            >
-                {entries.length === 1
-                    ? `1 ${displayedEntryLabels.one}`
-                    : `${entries.length} ${displayedEntryLabels.other}`}
-            </p>
-        ) : null;
-
     const favoritesHeadingClass =
         "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
     const showFavoritesWithEntries =
         showFavoritesSection && (favoritedEntries?.length ?? 0) > 0;
 
+    // for view type (grid vs. list)
+    // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
+    const { view: contextView, setView } = useMainContext()
+    const view = forceGridView ? "Grid" : contextView
+    const viewSelectorButtonProps: ViewSelectorButtonProps = {
+        view, setView
+    }
+
     // Pagination (list view)
-    const entriesPerPage =
-        listEntriesPerPage ?? (omitToolbar ? 5 : 6);
+    const [entriesPerPage, setEntriesPerPage] =
+        useState(listEntriesPerPage ?? (omitToolbar ? 9 : 10));
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
     const updatePageEntries = useCallback((viewPageNum: number) => {
@@ -119,6 +116,50 @@ export default function EntryPage<T extends object>({
         const last = entriesPerPage*(viewPageNum)
         setPageEntries(entries.slice(first, last))
     }, [entries, entriesPerPage])
+
+    function newNumEntries(numPerPage: ChangeEvent<HTMLInputElement, HTMLInputElement>) {
+        setEntriesPerPage(+numPerPage.target.value)
+
+    }
+
+    const numEntriesInput = (
+        <>
+            <Input
+                className="w-5 border-0 border-b rounded-none p-0 h-auto text-center text-muted-foreground"
+                placeholder={String(entriesPerPage)}
+                onChange={newNumEntries}
+            />
+        </>
+    )
+
+    const resultCountLine =
+        displayedEntryLabels != null ? (
+            <section className="flex px-10 flex-nowrap">
+                {( view === "List" ? (
+                    <>
+                        {numEntriesInput}
+                        <p
+                        className="text-sm text-muted-foreground pl-1"
+                        aria-live="polite"
+                        >
+                        of
+                        {entries.length === 1
+                            ? ` 1 ${displayedEntryLabels.one}`
+                            : ` ${entries.length} ${displayedEntryLabels.other}`}
+                        </p>
+                    </>
+                ) : (
+                    <p
+                        className="text-sm text-muted-foreground pl-1"
+                        aria-live="polite"
+                    >
+                        {entries.length === 1
+                            ? `1 ${displayedEntryLabels.one}`
+                            : `${entries.length} ${displayedEntryLabels.other}`}
+                    </p>
+                ))}
+            </section>
+        ) : null;
 
     const gridExpectedIds = useMemo(() => entries.map((e) => e.item.id), [entries]);
 
@@ -133,14 +174,6 @@ export default function EntryPage<T extends object>({
         () => `fav-${favoritesExpectedIds.join(",")}`,
         [favoritesExpectedIds],
     );
-
-    // for view type (grid vs. list)
-    // TODO note/bug: if u switch to list, visit another paging and come back, it will be back to grid
-    const { view: contextView, setView } = useMainContext()
-    const view = forceGridView ? "Grid" : contextView
-    const viewSelectorButtonProps: ViewSelectorButtonProps = {
-        view, setView
-    }
 
     function createCardGrid(gridEntries: CardEntry[]) {
         return (
@@ -223,35 +256,29 @@ export default function EntryPage<T extends object>({
                                 <h2 className={favoritesHeadingClass}>All documents</h2>
                                 {resultCountLine}
                                 {createCardList(pageEntries)}
-                                <div className="sticky bottom-0 mt-auto border-t border-border/70 py-2">
-                                    <Pagination
-                                        docNum={entries.length}
-                                        docsPerPage={entriesPerPage}
-                                        pageNum={pageNum}
-                                        setPageNum={setPageNum}
-                                        updatePageEntries={updatePageEntries}
-                                    />
-                                </div>
                             </section>
                         </>
                     ) : (
                         <div className="flex min-h-0 flex-1 flex-col">
                             {resultCountLine}
                             {createCardList(pageEntries)}
-                            <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
-                                <Pagination
-                                    docNum={entries.length}
-                                    docsPerPage={entriesPerPage}
-                                    pageNum={pageNum}
-                                    setPageNum={setPageNum}
-                                    updatePageEntries={updatePageEntries}
-                                />
-                            </div>
                         </div>
                     )
                 ))}
                 </>
     );
+
+    const bottomPagination = (
+        <div className="sticky bottom-0 mt-auto border-t border-border/70 bg-muted/50 pt-2">
+            <Pagination
+                docNum={entries.length}
+                docsPerPage={entriesPerPage}
+                pageNum={pageNum}
+                setPageNum={setPageNum}
+                updatePageEntries={updatePageEntries}
+            />
+        </div>
+    )
 
     const entryBody = (
             <SelectMarqueeLayer
@@ -271,6 +298,11 @@ export default function EntryPage<T extends object>({
                 >
                     {entryScrollInner}
                 </div>
+                {(view === "List" ? (
+                    bottomPagination
+                ) : (
+                    <></>
+                ))}
             </SelectMarqueeLayer>
     );
 

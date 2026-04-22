@@ -5,7 +5,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import { useSearchParams } from "react-router-dom";
 import type {CardEntry} from "@/components/cards/Card.tsx";
-import type {Content, Employee} from "db";
+import type {Content, ContentTag, Employee, Tag} from "db";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
 import SplitDocumentWorkspace from "@/components/paging/SplitDocumentWorkspace.tsx";
@@ -38,6 +38,7 @@ import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSelectorButton.tsx";
 import { cn } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
+import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 
 type ViewerState = {
     contentId: number;
@@ -303,23 +304,82 @@ export default function ContentEntryPage({
         void fetchUser();
     }, []);
 
+    const [tagList, setTagList] = useState<Tag[]>([])
+
+    // Fetches a list of all tags employee has made
+    async function fetchTagList() {
+        console.log("FETCH TAG LIST NOW.")
+        try {
+            const tagsResponse = await fetch(
+                `${apiBase}/api/tags`,
+                {credentials: "include"}
+            );
+            const tagsData = await tagsResponse.json()
+            if (!tagsData.success) throw new Error("Failed to find tags.")
+            console.log("FETCH TAG LIST:", tagsData)
+            setTagList(tagsData.tags)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    // Fetches a list of all tags belonging to a specific content
+    async function fetchContentTags(content: Content): Promise<Tag[]> {
+        try {
+            const tagsResponse = await fetch(
+                `${apiBase}/api/content/${content.id}/tags`,
+                {credentials: "include"}
+            );
+            const tagsData = await tagsResponse.json()
+            if (!tagsData.success) throw new Error("Failed to find tags.")
+            return tagsData.tags
+        } catch (error) {
+            return []
+        }
+    }
+
+    // Gets card entry from content
+    async function getContentEntry(content: Content): Promise<CardEntry> {
+        const tags = await fetchContentTags(content);
+        return {
+            item: content,
+            title: content.title,
+            link: content.filePath ?? "",
+            owner:
+                employeeMap.get(content.ownerId) ?? undefined,
+            badge: content.contentType,
+            expirationDate: content.expirationDate,
+            tags: tags,
+        }
+    }
+
+    // Fetches individual piece of content by ID. Might be useful if only that content updated
+    async function fetchContentById(contentId: number) {
+        fetch(`${apiBase}/api/content/${contentId}`, { credentials: "include" })
+            .then((res) => res.json())
+            .then(async (data) => {
+                const content: Content = data.content
+                const mapEntry = await getContentEntry(content)
+                // console.log("FETCH BY ID:", contentId, mapEntry);
+                setEntries(prev => [
+                    ...(prev.filter(entry => entry.item.id !== contentId)),
+                    mapEntry
+                ]);
+            })
+    }
+
     // This gets all content for the signed-in user
-    function fetchContent() {
+    function fetchAllContent() {
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
+        // console.log("FETCH ALL CONTENT")
 
         fetch(`${apiBase}/api/content`, { credentials: "include" })
             .then((res) => res.json())
-            .then((data: Content[]) => {
-                const mapped: CardEntry[] = data.map((item) => ({
-                    item: item,
-                    title: item.title,
-                    link: item.filePath ?? "",
-                    owner:
-                        employeeMap.get(item.ownerId) ?? undefined,
-                    badge: item.contentType,
-                    expirationDate: item.expirationDate
-                }));
+            .then(async (data: Content[]) => {
+                const mapped = await Promise.all(
+                    data.map(getContentEntry)
+                );
                 setEntries(mapped);
             })
             .finally(() => {
@@ -327,8 +387,8 @@ export default function ContentEntryPage({
             });
     }
 
-    const fetchContentRef = useRef(fetchContent);
-    fetchContentRef.current = fetchContent;
+    const fetchContentRef = useRef(fetchAllContent);
+    fetchContentRef.current = fetchAllContent;
     useEffect(() => {
         return subscribeContentCheckoutSync(() => {
             fetchContentRef.current();
@@ -336,8 +396,11 @@ export default function ContentEntryPage({
     }, []);
 
     useEffect(() => {
-        fetchContent();
+        fetchAllContent();
     }, [employeeMap]);
+    useEffect(() => {
+        void fetchTagList();
+    }, [])
 
     // Delete content
     async function handleDelete(entry: CardEntry) {
@@ -348,7 +411,7 @@ export default function ContentEntryPage({
         if (!res.ok) {
             throw new Error("Delete failed");
         }
-        fetchContent();
+        fetchAllContent();
         notifyContentCheckoutSync();
     }
 
@@ -407,12 +470,12 @@ export default function ContentEntryPage({
                 if (res.ok) anyOk = true;
             }
             if (anyOk) notifyContentCheckoutSync();
-            fetchContent();
+            fetchAllContent();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, entries, fetchContent, exitSelectMode]);
+    }, [selectedIds, employee, entries, fetchAllContent, exitSelectMode]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
@@ -427,12 +490,12 @@ export default function ContentEntryPage({
                 if (res.ok) anyOk = true;
             }
             if (anyOk) notifyContentCheckoutSync();
-            fetchContent();
+            fetchAllContent();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, fetchContent, exitSelectMode]);
+    }, [selectedIds, employee, fetchAllContent, exitSelectMode]);
 
     const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
         (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
@@ -504,7 +567,7 @@ export default function ContentEntryPage({
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
-        onCancel: fetchContent,
+        onCancel: fetchAllContent,
         defaultItem: {
             contentType: contentType,
         },
@@ -664,7 +727,22 @@ export default function ContentEntryPage({
                     <StarIcon weight={isFavorited ? "fill" : "regular"}/>
                     Favorite
                 </DropdownMenuCheckboxItem>
-                <ContentDetailsOption content={item}/>
+                <TagsOption
+                    contentId={item.id}
+                    tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
+                    tagList={tagList}
+                    contentTagsUpdated={() => {
+                        void fetchContentById(item.id) // only this content got changed
+                    }}
+                    tagsModified={() => {
+                        fetchAllContent() // maybe other content had their tags changed
+                        void fetchTagList() // update list
+                    }}
+                />
+                <ContentDetailsOption
+                    content={item}
+                    tags={entry.tags}
+                />
             </>
             const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
             const isAdmin = employee && employee.jobPosition === "admin";
@@ -699,7 +777,7 @@ export default function ContentEntryPage({
                         method: "POST",
                         credentials: "include",
                     }).finally(() => {
-                        fetchContent();
+                        fetchAllContent();
                         notifyContentCheckoutSync();
                     });
                 },
@@ -743,6 +821,7 @@ export default function ContentEntryPage({
             fields: fieldsFilter,
             setFields: setFieldsFilter,
             createFieldsElement: FilterDocumentFields,
+            tagList: tagList,
         },
         sortButtonProps: {
             sortByMap: CONTENT_SORT_BY_MAP,
