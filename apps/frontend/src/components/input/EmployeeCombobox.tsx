@@ -35,7 +35,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
             .finally(() => setLoading(false));
     }
 
-    function fetchMe(ownerID: number) {
+    function fetchMe(ownerID: number, isUpdate) {
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, { credentials: 'include' })
             .then(res => res.json())
             .then((data: Employee) => {
@@ -58,7 +58,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
 
     useEffect(() => {
         if(isUpdate) {fetchOwner(ownerID)}
-        fetchMe(ownerID)
+        fetchMe(ownerID, isUpdate)
         fetchStates()
     }, [ownerID, isUpdate]);
 
@@ -84,7 +84,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
                                 <Item size="xs">
                                     <ItemMedia variant="icon">
                                         <Avatar size="sm">
-                                            <img src={item.image} alt={"profile"}/>
+                                            <img className="mask-circle" src={item.image} alt={"profile"}/>
                                         </Avatar>
                                     </ItemMedia>
                                     <ItemContent>
