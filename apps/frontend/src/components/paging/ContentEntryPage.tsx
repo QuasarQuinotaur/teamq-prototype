@@ -311,7 +311,6 @@ export default function ContentEntryPage({
 
     // Fetches a list of all tags employee has made
     async function fetchTagList() {
-        console.log("FETCH TAG LIST NOW.")
         try {
             const tagsResponse = await fetch(
                 `${apiBase}/api/tags`,
@@ -319,7 +318,6 @@ export default function ContentEntryPage({
             );
             const tagsData = await tagsResponse.json()
             if (!tagsData.success) throw new Error("Failed to find tags.")
-            console.log("FETCH TAG LIST:", tagsData)
             setTagList(tagsData.tags)
         } catch (error) {
             console.error(error)
@@ -335,7 +333,8 @@ export default function ContentEntryPage({
             );
             const tagsData = await tagsResponse.json()
             if (!tagsData.success) throw new Error("Failed to find tags.")
-            return tagsData.tags
+            const tags: Tag[] = tagsData.tags
+            return tags.filter(tag => tag.ownerId === employee.id)
         } catch (error) {
             return []
         }
@@ -421,14 +420,16 @@ export default function ContentEntryPage({
     const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
 
     // All favorites for logged in user
-    const fetchFavorites = useCallback(() => {
-        return fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, {
+    const fetchFavorites = useCallback(async () => {
+        const result = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/favorites`, {
             credentials: "include",
         })
-            .then((res) => res.json())
-            .then((data: { id: number }[]) => {
-                setFavoritedList(data);
-            });
+        if (!result.ok) {
+            setFavoritedList([]);
+            return;
+        }
+        const res = await result.json()
+        setFavoritedList(res)
     }, []);
     useEffect(() => {
         void fetchFavorites()
@@ -843,7 +844,7 @@ export default function ContentEntryPage({
     const favoritedQueryEntries = useMemo(() => {
         if (favoritedList.length === 0) return [];
         return queryEntries.filter((entry) =>
-            favoritedList.some((f) => f.id === entry.item.id),
+            favoritedList && favoritedList.some((f) => f.id === entry.item.id),
         );
     }, [queryEntries, favoritedList]);
 
