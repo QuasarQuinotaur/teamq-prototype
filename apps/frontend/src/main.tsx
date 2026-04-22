@@ -5,10 +5,12 @@ import { router } from "./routes";
 import { TooltipProvider } from "@/elements/tooltip.tsx";
 import "./index.css";
 import { Auth0Provider } from "@auth0/auth0-react";
-import { applyTheme, getStoredTheme } from "@/lib/theme.ts";
+import { applyTheme, getStoredTheme, applyTextSize, getStoredTextSize, applyIconSize, getStoredIconSize } from "@/lib/theme.ts";
 import { Toaster } from "sonner";
 
 applyTheme(getStoredTheme());
+applyTextSize(getStoredTextSize());
+applyIconSize(getStoredIconSize());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

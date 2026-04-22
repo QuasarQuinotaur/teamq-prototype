@@ -1,660 +1,544 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  addDays,
-  format,
-  isSameDay,
-  isValid,
-  parseISO,
-  startOfDay,
-  startOfWeek,
-} from "date-fns";
-import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
-import { Badge } from "@/elements/badge.tsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tabs.tsx";
+    DndContext,
+    closestCenter,
+    DragOverlay,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+
 import {
-  AlertCircleIcon,
-  CalendarDaysIcon,
-  CheckCircle2Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ListTodoIcon,
-} from "lucide-react";
-import { Button } from "@/elements/buttons/button.tsx";
-import { cn } from "@/lib/utils.ts";
-import type { Employee } from "db";
+    SortableContext,
+    useSortable,
+    arrayMove,
+    rectSortingStrategy,
+} from "@dnd-kit/sortable";
+
+import StatsWidget from "@/components/widgets/StatsWidget";
+import CalendarWidget from "@/components/widgets/CalendarWidget";
+import RequestsWidget from "@/components/widgets/RequestsWidget";
+
+import { CSS } from "@dnd-kit/utilities";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { addDays, startOfDay } from "date-fns";
+import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
+import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
+import GifWidget from "@/components/widgets/GifWidget.tsx";
+
+type Widget = {
+    id: string;
+    type: string;
+    size: 1 | 2 | 3;
+    url?: string;
+};
+
+
+type ServiceRequestRow = {
+    id: number;
+    title: string | null;
+    description: string | null;
+    dateDue: string | null;
+    status: string;
+    employees: { id: number }[];
+};
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-type ServiceRequestRow = {
-  id: number;
-  title: string | null;
-  description: string | null;
-  dateDue: string | null;
-  status: string;
-  employees: { id: number }[];
-};
-
-function isAssignedToUser(req: ServiceRequestRow, userId: number): boolean {
-  return req.employees?.some((e) => e.id === userId) ?? false;
-}
-
-function isDoneStatus(status: string): boolean {
-  return status.trim() === "done";
-}
-
-function parseDue(iso: string | null): Date | null {
-  if (!iso?.trim()) return null;
-  const d = parseISO(iso);
-  if (!isValid(d)) return null;
-  return startOfDay(d);
-}
-
-function startOfToday(): Date {
-  return startOfDay(new Date());
-}
-
-function displayTitle(req: ServiceRequestRow): string {
-  return (
-    req.title?.trim() ||
-    req.description?.trim() ||
-    `Service request #${req.id}`
-  );
-}
-
-function formatDue(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-/** Month heading for the week strip (handles cross-month weeks). */
-function weekBoardMonthLabel(weekDays: Date[]): string {
-  const start = weekDays[0];
-  const end = weekDays[6];
-  if (format(start, "yyyy-MM") === format(end, "yyyy-MM")) {
-    return format(start, "MMMM yyyy");
-  }
-  if (format(start, "yyyy") === format(end, "yyyy")) {
-    return `${format(start, "MMMM")} – ${format(end, "MMMM yyyy")}`;
-  }
-  return `${format(start, "MMMM yyyy")} – ${format(end, "MMMM yyyy")}`;
-}
-
-/** Same buckets as stat cards / list: overdue, due in rolling 7-day window from today, or todo. */
-function dueListVariant(
-  due: Date,
-  today: Date,
-  weekEnd: Date
-): "overdue" | "week" | "todo" {
-  if (due < today) return "overdue";
-  if (due <= weekEnd) return "week";
-  return "todo";
-}
-
-function taskBorderAccent(variant: "overdue" | "week" | "todo"): string {
-  switch (variant) {
-    case "overdue":
-      return "border-l-red-500";
-    case "week":
-      return "border-l-amber-400";
-    case "todo":
-      return "border-l-primary";
-  }
-}
-
-const SERVICE_REQUESTS_PRESET_LINK = "/documents/service-requests";
-
-// --- Stat card (2×2 grid) ---
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  accent,
-  className,
-  to,
-}: {
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-  accent: string;
-  className?: string;
-  to?: string;
-}) {
-  const shellClass = cn(
-    "flex min-h-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-sm",
-    to &&
-      "text-foreground no-underline transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    className
-  );
-  const inner = (
-    <>
-      <div className={cn("shrink-0 rounded-md p-1.5", accent)}>
-        <Icon className="size-3.5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xl font-semibold leading-none tracking-tight tabular-nums">
-          {value}
-        </p>
-        <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
-          {label}
-        </p>
-      </div>
-    </>
-  );
-  if (to) {
-    return (
-      <Link to={to} className={shellClass}>
-        {inner}
-      </Link>
-    );
-  }
-  return <div className={shellClass}>{inner}</div>;
-}
-
-function RequestListRow({ req, variant }: { req: ServiceRequestRow; variant: "overdue" | "week" | "todo" }) {
-  const due = parseDue(req.dateDue);
-  const editTo = `/documents/service-requests/${req.id}/edit`;
-
-  return (
-    <Link
-      to={editTo}
-      className={cn(
-        "flex select-none items-center gap-3 rounded-lg border border-l-4 bg-card px-4 py-2.5 text-left transition-colors hover:bg-muted/50",
-        taskBorderAccent(variant)
-      )}
-    >
-      <ListTodoIcon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-        {displayTitle(req)}
-      </span>
-      <div className="flex shrink-0 items-center gap-2">
-        {variant === "overdue" && (
-          <AlertCircleIcon className="size-3.5 text-red-500" aria-hidden />
-        )}
-        {due ? (
-          <span
-            className={cn(
-              "text-xs tabular-nums",
-              variant === "overdue"
-                ? "text-red-600 dark:text-red-400"
-                : variant === "week"
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-hanover-blue"
-            )}
-          >
-            {formatDue(due)}
-          </span>
-        ) : null}
-      </div>
-    </Link>
-  );
-}
-
-function SkeletonRow() {
-  return (
-    <div className="flex animate-pulse items-center gap-3 rounded-lg border border-l-4 border-l-border bg-card px-4 py-2.5">
-      <div className="size-4 shrink-0 rounded bg-muted" />
-      <div className="h-4 flex-1 rounded bg-muted" />
-      <div className="h-4 w-24 shrink-0 rounded bg-muted" />
-    </div>
-  );
-}
-
-const MAX_TASKS_PER_DAY = 3;
-
-function WeekDayColumn({
-  day,
-  today,
-  weekEnd,
-  tasks,
-}: {
-  day: Date;
-  today: Date;
-  weekEnd: Date;
-  tasks: ServiceRequestRow[];
-}) {
-  const visible = tasks.slice(0, MAX_TASKS_PER_DAY);
-  const more = tasks.length - visible.length;
-
-  const dueParam = format(day, "yyyy-MM-dd");
-  const newRequestTo = `/documents/service-requests/new?due=${dueParam}`;
-  const createLabel = `Create request due ${format(day, "MMM d, yyyy")}`;
-
-  return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col px-1">
-      <Link
-        to={newRequestTo}
-        aria-label={createLabel}
-        title={createLabel}
-        className="absolute inset-0 z-0 rounded-md outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-      />
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col pointer-events-none">
-        <div className="shrink-0 px-0.5 py-1 text-center">
-          <p className="text-[0.65rem] font-medium leading-none text-muted-foreground">
-            {format(day, "EEE")}
-          </p>
-          <p
-            className={cn(
-              "mt-0.5 text-xs font-semibold tabular-nums leading-none",
-              isSameDay(day, today) && "text-hanover-blue"
-            )}
-          >
-            {format(day, "d")}
-          </p>
-        </div>
-        <div className="mt-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-          {visible.map((req) => {
-            const due = parseDue(req.dateDue);
-            const variant =
-              due != null ? dueListVariant(due, today, weekEnd) : "todo";
-            return (
-              <Link
-                key={req.id}
-                to={`/documents/service-requests/${req.id}/edit`}
-                title={displayTitle(req)}
-                className={cn(
-                  "pointer-events-auto truncate rounded-lg border border-l-4 bg-card px-1 py-0.5 text-left text-[0.65rem] leading-tight text-foreground transition-colors hover:bg-muted/50",
-                  taskBorderAccent(variant)
-                )}
-              >
-                {displayTitle(req)}
-              </Link>
-            );
-          })}
-          {more > 0 ? (
-            <p className="truncate px-0.5 text-[0.6rem] text-muted-foreground">
-              +{more} more
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WeekBoardSkeleton() {
-  return (
-    <div className="flex min-h-0 flex-1 divide-x divide-border overflow-hidden rounded-lg border border-border bg-card py-1.5">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} className="flex min-h-0 min-w-0 flex-1 flex-col px-1">
-          <div className="mx-auto h-6 w-8 shrink-0 rounded bg-muted" />
-          <div className="mt-1 flex flex-1 flex-col gap-1">
-            <div className="h-4 rounded bg-muted/80" />
-            <div className="h-4 rounded bg-muted/80" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Dashboard() {
-  const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [displayedWeekStart, setDisplayedWeekStart] = useState(() =>
-    startOfDay(startOfWeek(startOfToday(), { weekStartsOn: 0 }))
-  );
-
-  useEffect(() => {
-    Promise.all([
-      fetch(`${base}/me`, { credentials: "include" }).then((res) => {
-        if (!res.ok) throw new Error("me");
-        return res.json() as Promise<Employee>;
-      }),
-      fetch(`${base}/servicereqs/assigned/0`, { credentials: "include" }).then((res) =>
-        res.ok ? res.json() : []
-      ),
-    ])
-      .then(([me, data]) => {
-        const rows = (Array.isArray(data) ? data : []) as ServiceRequestRow[];
-        setRequests(rows.filter((r) => isAssignedToUser(r, me.id)));
-      })
-      .catch(() => setRequests([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const today = startOfDay(new Date());
-  const weekEnd = startOfDay(addDays(today, 6));
-  const currentWeekStart = startOfDay(startOfWeek(today, { weekStartsOn: 0 }));
-  const isViewingCurrentWeek = isSameDay(displayedWeekStart, currentWeekStart);
-  const todayTime = today.getTime();
-
-  const weekDays = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, i) =>
-        startOfDay(addDays(displayedWeekStart, i))
-      ),
-    [displayedWeekStart]
-  );
-
-  const weekBoardMonthLabelText = useMemo(
-    () => weekBoardMonthLabel(weekDays),
-    [weekDays]
-  );
-
-  const tasksByDay = useMemo(() => {
-    const keys = new Set(weekDays.map((d) => format(d, "yyyy-MM-dd")));
-    const map = new Map<string, ServiceRequestRow[]>();
-    for (const d of weekDays) {
-      map.set(format(d, "yyyy-MM-dd"), []);
-    }
-    for (const r of requests) {
-      if (isDoneStatus(r.status)) continue;
-      const due = parseDue(r.dateDue);
-      if (!due) continue;
-      const k = format(due, "yyyy-MM-dd");
-      if (!keys.has(k)) continue;
-      map.get(k)!.push(r);
-    }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => {
-        const da = parseDue(a.dateDue)?.getTime() ?? 0;
-        const db = parseDue(b.dateDue)?.getTime() ?? 0;
-        if (da !== db) return da - db;
-        return a.id - b.id;
-      });
-    }
-    return map;
-  }, [requests, weekDays]);
-
-  const { counts, yourRequestsList, overdueList, dueWeekList, todoList } = useMemo(() => {
-    let overdue = 0;
-    let dueWeek = 0;
-    let todo = 0;
-    let done = 0;
-    const yourRequestsItems: ServiceRequestRow[] = [];
-    const overdueItems: ServiceRequestRow[] = [];
-    const weekItems: ServiceRequestRow[] = [];
-    const todoItems: ServiceRequestRow[] = [];
-
-    for (const r of requests) {
-      const finished = isDoneStatus(r.status);
-      if (finished) {
-        done += 1;
-        continue;
-      }
-      yourRequestsItems.push(r);
-      const due = parseDue(r.dateDue);
-      if (due && due < today) {
-        overdue += 1;
-        overdueItems.push(r);
-        continue;
-      }
-      if (due && due >= today && due <= weekEnd) {
-        dueWeek += 1;
-        weekItems.push(r);
-        continue;
-      }
-      todo += 1;
-      todoItems.push(r);
-    }
-
-    const sortByDueThenId = (a: ServiceRequestRow, b: ServiceRequestRow) => {
-      const da = parseDue(a.dateDue)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      const db = parseDue(b.dateDue)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      if (da !== db) return da - db;
-      return a.id - b.id;
-    };
-
-    yourRequestsItems.sort(sortByDueThenId);
-    overdueItems.sort((a, b) => {
-      const da = parseDue(a.dateDue)?.getTime() ?? 0;
-      const db = parseDue(b.dateDue)?.getTime() ?? 0;
-      return da - db;
+    const [widgets, setWidgets] = useState<Widget[]>(() => {
+        const saved = localStorage.getItem("widgets");
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch {}
+        }
+        return [
+            { id: "1", type: "chart", size: 1 },
+            { id: "2", type: "calendar", size: 2 },
+            { id: "3", type: "requests", size: 3 },
+        ];
     });
-    weekItems.sort((a, b) => {
-      const da = parseDue(a.dateDue)?.getTime() ?? 0;
-      const db = parseDue(b.dateDue)?.getTime() ?? 0;
-      return da - db;
-    });
-    todoItems.sort(sortByDueThenId);
 
-    return {
-      counts: { todo, overdue, dueWeek, done },
-      yourRequestsList: yourRequestsItems,
-      overdueList: overdueItems,
-      dueWeekList: weekItems,
-      todoList: todoItems,
-    };
-  }, [requests, todayTime]);
+    const widgetOptions = [
+        { type: "stats", label: "Stats" },
+        { type: "calendar", label: "Calendar" },
+        { type: "requests", label: "Requests" },
+        { type: "chart", label: "Chart" },
+        { type: "gif", label: "GIF" },
+    ];
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-4 px-4">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <SidebarTrigger className="-ml-1 shrink-0" />
-        </div>
-        <div className="flex min-w-0 flex-1 justify-end" aria-hidden />
-      </header>
+    const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
+    const [loading, setLoading] = useState(true);
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 pb-6">
-        {/* One third of the content area below the page header; no internal scrolling */}
-        <div className="flex min-h-0 shrink-0 basis-1/3 flex-col overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-            <div className="grid min-h-0 w-full shrink-0 grid-cols-2 grid-rows-[repeat(2,minmax(0,1fr))] gap-2 sm:gap-3 lg:h-full lg:max-w-[20rem]">
-              <StatCard
-                label="To do"
-                value={counts.todo}
-                icon={ListTodoIcon}
-                accent="bg-muted text-slate-500"
-                className="min-h-0"
-                to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=todo`}
-              />
-              <StatCard
-                label="Done"
-                value={counts.done}
-                icon={CheckCircle2Icon}
-                accent="bg-muted text-emerald-500"
-                className="min-h-0"
-                to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=done`}
-              />
-              <StatCard
-                label="Due this week"
-                value={counts.dueWeek}
-                icon={CalendarDaysIcon}
-                accent="bg-muted text-amber-500"
-                className="min-h-0"
-                to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=week`}
-              />
-              <StatCard
-                label="Overdue"
-                value={counts.overdue}
-                icon={AlertCircleIcon}
-                accent="bg-muted text-red-500"
-                className="min-h-0"
-                to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=overdue`}
-              />
-            </div>
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    );
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {loading ? (
-                <WeekBoardSkeleton />
-              ) : (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                  <div className="flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 shrink-0"
-                      aria-label="Previous week"
-                      onClick={() =>
-                        setDisplayedWeekStart((d) => startOfDay(addDays(d, -7)))
-                      }
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [overId, setOverId] = useState<string | null>(null);
+    const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
+
+    const nodeRefs    = useRef<Map<string, HTMLElement>>(new Map());
+    const frozenRects = useRef<Map<string, ClientRect>>(new Map());
+
+    const displayWidgets = useMemo(() => {
+        if (!activeId || !overId || activeId === overId) return widgets;
+        const oi = widgets.findIndex(w => w.id === activeId);
+        const ni = widgets.findIndex(w => w.id === overId);
+        if (oi === -1 || ni === -1) return widgets;
+        return arrayMove(widgets, oi, ni);
+    }, [widgets, activeId, overId]);
+
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [openPreview, setOpenPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        localStorage.setItem("widgets", JSON.stringify(widgets));
+    }, [widgets]);
+
+    useEffect(() => {
+        Promise.all([
+            fetch(`${base}/me`, { credentials: "include" }).then(res => res.json()),
+            fetch(`${base}/servicereqs/assigned/0`, { credentials: "include" }).then(res =>
+                res.ok ? res.json() : []
+            ),
+        ])
+            .then(([me, data]) => {
+                const rows = Array.isArray(data) ? data : [];
+                setRequests(rows.filter(r => r.employees?.some(e => e.id === me.id)));
+            })
+            .catch(() => setRequests([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const today = startOfDay(new Date());
+    const weekEnd = startOfDay(addDays(today, 6));
+
+    const {
+        counts,
+        yourRequestsList,
+        overdueList,
+        dueWeekList,
+        todoList,
+    } = useMemo(() => {
+        let overdue = 0, dueWeek = 0, todo = 0, done = 0;
+
+        const your: ServiceRequestRow[] = [];
+        const overdueArr: ServiceRequestRow[] = [];
+        const weekArr: ServiceRequestRow[] = [];
+        const todoArr: ServiceRequestRow[] = [];
+
+        for (const r of requests) {
+            if (r.status === "done") {
+                done++;
+                continue;
+            }
+
+            your.push(r);
+            const due = r.dateDue ? new Date(r.dateDue) : null;
+
+            if (due && due < today) {
+                overdue++; overdueArr.push(r);
+            } else if (due && due <= weekEnd) {
+                dueWeek++; weekArr.push(r);
+            } else {
+                todo++; todoArr.push(r);
+            }
+        }
+
+        return {
+            counts: { todo, overdue, dueWeek, done },
+            yourRequestsList: your,
+            overdueList: overdueArr,
+            dueWeekList: weekArr,
+            todoList: todoArr,
+        };
+    }, [requests]);
+
+    function registerNode(id: string, el: HTMLElement | null) {
+        if (el) nodeRefs.current.set(id, el);
+        else nodeRefs.current.delete(id);
+    }
+
+    const customCollision = useCallback((args: any) => {
+        if (!frozenRects.current.size) return closestCenter(args);
+        const fixedRects = new Map(args.droppableRects);
+        args.droppableContainers.forEach((c: any) => {
+            const r = frozenRects.current.get(c.id);
+            if (r) fixedRects.set(c.id, r);
+        });
+        return closestCenter({ ...args, droppableRects: fixedRects });
+    }, []);
+
+    function handleDragStart(event: any) {
+        const id = event.active.id;
+        setActiveId(id);
+        setOverId(id);
+        // Snapshot widget rects so collision detection stays stable while DOM reorders.
+        const frozen = new Map<string, ClientRect>();
+        nodeRefs.current.forEach((el, wId) => {
+            const r = el.getBoundingClientRect();
+            frozen.set(wId, { top: r.top, left: r.left, bottom: r.bottom, right: r.right, width: r.width, height: r.height, x: r.x, y: r.y, toJSON: () => r.toJSON() });
+        });
+        frozenRects.current = frozen;
+    }
+
+    function handleDragOver(event: any) {
+        const newId = event.over?.id ?? null;
+        if (!newId) return;
+        setOverId(prev => (prev === newId ? prev : newId));
+    }
+
+    function handleDragEnd(event: any) {
+        const { active, over } = event;
+        setActiveId(null);
+        setOverId(null);
+        frozenRects.current.clear();
+        if (!over || active.id === over.id) return;
+
+        // displayWidgets already has the correct final order.
+        setWidgets(displayWidgets);
+    }
+
+    function handleDragCancel() {
+        setActiveId(null);
+        setOverId(null);
+        frozenRects.current.clear();
+    }
+
+    function addWidget(type: string, size?: 1 | 2 | 3, url?: string) {
+        const id = crypto.randomUUID();
+
+        const defaultSizes: Record<string, 1 | 2 | 3> = {
+            stats: 1,
+            chart: 1,
+            calendar: 2,
+            requests: 2,
+            gif: 1,
+        };
+
+        setWidgets(prev => [
+            ...prev,
+            {
+                id,
+                type,
+                size: size || defaultSizes[type] || 1,
+                url,
+            },
+        ]);
+    }
+
+    function removeWidget(id: string) {
+        setWidgets(prev => prev.filter(w => w.id !== id));
+    }
+
+    return (
+        <>
+            <div className="grid grid-cols-3 items-center px-6 py-4">
+                <div />
+                <h1 className="text-2xl font-heading text-center">Dashboard</h1>
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border bg-card hover:bg-muted"
                     >
-                      <ChevronLeftIcon className="size-4" />
-                    </Button>
-                    <span className="shrink-0 text-sm font-semibold tracking-tight text-foreground">
-                      {weekBoardMonthLabelText}
-                    </span>
-                    <div className="min-w-0 flex-1" aria-hidden />
-                    {!isViewingCurrentWeek ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 shrink-0 px-2.5 text-xs"
-                        onClick={() =>
-                          setDisplayedWeekStart(
-                            startOfDay(
-                              startOfWeek(startOfDay(new Date()), {
-                                weekStartsOn: 0,
-                              })
-                            )
-                          )
-                        }
-                      >
-                        This week
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 shrink-0"
-                      aria-label="Next week"
-                      onClick={() =>
-                        setDisplayedWeekStart((d) => startOfDay(addDays(d, 7)))
-                      }
-                    >
-                      <ChevronRightIcon className="size-4" />
-                    </Button>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-row divide-x divide-border overflow-hidden py-1">
-                    {weekDays.map((day) => (
-                      <WeekDayColumn
-                        key={format(day, "yyyy-MM-dd")}
-                        day={day}
-                        today={today}
-                        weekEnd={weekEnd}
-                        tasks={tasksByDay.get(format(day, "yyyy-MM-dd")) ?? []}
-                      />
-                    ))}
-                  </div>
+                        <Plus className="size-4" />
+                    </button>
                 </div>
-              )}
             </div>
-          </div>
-        </div>
 
-        <section className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden">
-          <Tabs defaultValue="yours" className="flex min-h-0 flex-1 flex-col gap-3">
-            <div className="shrink-0">
-              <p className="mb-2 text-sm font-medium text-foreground">
-                Assigned to you
-              </p>
-              <TabsList className="grid h-auto w-full max-w-4xl grid-cols-2 gap-1.5 p-1 sm:h-9 sm:grid-cols-4 sm:gap-0">
-                <TabsTrigger value="yours" className="gap-1 px-1.5 text-xs sm:gap-1.5 sm:text-sm">
-                  Your requests
-                  <Badge variant="secondary" className="tabular-nums">
-                    {yourRequestsList.length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="overdue" className="gap-1 px-1.5 text-xs sm:gap-1.5 sm:text-sm">
-                  Overdue
-                  <Badge variant="secondary" className="tabular-nums">
-                    {counts.overdue}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="week" className="gap-1 px-1.5 text-xs sm:gap-1.5 sm:text-sm">
-                  Due this week
-                  <Badge variant="secondary" className="tabular-nums">
-                    {counts.dueWeek}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="todo" className="gap-1 px-1.5 text-xs sm:gap-1.5 sm:text-sm">
-                  To do
-                  <Badge variant="secondary" className="tabular-nums">
-                    {counts.todo}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
+            <div className="min-h-screen*2 overflow-y-auto">
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={customCollision}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
+                >
+                    <SortableContext items={displayWidgets.map(w => w.id)} strategy={rectSortingStrategy}>
+                        <div className="flex flex-wrap gap-4 px-6 pb-6 items-stretch min-h-0">
+                            {displayWidgets.map(widget => (
+                                <SortableItem
+                                    key={widget.id}
+                                    id={widget.id}
+                                    size={widget.size}
+                                    onDelete={removeWidget}
+                                    isActive={widget.id === activeId}
+                                    isDraggingAny={activeId !== null}
+                                    registerNode={registerNode}
+                                >
+                                    <WidgetRenderer
+                                        type={widget.type}
+                                        data={{
+                                            loading,
+                                            requests,
+                                            counts,
+                                            yourRequestsList,
+                                            overdueList,
+                                            dueWeekList,
+                                            todoList,
+                                            today,
+                                            weekEnd,
+                                        }}
+                                        url={widget.url}
+                                    />
+                                </SortableItem>
+                            ))}
+                        </div>
+                    </SortableContext>
+
+                    <DragOverlay dropAnimation={null}>
+                        {activeWidget ? (
+                            <div
+                                className={`flex-none relative min-h-[300px] pb-8 rounded-lg border bg-card mb-2 shadow-2xl opacity-90 cursor-grabbing ${
+                                    activeWidget.size === 3
+                                        ? "w-full"
+                                        : activeWidget.size === 2
+                                            ? "w-[calc(66.666%-1rem)]"
+                                            : "w-[calc(33.333%-1rem)]"
+                                }`}
+                            >
+                                <div className="flex items-center justify-between px-3 py-2 border-b">
+                                    <GripVertical className="size-4 opacity-50" />
+                                </div>
+                            </div>
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
             </div>
-            <TabsContent
-              value="yours"
-              className="mt-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden outline-none"
-            >
-              <div className="flex flex-col gap-1.5 pr-0.5">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                ) : yourRequestsList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-12 text-muted-foreground">
-                    <ListTodoIcon className="size-8 opacity-30" />
-                    <p className="text-sm">No open requests assigned to you.</p>
-                  </div>
-                ) : (
-                  yourRequestsList.map((req) => {
-                    const due = parseDue(req.dateDue);
-                    const v =
-                      due == null ? "todo" : dueListVariant(due, today, weekEnd);
-                    return <RequestListRow key={req.id} req={req} variant={v} />;
-                  })
+
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-card rounded-lg max-h-[85vh] w-[min(1100px,90vw)] overflow-y-auto p-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold">Add Widget</h2>
+                            <button
+                                onClick={() => {
+                                    setShowAddModal(false);
+                                    setOpenPreview(null);
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {widgetOptions.map(w => (
+                                <div key={w.type} className="border rounded-lg overflow-hidden">
+                                    <button
+                                        onClick={() =>
+                                            setOpenPreview(prev => prev === w.type ? null : w.type)
+                                        }
+                                        className="w-full text-left px-4 py-3 hover:bg-muted flex justify-between items-center"
+                                    >
+                                        <span className="font-medium">{w.label}</span>
+                                        <ChevronDown
+                                            className={`size-4 transition-transform duration-200 ${
+                                                openPreview === w.type ? "rotate-180" : ""
+                                            }`}
+                                        />
+                                    </button>
+
+                                    {openPreview === w.type && (
+                                        <div className="p-4 border-t space-y-4 bg-muted/30">
+
+                                            <div className="border rounded-lg bg-card min-h-[100px] overflow-hidden">
+                                                <div className="p-4 h-full flex flex-col">
+                                                    <div className="flex-1 [&>div]:h-full [&>div]:!h-full">
+                                                        <WidgetRenderer
+                                                            type={w.type}
+                                                            data={{
+                                                                loading: false,
+                                                                requests: [],
+                                                                counts: { todo: 3, overdue: 1, dueWeek: 2, done: 4 },
+                                                                yourRequestsList: [],
+                                                                overdueList: [],
+                                                                dueWeekList: [],
+                                                                todoList: [],
+                                                                today: new Date(),
+                                                                weekEnd: new Date(),
+                                                            }}
+                                                            url="https://tenor.com/view/twerken-twerk-duck-maincord-gif-25993381"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {w.type === "gif" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget(
+                                                            "gif",
+                                                            1,
+                                                            "https://media.tenor.com/mGgWY8RkgYMAAAAC/duck-twerk.gif"
+                                                        );
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add GIF (Small)
+                                                </button>
+                                            ) : (w.type === "stats" || w.type === "chart") ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget(w.type, 1);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add {w.label} (Small)
+                                                </button>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget(w.type, 2);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Medium)
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget(w.type, 3);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Large)
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
+function SortableItem({ id, size, children, onDelete, isActive, isDraggingAny, registerNode }: any) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+
+    const [menuOpen, setMenuOpen] = useState(false);
+    const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+    const didDrag = useRef(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu if a drag starts
+    useEffect(() => {
+        if (isDraggingAny) setMenuOpen(false);
+    }, [isDraggingAny]);
+
+    // Close menu on outside click
+    useEffect(() => {
+        if (!menuOpen) return;
+        function handleOutside(e: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleOutside);
+        return () => document.removeEventListener("mousedown", handleOutside);
+    }, [menuOpen]);
+
+    // Suppress all transforms during drag — displacement is handled by DOM reorder
+    // (displayWidgets) so no transforms are needed and they would conflict.
+    const style = isDraggingAny
+        ? {}
+        : { transform: CSS.Transform.toString(transform), transition };
+
+    const widthClass =
+        size === 3
+            ? "w-full"
+            : size === 2
+                ? "w-[calc(66.666%-1rem)]"
+                : "w-[calc(33.333%-1rem)]";
+
+    function handleGripPointerDown(e: React.PointerEvent) {
+        dragStartPos.current = { x: e.clientX, y: e.clientY };
+        didDrag.current = false;
+        listeners?.onPointerDown?.(e);
+    }
+
+    function handleGripPointerMove(e: React.PointerEvent) {
+        if (dragStartPos.current) {
+            const dx = e.clientX - dragStartPos.current.x;
+            const dy = e.clientY - dragStartPos.current.y;
+            if (Math.sqrt(dx * dx + dy * dy) > 5) didDrag.current = true;
+        }
+    }
+
+    function handleGripPointerUp() {
+        if (!didDrag.current) setMenuOpen(prev => !prev);
+        dragStartPos.current = null;
+    }
+
+    return (
+        <div
+            ref={(el) => { setNodeRef(el); registerNode(id, el); }}
+            style={style}
+            {...attributes}
+            className={`group ${widthClass} flex-none relative min-h-[300px] rounded-lg border bg-card mb-2 overflow-hidden ${
+                isActive ? "opacity-0" : ""
+            }`}
+        >
+            {/* floating grip — only visible on hover */}
+            <div className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity" ref={menuRef}>
+                <div
+                    {...listeners}
+                    onPointerDown={handleGripPointerDown}
+                    onPointerMove={handleGripPointerMove}
+                    onPointerUp={handleGripPointerUp}
+                    className="cursor-grab rounded p-0.5 hover:bg-muted"
+                >
+                    <GripVertical className="size-4 text-muted-foreground" />
+                </div>
+                {menuOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[130px] py-1">
+                        <button
+                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-2 text-destructive"
+                            onClick={() => { onDelete(id); setMenuOpen(false); }}
+                        >
+                            <Trash2 className="size-3.5" />
+                            Delete
+                        </button>
+                    </div>
                 )}
-              </div>
-            </TabsContent>
-            <TabsContent
-              value="overdue"
-              className="mt-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden outline-none"
-            >
-              <div className="flex flex-col gap-1.5 pr-0.5">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={`o-${i}`} />)
-                ) : overdueList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-12 text-muted-foreground">
-                    <AlertCircleIcon className="size-8 opacity-30" />
-                    <p className="text-sm">No overdue assigned requests.</p>
-                  </div>
-                ) : (
-                  overdueList.map((req) => (
-                    <RequestListRow key={req.id} req={req} variant="overdue" />
-                  ))
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent
-              value="week"
-              className="mt-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden outline-none"
-            >
-              <div className="flex flex-col gap-1.5 pr-0.5">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={`w-${i}`} />)
-                ) : dueWeekList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-12 text-muted-foreground">
-                    <CalendarDaysIcon className="size-8 opacity-30" />
-                    <p className="text-sm">No assigned requests due this week.</p>
-                  </div>
-                ) : (
-                  dueWeekList.map((req) => (
-                    <RequestListRow key={req.id} req={req} variant="week" />
-                  ))
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent
-              value="todo"
-              className="mt-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden outline-none"
-            >
-              <div className="flex flex-col gap-1.5 pr-0.5">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={`t-${i}`} />)
-                ) : todoList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-12 text-muted-foreground">
-                    <ListTodoIcon className="size-8 opacity-30" />
-                    <p className="text-sm">Nothing in to do (no due date or due after this week).</p>
-                  </div>
-                ) : (
-                  todoList.map((req) => (
-                    <RequestListRow key={req.id} req={req} variant="todo" />
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
-      </div>
-    </div>
-  );
+            </div>
+
+            <div className="h-full flex flex-col">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+
+function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
+    if (type === "calendar") {
+        return <CalendarWidget requests={data.requests} loading={data.loading} />;
+    }
+
+    let inner: React.ReactNode;
+    switch (type) {
+        case "stats":    inner = <StatsWidget counts={data.counts} />; break;
+        case "requests": inner = <RequestsWidget {...data} />; break;
+        case "chart":    inner = <PieChartWidget counts={data.counts} />; break;
+        case "gif":      inner = <GifWidget url={url} />; break;
+        default:         inner = <div>Unknown widget</div>;
+    }
+
+    return <div className="h-full p-4">{inner}</div>;
 }

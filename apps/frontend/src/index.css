@@ -87,14 +87,6 @@
   --theme-highlight: #C25DA9;
 }
 
-&:where([data-theme="berry"]) {
-  --theme-background: #BCF0DD;
-  --theme-foreground: #642B44;
-  --theme-background-accent: #479071;
-  --theme-foreground-accent: #A31455;
-  --theme-highlight: #480ca1;
-}
-
 &:where([data-theme="retro"]) {
   --theme-background: #f4f4f3;
   --theme-foreground: #288AA5;
@@ -117,6 +109,22 @@
   --theme-background-accent: #b0bab2;
   --theme-foreground-accent: #354F52;
   --theme-highlight: #80b5a7;
+}
+
+/* --- Text size ------------------------------------------------------------ */
+html[data-text-size="Small"] { font-size: 14px; }
+/* Medium = current default (font-size: medium ≈ 16px, set on :root below) */
+html[data-text-size="Large"] { font-size: 18px; }
+
+/* --- Icon size ------------------------------------------------------------ */
+:root                          { --icon-size: 1rem; }
+:root[data-icon-size="Small"]  { --icon-size: 0.75rem; }
+:root[data-icon-size="Medium"] { --icon-size: 1rem; }
+:root[data-icon-size="Large"]  { --icon-size: 1.375rem; }
+
+[data-sidebar] svg {
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
 }
 
 :root {

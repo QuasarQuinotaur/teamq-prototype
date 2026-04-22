@@ -55,6 +55,8 @@ function filenameFromEntry(entry: CardEntry): string {
 type ContentEntryPageProps = {
     /** Leave empty to show all documents: category filter starts empty (show all); use filter panel for categories. */
     contentType?: string;
+    /** When set, pre-filters to a specific job position role. */
+    jobPosition?: string;
     onlyFavorites?: boolean;
     /** Documents whose `ownerId` is the current user (uploaded by you). */
     onlyMine?: boolean;
@@ -93,6 +95,7 @@ type ContentWithCheckout = Content & {
 
 export default function ContentEntryPage({
                                              contentType,
+                                             jobPosition,
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
@@ -497,9 +500,10 @@ export default function ContentEntryPage({
         }
     }, [selectedIds, employee, fetchAllContent, exitSelectMode]);
 
-    const defaultFieldsFilter = useMemo((): ContentFieldsFilter => (
-        (contentType ? { contentTypes: [contentType], jobPositions: [] } : {})
-    ), [contentType]);
+    const defaultFieldsFilter = useMemo((): ContentFieldsFilter => ({
+        ...(contentType ? { contentTypes: [contentType] } : {}),
+        ...(jobPosition ? { jobPositions: [jobPosition] } : {}),
+    }), [contentType, jobPosition]);
     const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(defaultFieldsFilter);
     const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)

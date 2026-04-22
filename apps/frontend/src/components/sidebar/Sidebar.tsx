@@ -54,21 +54,6 @@ const data = {
         <ListBulletsIcon/>
       ),
     },
-    {
-      title: "All documents",
-      url: "/documents/all",
-      icon: (
-        <FilesIcon/>
-      ),
-      isActive: true,
-      items: [
-        { title: "Workflow", url: "/documents/workflow" },
-        { title: "Reference", url: "/documents/reference" },
-        { title: "Tools", url: "/documents/tools" },
-        { title: "My documents", url: "/documents/my-documents" },
-        { title: "Checked out", url: "/documents/checked-out" },
-      ],
-    },
   ],
   // navSecondary: [
   //   {
@@ -134,8 +119,43 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         fetchUser();
     }, []);
 
+    const allDocumentsItem = {
+      title: "Documents",
+      url: "/documents/all",
+      icon: (<FilesIcon/>),
+      isActive: true,
+      items: [
+        { title: "My documents", url: "/documents/my-documents" },
+        { title: "Checked out", url: "/documents/checked-out" },
+        ...(employee?.jobPosition
+          ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
+          : []),
+        {
+          title: "Other roles",
+          url: "/documents/all",
+          items: [
+            { title: "Admin", url: "/documents/role/admin" },
+            { title: "Underwriter", url: "/documents/role/underwriter" },
+            { title: "Business Analyst", url: "/documents/role/business-analyst" },
+            { title: "Actuarial Analyst", url: "/documents/role/actuarial-analyst" },
+            { title: "EXL Operations", url: "/documents/role/exl-operations" },
+          ].filter((r) => r.url !== `/documents/role/${employee?.jobPosition}`),
+        },
+        {
+          title: "Document type",
+          url: "/documents/all",
+          items: [
+            { title: "Workflow", url: "/documents/workflow" },
+            { title: "Reference", url: "/documents/reference" },
+            { title: "Tools", url: "/documents/tools" },
+          ],
+        },
+      ],
+    };
+
     const navItems = [
       ...data.navMain,
+      allDocumentsItem,
       ...(employee?.jobPosition === 'admin' ? [{
         title: "Employees",
         url: "/documents/employees",
