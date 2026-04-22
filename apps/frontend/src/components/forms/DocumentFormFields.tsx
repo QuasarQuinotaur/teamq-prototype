@@ -21,7 +21,7 @@ export type ContentFields = {
     contentType: string,
     file: File | null,
     sourceType: "file" | "link",
-    ownerID: number,
+    newOwnerID: number,
 }
 export type DocumentDateStrings = {
     expiration: string,
@@ -126,9 +126,10 @@ export default function DocumentFormFields({
                         createElement={() => (
                             <EmployeeCombobox
                                 isUpdate={isUpdate}
-                                ownerID={fields.ownerID}
-                                setNewOwner={(owner: number) => {
-                                    setKey("ownerID", owner)
+                                ownerID={fields.newOwnerID}
+                                setNewOwner={(owner) => {
+                                    console.log(owner)
+                                    setKey("newOwnerID", owner.id)
                                 }}
                             />
                         )}

@@ -22,7 +22,7 @@ const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
     contentType: "",
     file: null,
     sourceType: "file",
-    ownerID: null,
+    newOwnerID: null,
 }
 
 
@@ -41,7 +41,7 @@ function itemAsDocumentFields(item: object): ContentFields {
             path.startsWith("http://") || path.startsWith("https://")
                 ? "link"
                 : "file",
-        ownerID: c.ownerId,
+        newOwnerID: c.ownerId,
     }
 }
 
@@ -129,7 +129,7 @@ export default function DocumentForm(state: FormState) {
             documentFields.expirationDate!.toISOString(),
         );
         formData.append("contentType", documentFields.contentType);
-        formData.append("contentOwner", documentFields.ownerID.toString())
+        formData.append("newOwnerID", documentFields.newOwnerID.toString())
         if (documentFields.file) {
             formData.append("file", documentFields.file);
         } else if (documentFields.link.trim()) {
