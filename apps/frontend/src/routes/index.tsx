@@ -22,6 +22,7 @@ import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
+import RoleDocuments from "@/pages/RoleDocuments.tsx";
 
 
 export const router = createBrowserRouter([
@@ -87,6 +88,10 @@ export const router = createBrowserRouter([
                             {
                                 path: "tools",
                                 element: <Tools />,
+                            },
+                            {
+                                path: "role/:role",
+                                element: <RoleDocuments />,
                             },
                             {
                                 path: "profile",

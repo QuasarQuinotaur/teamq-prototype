@@ -4,16 +4,12 @@
 import * as React from "react";
 import { Document, Page } from "react-pdf";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
-import { FileIcon, Link2Icon } from "lucide-react";
+import { FileIcon } from "lucide-react";
 import {cn, isSupabasePath} from "@/lib/utils.ts";
 import type { CardEntry } from "@/components/cards/Card.tsx";
 import "@/lib/pdf-config.ts";
 import DocxCardThumb from "@/components/cards/DocxCardThumb.tsx";
-import {
-    getAverageRgbFromFaviconUrl,
-    rgbToCss,
-    type Rgb,
-} from "@/lib/favicon-average-color.ts";
+import ExcelCardThumb from "@/components/cards/ExcelCardThumb.tsx";
 import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -256,17 +252,190 @@ function PdfFirstPageThumbnailInner({ url, onReady }: { url: string; onReady: ()
     );
 }
 
-function GenericFilePlaceholder({ label }: { label?: string }) {
+function GenericFilePlaceholder({ ext }: { ext?: string }) {
     return (
-        <div className="flex size-full flex-col items-center justify-center gap-1 bg-muted px-2 text-center">
+        <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center bg-muted">
             <FileIcon className="size-10 text-muted-foreground" aria-hidden />
-            {label ? (
+            {ext ? (
                 <span className="max-w-full truncate text-[10px] font-medium uppercase text-muted-foreground">
-                    {label}
+                    {ext}
                 </span>
             ) : null}
         </div>
     );
+}
+
+/** Spreadsheet skeleton — used for xlsx/xls and csv. */
+function ExcelSkeleton() {
+    return (
+        <div className="relative size-full overflow-hidden bg-white">
+            <div
+                className="absolute inset-[6px] flex flex-col overflow-hidden rounded-[2px]"
+                style={{ gap: 1, backgroundColor: "#e4e4e4" }}
+            >
+                {/* Header row */}
+                <div className="flex shrink-0 h-[14%]" style={{ gap: 1 }}>
+                    {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="flex-1" style={{ backgroundColor: "#d0d0d0" }} />
+                    ))}
+                </div>
+                {/* Data rows */}
+                {[0, 1, 2, 3, 4].map((r) => (
+                    <div key={r} className="flex flex-1" style={{ gap: 1 }}>
+                        {[0, 1, 2, 3].map((c) => (
+                            <div
+                                key={c}
+                                className="flex-1"
+                                style={{ backgroundColor: r % 2 === 0 ? "#ffffff" : "#f3f3f3" }}
+                            />
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/** Slide skeleton — used for pptx/ppt. */
+function PowerPointSkeleton() {
+    return (
+        <div className="relative size-full flex items-center justify-center overflow-hidden bg-white">
+            {/* Main slide */}
+            <div
+                className="w-[78%] h-[66%] flex flex-col rounded-[2px] overflow-hidden"
+                style={{ backgroundColor: "#ffffff", boxShadow: "0 1px 6px rgba(0,0,0,0.15)" }}
+            >
+                {/* Title band */}
+                <div
+                    className="shrink-0 h-[28%] flex flex-col justify-center px-[8%] gap-[10%]"
+                    style={{ backgroundColor: "#f0f0f0" }}
+                >
+                    <div className="h-[28%] w-[62%] rounded-[1px]" style={{ backgroundColor: "#c8c8c8" }} />
+                    <div className="h-[18%] w-[38%] rounded-[1px]" style={{ backgroundColor: "#dcdcdc" }} />
+                </div>
+                {/* Bullet lines */}
+                <div className="flex-1 flex flex-col px-[8%] py-[6%] gap-[10%]">
+                    {[78, 62, 70].map((w, i) => (
+                        <div
+                            key={i}
+                            className="h-[15%] rounded-[1px]"
+                            style={{ backgroundColor: "#e4e4e4", width: `${w}%` }}
+                        />
+                    ))}
+                </div>
+            </div>
+            {/* Mini slide strip */}
+            <div className="absolute top-[6px] right-[6px] flex flex-col gap-[3px]">
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        className="w-[20px] h-[14px] rounded-[1px]"
+                        style={{ backgroundColor: i === 0 ? "#e0e0e0" : "#ececec" }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/** Document page skeleton — used for doc and as the default fallback. */
+function WordDocSkeleton() {
+    return (
+        <div className="relative size-full flex justify-center overflow-hidden" style={{ backgroundColor: "#f0f0f0" }}>
+            <div
+                className="mt-[8px] w-[72%] flex flex-col px-[10%] py-[6%] gap-[5%] rounded-t-[2px]"
+                style={{
+                    backgroundColor: "#ffffff",
+                    minHeight: "90%",
+                    boxShadow: "0 1px 6px rgba(0,0,0,0.12)",
+                }}
+            >
+                {/* Title */}
+                <div
+                    className="h-[5%] min-h-[4px] w-[55%] rounded-[1px] mb-[2%]"
+                    style={{ backgroundColor: "#c0c0c0" }}
+                />
+                {/* Text lines */}
+                {[95, 88, 92, 80, 90, 85, 78, 92, 70].map((w, i) => (
+                    <div
+                        key={i}
+                        className="h-[4%] min-h-[3px] rounded-[1px]"
+                        style={{ backgroundColor: "#dedede", width: `${w}%` }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/** Plain-text skeleton — reuses the doc page layout. */
+function TextSkeleton() {
+    return <WordDocSkeleton />;
+}
+
+/** Browser-chrome + page layout skeleton — used for html/htm. */
+function HtmlSkeleton() {
+    return (
+        <div className="relative size-full flex flex-col overflow-hidden bg-white">
+            {/* Browser chrome bar */}
+            <div
+                className="shrink-0 h-[15%] flex items-center px-[6%]"
+                style={{ backgroundColor: "#ebebeb", gap: "4%" }}
+            >
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        className="rounded-full"
+                        style={{ backgroundColor: "#cccccc", width: 7, height: 7, flexShrink: 0 }}
+                    />
+                ))}
+                <div
+                    className="flex-1 h-[38%] rounded-[2px] ml-[2%]"
+                    style={{ backgroundColor: "#ffffff" }}
+                />
+            </div>
+            {/* Page content */}
+            <div className="flex-1 flex flex-col overflow-hidden px-[8%] py-[5%]" style={{ gap: "6%" }}>
+                {/* Hero banner */}
+                <div className="shrink-0 h-[28%] w-full rounded-[2px]" style={{ backgroundColor: "#e8e8e8" }} />
+                {/* Text lines */}
+                {[68, 88, 58].map((w, i) => (
+                    <div
+                        key={i}
+                        className="shrink-0 rounded-[1px]"
+                        style={{ backgroundColor: "#d8d8d8", height: "9%", minHeight: 3, width: `${w}%` }}
+                    />
+                ))}
+                {/* Two-column blocks */}
+                <div className="flex flex-1 overflow-hidden" style={{ gap: "6%" }}>
+                    <div className="flex-1 rounded-[2px]" style={{ backgroundColor: "#eeeeee" }} />
+                    <div className="flex-1 rounded-[2px]" style={{ backgroundColor: "#eeeeee" }} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/** Picks the best skeleton for a known file extension; falls back to a generic icon. */
+function FileTypeSkeleton({ ext }: { ext?: string }) {
+    switch (ext) {
+        case "xlsx":
+        case "xls":
+        case "csv":
+            return <ExcelSkeleton />;
+        case "pptx":
+        case "ppt":
+            return <PowerPointSkeleton />;
+        case "doc":
+            return <WordDocSkeleton />;
+        case "txt":
+            return <TextSkeleton />;
+        case "html":
+        case "htm":
+            return <HtmlSkeleton />;
+        default:
+            return <WordDocSkeleton />;
+    }
 }
 
 function LinkPreviewLoading() {
@@ -303,58 +472,55 @@ function LinkPreviewImageOnly({
     );
 }
 
-/** Thumbnail area when there is no hero image: URL / link icon only. */
-function LinkPreviewUrlIcon({ onReady }: { onReady: () => void }) {
-    React.useEffect(() => {
-        onReady();
-    }, [onReady]);
-    return (
-        <div className="flex size-full items-center justify-center bg-muted">
-            <Link2Icon className="size-12 text-muted-foreground" aria-hidden />
-        </div>
-    );
-}
-
-/** Solid fill from average favicon color when Microlink has no preview image (CORS permitting). */
-function LinkPreviewFaviconAverageColor({
+/** Browser-chrome skeleton shown when Microlink has no preview image. */
+function WebPageSkeleton({
     faviconUrl,
     onReady,
 }: {
-    faviconUrl: string;
+    faviconUrl?: string | null;
     onReady: () => void;
 }) {
-    const [rgb, setRgb] = React.useState<Rgb | null | undefined>(undefined);
-    const fired = React.useRef(false);
-
     React.useEffect(() => {
-        let cancelled = false;
-        setRgb(undefined);
-        void getAverageRgbFromFaviconUrl(faviconUrl).then((c) => {
-            if (!cancelled) setRgb(c);
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [faviconUrl]);
-
-    React.useEffect(() => {
-        if (rgb === undefined || rgb === null || fired.current) return;
-        fired.current = true;
         onReady();
-    }, [rgb, onReady]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- single-fire on mount
+    }, []);
 
-    if (rgb === undefined) {
-        return <LinkPreviewLoading />;
-    }
-    if (rgb === null) {
-        return <LinkPreviewUrlIcon onReady={onReady} />;
-    }
     return (
-        <div
-            className="size-full"
-            style={{ backgroundColor: rgbToCss(rgb) }}
-            aria-hidden
-        />
+        <div className="relative size-full flex flex-col overflow-hidden bg-white">
+            {/* Browser chrome */}
+            <div
+                className="shrink-0 h-[14%] flex items-center px-[5%]"
+                style={{ backgroundColor: "#f0f0f0", gap: "3%" }}
+            >
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        className="rounded-full shrink-0"
+                        style={{ backgroundColor: "#d0d0d0", width: 6, height: 6 }}
+                    />
+                ))}
+                {/* URL bar */}
+                <div
+                    className="flex-1 h-[42%] rounded-[3px] flex items-center px-[6%]"
+                    style={{ backgroundColor: "#ffffff", gap: "5%" }}
+                >
+                    {/* {faviconUrl ? (
+                        <img
+                            src={faviconUrl}
+                            alt=""
+                            className="shrink-0 object-contain"
+                            style={{ width: 8, height: 8 }}
+                            draggable={false}
+                        />
+                    ) : (
+                        <div className="shrink-0 rounded-full" style={{ width: 8, height: 8, backgroundColor: "#e0e0e0" }} />
+                    )} */}
+                    <div className="flex-1 h-[35%] rounded-[1px]" style={{ backgroundColor: "#e8e8e8" }} />
+                </div>
+            </div>
+            {/* Page body — plain white */}
+            <div className="flex-1" style={{ backgroundColor: "#fafafa"}}/>
+        </div>
     );
 }
 
@@ -418,11 +584,15 @@ export default function ContentCardThumbnail({
     const showRasterImage = Boolean(previewUrl && IMAGE_EXT.has(ext));
     const showPdfThumb = Boolean(previewUrl && ext === "pdf");
     const showDocxThumb = Boolean(previewUrl && ext === "docx");
+    const showExcelThumb = Boolean(previewUrl && (ext === "xlsx" || ext === "xls" || ext === "csv"));
     const showGenericDoc = Boolean(
         previewUrl &&
             DIRECT_LINK_DOC_EXT.has(ext) &&
             ext !== "pdf" &&
             ext !== "docx" &&
+            ext !== "xlsx" &&
+            ext !== "xls" &&
+            ext !== "csv" &&
             !IMAGE_EXT.has(ext),
     );
 
@@ -433,10 +603,10 @@ export default function ContentCardThumbnail({
         inner = <LinkPreviewLoading />;
     } else if (isFile) {
         if (!entry.link) {
-            inner = <GenericFilePlaceholder />;
+            inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
         } else if (signedFailed) {
-            inner = <GenericFilePlaceholder />;
+            inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
         } else if (signedLoading && !signedUrl) {
             inner = <LinkPreviewLoading />;
@@ -448,21 +618,19 @@ export default function ContentCardThumbnail({
             inner = <PdfFirstPageThumbnailInner url={previewUrl} onReady={notifyOnce} />;
         } else if (showDocxThumb && previewUrl) {
             inner = <DocxCardThumb url={previewUrl} onReady={notifyOnce} />;
+        } else if (showExcelThumb && previewUrl) {
+            inner = <ExcelCardThumb url={previewUrl} onReady={notifyOnce} />;
         } else if (showGenericDoc && previewUrl) {
-            inner = <GenericFilePlaceholder label={ext || undefined} />;
+            inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
         } else if (signedUrl && !signedLoading) {
-            inner = <GenericFilePlaceholder />;
+            inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
         } else {
             inner = <LinkPreviewLoading />;
         }
     } else if (!entry.link) {
-        inner = (
-            <LinkPreviewUrlIcon
-                onReady={notifyOnce}
-            />
-        );
+        inner = <WebPageSkeleton onReady={notifyOnce} />;
     } else if (httpKind === "image") {
         inner = (
             <LinkPreviewImageOnly src={entry.link} onReady={notifyOnce} />
@@ -472,8 +640,10 @@ export default function ContentCardThumbnail({
             inner = <PdfFirstPageThumbnailInner url={entry.link} onReady={notifyOnce} />;
         } else if (ext === "docx") {
             inner = <DocxCardThumb url={entry.link} onReady={notifyOnce} />;
+        } else if (ext === "xlsx" || ext === "xls" || ext === "csv") {
+            inner = <ExcelCardThumb url={entry.link} onReady={notifyOnce} />;
         } else {
-            inner = <GenericFilePlaceholder label={ext || undefined} />;
+            inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
         }
     } else if (linkMicrolink && !linkMicrolink.done) {
@@ -482,12 +652,8 @@ export default function ContentCardThumbnail({
         inner = (
             <LinkPreviewImageOnly src={linkMicrolink.fullImageUrl} onReady={notifyOnce} />
         );
-    } else if (linkTitleFaviconUrl) {
-        inner = (
-            <LinkPreviewFaviconAverageColor faviconUrl={linkTitleFaviconUrl} onReady={notifyOnce} />
-        );
     } else {
-        inner = <LinkPreviewUrlIcon onReady={notifyOnce} />;
+        inner = <WebPageSkeleton faviconUrl={linkTitleFaviconUrl} onReady={notifyOnce} />;
     }
 
     return (
