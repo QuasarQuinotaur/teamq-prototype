@@ -1,11 +1,50 @@
 import { Router } from "express";
 import { ServiceRequestRepository } from "../ServiceRequestRepository.ts";
+import { NotificationRepository } from "../NotificationRepository.ts";
 import { getSignedUrl } from "../lib/supabase.ts";
+import { getEmployeeFromRequest } from "../app.ts";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 
 const router = Router();
 const serviceRequestRepo = new ServiceRequestRepository();
+const notificationRepo = new NotificationRepository();
+
+const SERVICE_REQUEST_ADDED_TYPE = "Added to a service request";
+
+function toIdList(raw: unknown): number[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .map((x) => Number(x))
+        .filter((n) => !Number.isNaN(n));
+}
+
+/** For PUT bodies: omitted/non-array → leave field unchanged; array (maybe empty) → replace. */
+function bodyIdArray(raw: unknown): number[] | undefined {
+    if (!Array.isArray(raw)) return undefined;
+    return raw
+        .map((x) => Number(x))
+        .filter((n) => !Number.isNaN(n));
+}
+
+function serviceRequestAddedMessage(title: string | null | undefined): string {
+    const label = title?.trim() ? title.trim() : "Untitled request";
+    return `You were assigned to "${label}".`;
+}
+
+async function notifyAddedToServiceRequest(
+    employeeIds: number[],
+    title: string | null | undefined,
+    contentIds?: number[]
+) {
+    if (!employeeIds.length) return;
+    await notificationRepo.createMany({
+        type: SERVICE_REQUEST_ADDED_TYPE,
+        customMsg: serviceRequestAddedMessage(title),
+        employeeIds,
+        ...(contentIds?.length ? { contentIds } : {}),
+    });
+}
 
 function parseBodyDateDue(raw: unknown): Date | null | undefined {
     if (raw === undefined) return undefined;
@@ -147,6 +186,15 @@ router.post("/", requiresAuth(), async (req, res) => {
             employeeIds,
             contentIds,
         });
+        const assigneeIds = Array.from(
+            new Set([...toIdList(employeeIds), ownerId])
+        );
+        const linkedContentIds = toIdList(contentIds);
+        await notifyAddedToServiceRequest(
+            assigneeIds,
+            request.title,
+            linkedContentIds.length ? linkedContentIds : undefined
+        );
         res.json(request);
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Create failed" });
@@ -162,18 +210,28 @@ router.put("/:id", requiresAuth(), async (req, res) => {
         return;
     }
     const { title, description, dateDue, priority, status, ownerId, employeeIds, contentIds } = req.body;
-    const toIdList = (raw: unknown): number[] | undefined => {
-        if (!Array.isArray(raw)) return undefined;
-        return raw
-            .map((x) => Number(x))
-            .filter((n) => !Number.isNaN(n));
-    };
     const statusParse = parseBodyServiceRequestStatus(status);
     if (statusParse.error) {
         res.status(400).json({ error: statusParse.error });
         return;
     }
+    const parsedEmployeeIds = bodyIdArray(employeeIds);
+    const parsedContentIds = bodyIdArray(contentIds);
     try {
+        let notifyAddedIds: number[] = [];
+        if (parsedEmployeeIds !== undefined) {
+            const existing = await serviceRequestRepo.getById(id);
+            if (!existing) {
+                res.status(404).json({ error: "Not found" });
+                return;
+            }
+            const oldSet = new Set(existing.employees.map((e) => e.id));
+            const actor = await getEmployeeFromRequest(req);
+            notifyAddedIds = parsedEmployeeIds.filter(
+                (eid) => !oldSet.has(eid) && (actor == null || eid !== actor.id)
+            );
+        }
+
         const request = await serviceRequestRepo.update(id, {
             title: typeof title === "string" ? title : undefined,
             description: typeof description === "string" ? description : undefined,
@@ -181,9 +239,18 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             priority: parseBodyPriority(priority),
             status: statusParse.value,
             ownerId: typeof ownerId === "number" && !Number.isNaN(ownerId) ? ownerId : undefined,
-            employeeIds: toIdList(employeeIds),
-            contentIds: toIdList(contentIds),
+            employeeIds: parsedEmployeeIds,
+            contentIds: parsedContentIds,
         });
+
+        if (notifyAddedIds.length) {
+            const linkIds =
+                parsedContentIds !== undefined && parsedContentIds.length
+                    ? parsedContentIds
+                    : undefined;
+            await notifyAddedToServiceRequest(notifyAddedIds, request.title, linkIds);
+        }
+
         res.json(request);
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });

@@ -121,6 +121,23 @@ function queryTruthy(q: express.Request["query"], key: string): boolean {
     return s === "1" || s === "true" || s === "yes";
 }
 
+/** Extension keys must match `DOCUMENT_TYPE_MAP` in frontend `constants.tsx` (excluding links/files). */
+const DOCUMENT_EXTENSION_FILTER_KEYS = new Set([
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "csv",
+    "ppt",
+    "pptx",
+    "txt",
+    "rtf",
+    "odt",
+    "ods",
+    "odp",
+]);
+
 function whereDocumentTypes(
     documentTypes: string[],
 ): Prisma.ContentWhereInput | null {
@@ -135,6 +152,21 @@ function whereDocumentTypes(
                 { NOT: { filePath: { startsWith: "http" } } },
             ],
         });
+    }
+    for (const dt of documentTypes) {
+        if (DOCUMENT_EXTENSION_FILTER_KEYS.has(dt)) {
+            parts.push({
+                AND: [
+                    { filePath: { not: null } },
+                    {
+                        filePath: {
+                            endsWith: `.${dt}`,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
+            });
+        }
     }
     if (parts.length === 0) return null;
     if (parts.length === 1) return parts[0]!;

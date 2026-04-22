@@ -20,7 +20,20 @@ export const DOCUMENT_STATUS_TYPE_MAP = {
 export const DOCUMENT_TYPE_MAP = {
     links: "Links",
     files: "Files",
-}
+    pdf: "PDF (.pdf)",
+    doc: "Word (.doc)",
+    docx: "Word (.docx)",
+    xls: "Excel (.xls)",
+    xlsx: "Excel (.xlsx)",
+    csv: "CSV (.csv)",
+    ppt: "PowerPoint (.ppt)",
+    pptx: "PowerPoint (.pptx)",
+    txt: "Text (.txt)",
+    rtf: "Rich Text (.rtf)",
+    odt: "OpenDocument Text (.odt)",
+    ods: "OpenDocument Spreadsheet (.ods)",
+    odp: "OpenDocument Presentation (.odp)",
+} as const
 export type DocumentType = keyof typeof DOCUMENT_TYPE_MAP
 
 export const CONTENT_SORT_BY_MAP = {
