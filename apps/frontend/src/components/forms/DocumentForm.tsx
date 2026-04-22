@@ -22,6 +22,7 @@ const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
     contentType: "",
     file: null,
     sourceType: "file",
+    ownerID: null,
 }
 
 
@@ -40,6 +41,7 @@ function itemAsDocumentFields(item: object): ContentFields {
             path.startsWith("http://") || path.startsWith("https://")
                 ? "link"
                 : "file",
+        ownerID: c.ownerId,
     }
 }
 
@@ -108,6 +110,7 @@ export default function DocumentForm(state: FormState) {
     // Create Content on backend from fields
     async function doSubmit(documentFields: ContentFields) {
         const isUpdate = state.baseItem != null;
+        console.log("updating")
 
         const url = isUpdate
             ? `${import.meta.env.VITE_BACKEND_URL}/api/content/upload/${state.baseItem!.id}`
@@ -126,6 +129,7 @@ export default function DocumentForm(state: FormState) {
             documentFields.expirationDate!.toISOString(),
         );
         formData.append("contentType", documentFields.contentType);
+        formData.append("contentOwner", documentFields.ownerID.toString())
         if (documentFields.file) {
             formData.append("file", documentFields.file);
         } else if (documentFields.link.trim()) {

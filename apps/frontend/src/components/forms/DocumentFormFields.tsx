@@ -3,6 +3,7 @@ import {FieldInput} from "@/components/forms/Field.tsx";
 import {Separator} from "@/elements/separator.tsx";
 import {Input} from "@/elements/input.tsx";
 import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
+import EmployeeCombobox from "@/components/input/EmployeeCombobox.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import {Item} from "@/elements/item.tsx";
@@ -20,6 +21,7 @@ export type ContentFields = {
     contentType: string,
     file: File | null,
     sourceType: "file" | "link",
+    ownerID: number,
 }
 export type DocumentDateStrings = {
     expiration: string,
@@ -113,6 +115,20 @@ export default function DocumentFormFields({
                                 contentType={fields.contentType}
                                 setContentType={(type) => {
                                     setKey("contentType", type)
+                                }}
+                            />
+                        )}
+                    />
+                    <FieldInput
+                        id={"document-owner"}
+                        label={"Document Owner"}
+                        required
+                        createElement={() => (
+                            <EmployeeCombobox
+                                isUpdate={isUpdate}
+                                ownerID={fields.ownerID}
+                                setNewOwner={(owner: number) => {
+                                    setKey("ownerID", owner)
                                 }}
                             />
                         )}
