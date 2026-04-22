@@ -19,6 +19,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
 import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
+import AdminCheckIn from "@/pages/AdminCheckIn.tsx";
 import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
@@ -123,6 +124,10 @@ export const router = createBrowserRouter([
                                     {
                                         path: "dev-checkout",
                                         element: <DevCheckoutPage />,
+                                    },
+                                    {
+                                        path: "admin-check-in",
+                                        element: <AdminCheckIn />,
                                     },
                                 ],
                             },
