@@ -511,7 +511,16 @@ export default function ContentEntryPage({
         ...(contentType ? { contentTypes: [contentType] } : {}),
         ...(jobPosition ? { jobPositions: [jobPosition] } : {}),
     }), [contentType, jobPosition]);
-    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(defaultFieldsFilter);
+    const [filterJobPosition, setFilterJobPosition] = useState(jobPosition);
+    const [fieldsFilter, setFieldsFilter] = useState(defaultFieldsFilter);
+    // useMemo()
+    useEffect(() => {
+        // This makes it so if you change page the job position filter changes
+        if (filterJobPosition !== jobPosition) {
+            setFilterJobPosition(jobPosition)
+            setFieldsFilter(defaultFieldsFilter)
+        }
+    }, [jobPosition, setFilterJobPosition, setFieldsFilter])
     const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const sortFunction = useContentSortFunction({sortFields})
