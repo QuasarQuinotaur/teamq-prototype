@@ -41,7 +41,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
             .then((data: Employee) => {
                 setMyName(`${data.firstName} ${data.lastName}`);
                 setMyID(data.id);
-                setPermissions(data.id === ownerID);
+                setPermissions(data.id === ownerID || !ownerID);
             })
             .finally(() => setLoading(false));
     }
@@ -63,43 +63,45 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
     }, [ownerID, isUpdate]);
 
     return (
-        <Combobox
-            items={employees}
-            value={null}
-            modal={true}
-            itemToStringValue = {(item: Employee) =>
-                `${item.firstName} ${item.lastName}`
-            }
 
-            onValueChange={(value) => {
-                setNewOwner(value)
-            }}
-        >
-            <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={!permissions} />
-            <ComboboxContent className="pointer-events-auto scroll-auto">
-                <ComboboxEmpty>No items found.</ComboboxEmpty>
-                <ComboboxList>
-                    {(item) => (
-                        <ComboboxItem key={item.id} value={item}>
-                            <Item size="xs">
-                                <ItemMedia variant="icon">
-                                    <Avatar size="sm">
-                                        <img src={item.image} alt={"profile"}/>
-                                    </Avatar>
-                                </ItemMedia>
-                                <ItemContent>
-                                    <ItemTitle>
-                                        {`${item.firstName} ${item.lastName}`}
-                                    </ItemTitle>
-                                    <ItemDescription>
-                                        {item.jobPosition}
-                                    </ItemDescription>
-                                </ItemContent>
-                            </Item>
-                        </ComboboxItem>
-                    )}
-                </ComboboxList>
-            </ComboboxContent>
-        </Combobox>
+            <Combobox
+                items={employees}
+                value={null}
+                itemToStringValue = {(item: Employee) =>
+                    `${item.firstName} ${item.lastName}`
+                }
+
+                onValueChange={(value) => {
+                    setNewOwner(value)
+                }}
+            >
+                <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={!permissions} />
+                <ComboboxContent className="pointer-events-auto scroll-auto">
+                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(item) => (
+                            <ComboboxItem key={item.id} value={item}>
+                                <Item size="xs">
+                                    <ItemMedia variant="icon">
+                                        <Avatar size="sm">
+                                            <img src={item.image} alt={"profile"}/>
+                                        </Avatar>
+                                    </ItemMedia>
+                                    <ItemContent>
+                                        <ItemTitle>
+                                            {`${item.firstName} ${item.lastName}`}
+                                        </ItemTitle>
+                                        <ItemDescription>
+                                            {item.jobPosition}
+                                        </ItemDescription>
+                                    </ItemContent>
+                                </Item>
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+
+
     )
 }
