@@ -84,7 +84,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
                                 <Item size="xs">
                                     <ItemMedia variant="icon">
                                         <Avatar size="sm">
-                                            <img className="mask-circle" src={item.image} alt={"profile"}/>
+                                            <img className="mask-circle rounded-4xl" src={item.image} alt={"profile"}/>
                                         </Avatar>
                                     </ItemMedia>
                                     <ItemContent>
