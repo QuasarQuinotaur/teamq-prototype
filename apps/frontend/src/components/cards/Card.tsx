@@ -59,9 +59,10 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
-    return (
+const CardTitle = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
+    ({ className, ...props }, ref) => (
         <div
+            ref={ref}
             data-slot="card-title"
             className={cn(
                 "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
@@ -70,7 +71,8 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
             {...props}
         />
     )
-}
+)
+CardTitle.displayName = "CardTitle"
 
 function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
     return (

@@ -27,6 +27,9 @@ model Employee {
   notifications  Notification[] @relation("NotificationEmployees")
   contentChecked Content[]      @relation("CheckedOutContent")
   tagsCreated    Tag[]
+
+  //added user setting the employee
+  userSettings UserSettings?
 }
 
 model Content {
@@ -123,4 +126,15 @@ model ContentTag {
 
   @@id([contentId, tagId])
   @@index([tagId])
+}
+
+model UserSettings {
+  id          Int      @id @default(autoincrement())
+  ownerId     Int      @unique
+  theme       String   @default("Hanover Blue")
+  iconSize    String   @default("Medium")
+  textSize    String   @default("Medium")
+  tagsEnabled Boolean  @default(true)
+  listEnabled Boolean  @default(false)
+  owner       Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
