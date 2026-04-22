@@ -66,6 +66,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
         <Combobox
             items={employees}
             value={null}
+            modal={true}
             itemToStringValue = {(item: Employee) =>
                 `${item.firstName} ${item.lastName}`
             }
@@ -74,7 +75,7 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
                 setNewOwner(value)
             }}
         >
-            <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear />
+            <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={!permissions} />
             <ComboboxContent className="pointer-events-auto scroll-auto">
                 <ComboboxEmpty>No items found.</ComboboxEmpty>
                 <ComboboxList>
