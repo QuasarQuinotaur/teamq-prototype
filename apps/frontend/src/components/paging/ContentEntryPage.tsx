@@ -36,7 +36,7 @@ import {
 import axios from "axios";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSelectorButton.tsx";
-import { cn } from "@/lib/utils.ts";
+import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 
@@ -111,7 +111,7 @@ export default function ContentEntryPage({
     /** Per-pane document; null means that pane shows the grid. */
     const [leftPaneDoc, setLeftPaneDoc] = useState<ViewerState | null>(null);
     const [rightPaneDoc, setRightPaneDoc] = useState<ViewerState | null>(null);
-    const [employeeMap, setEmployeeMap] = useState<Map<number, string>>(new Map());
+    const [employeeMap, setEmployeeMap] = useState<Map<number, { name: string; image?: string }>>(new Map());
     const [employee, setEmployee] = useState<Employee>(null);
 
     const [selectMode, setSelectMode] = useState(false);
@@ -158,6 +158,11 @@ export default function ContentEntryPage({
                 if (selectMode && bulkActionLoading) return;
                 if (selectMode) {
                     onToggleEntrySelect(entry);
+                    return;
+                }
+                // Web links (non-file paths) open directly in a new tab
+                if (entry.link && !isSupabasePath(entry.link)) {
+                    window.open(entry.link, "_blank", "noopener,noreferrer");
                     return;
                 }
                 void opener(entry);
@@ -285,8 +290,8 @@ export default function ContentEntryPage({
     useEffect(() => {
         fetch(`${apiBase}/api/employee`, { credentials: "include" })
             .then(res => res.json())
-            .then((employees: Employee[]) => {
-                setEmployeeMap(new Map(employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])));
+            .then((employees: (Employee & { image?: string })[]) => {
+                setEmployeeMap(new Map(employees.map(e => [e.id, { name: `${e.firstName} ${e.lastName}`, image: e.image }])));
             })
             .catch(() => {});
     }, []);
@@ -343,12 +348,13 @@ export default function ContentEntryPage({
     // Gets card entry from content
     async function getContentEntry(content: Content): Promise<CardEntry> {
         const tags = await fetchContentTags(content);
+        const ownerRecord = employeeMap.get(content.ownerId);
         return {
             item: content,
             title: content.title,
             link: content.filePath ?? "",
-            owner:
-                employeeMap.get(content.ownerId) ?? undefined,
+            owner: ownerRecord?.name,
+            ownerImage: ownerRecord?.image,
             badge: content.contentType,
             expirationDate: content.expirationDate,
             tags: tags,
@@ -661,6 +667,29 @@ export default function ContentEntryPage({
               </Button>,
           ];
 
+    const isFavorited = useCallback(
+        (entry: CardEntry) => favoritedList.some((f) => f.id === entry.item.id),
+        [favoritedList],
+    );
+
+    const onToggleFavorite = useCallback(
+        async (entry: CardEntry) => {
+            const id = entry.item.id;
+            const base = import.meta.env.VITE_BACKEND_URL;
+            const wasFavorited = favoritedList.some((f) => f.id === id);
+            try {
+                await fetch(`${base}/api/favorites/${id}`, {
+                    method: wasFavorited ? "DELETE" : "POST",
+                    credentials: "include",
+                });
+                fetchFavorites();
+            } catch (err) {
+                console.error("Toggle favorite failed", err);
+            }
+        },
+        [favoritedList, fetchFavorites],
+    );
+
     const listColumnOptions = useMemo(
         () => ({
             renderTitleCell(entry: CardEntry) {
@@ -686,8 +715,10 @@ export default function ContentEntryPage({
             selectMode,
             isEntrySelected,
             onToggleEntrySelect,
+            isFavorited,
+            onToggleFavorite,
         }),
-        [employee, selectMode, isEntrySelected, onToggleEntrySelect],
+        [employee, selectMode, isEntrySelected, onToggleEntrySelect, isFavorited, onToggleFavorite],
     );
 
     async function tryAddFavorite(contentId: number) {

@@ -120,13 +120,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }, []);
 
     const allDocumentsItem = {
-      title: "Documents",
+      title: "Content",
       url: "/documents/all",
       icon: (<FilesIcon/>),
       isActive: true,
       items: [
-        { title: "My documents", url: "/documents/my-documents" },
+        { title: "My content", url: "/documents/my-documents" },
         { title: "Checked out", url: "/documents/checked-out" },
+        ...(employee?.jobPosition === 'admin'
+          ? [{ title: "Check in", url: "/documents/admin-check-in" }]
+          : []),
         ...(employee?.jobPosition
           ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
           : []),

@@ -12,6 +12,7 @@ export type CardEntry = {
     title: string;
     link: string;
     owner?: string;
+    ownerImage?: string;
     subElement?: React.ReactNode;
     badge?: string;
     image?: string;
