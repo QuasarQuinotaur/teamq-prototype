@@ -453,8 +453,10 @@ export default function ContentEntryPage({
             onlyMine,
             onlyMyCheckouts,
         });
-        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : 
-                qs ? `?${qs}` : "")
+        /** TODO: Can you sort */
+        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
+                (qs ? `?${qs}` : "")
+        console.log(qs, url)
         fetch(url, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("Failed to load content");
