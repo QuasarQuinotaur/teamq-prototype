@@ -60,6 +60,8 @@ type ContentEntryPageProps = {
     onlyMine?: boolean;
     /** Documents you currently have checked out. */
     onlyMyCheckouts?: boolean;
+    /** Documents opened recently. */
+    onlyRecents?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -156,6 +158,7 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
+                                             onlyRecents
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -174,6 +177,10 @@ export default function ContentEntryPage({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
+    
+    const onContentOpened = useCallback(() => {
+        console.log("CONTENT OPENED NOW")
+    }, [])
 
     const exitSelectMode = useCallback(() => {
         setSelectMode(false);
@@ -217,6 +224,7 @@ export default function ContentEntryPage({
                     onToggleEntrySelect(entry);
                     return;
                 }
+                onContentOpened();
                 // Web links (non-file paths) open directly in a new tab
                 if (entry.link && !isSupabasePath(entry.link)) {
                     window.open(entry.link, "_blank", "noopener,noreferrer");
@@ -225,7 +233,7 @@ export default function ContentEntryPage({
                 void opener(entry);
             };
         },
-        [selectMode, bulkActionLoading, onToggleEntrySelect],
+        [selectMode, bulkActionLoading, onToggleEntrySelect, onContentOpened],
     );
 
     const openDocumentMenuFromRow = useCallback((entry: CardEntry, e: React.MouseEvent) => {
@@ -440,9 +448,10 @@ export default function ContentEntryPage({
             onlyMine,
             onlyMyCheckouts,
         });
-        const url = qs
-            ? `${apiBase}/api/content?${qs}`
-            : `${apiBase}/api/content`;
+        console.log("LOAD:", qs, onlyRecents)
+        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
+            (qs ? `?${qs}` : "")
+        console.log("URL:", url)
         fetch(url, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("Failed to load content");
@@ -951,6 +960,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     ),
                 }}
@@ -985,6 +995,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     ),
                 }}
@@ -1064,6 +1075,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     )),
                 }}

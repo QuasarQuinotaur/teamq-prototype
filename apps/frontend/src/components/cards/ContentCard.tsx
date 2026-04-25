@@ -130,6 +130,7 @@ export default function ContentCard({
                                         selectMode,
                                         selected,
                                         onSelectToggle,
+                                        onOpen
 }: ContentCardProps) {
     const { loadAllowed } = useThumbnailBatch();
     const { tagsEnabled } = useMainContext();
@@ -171,6 +172,9 @@ export default function ContentCard({
         if (selectMode && onSelectToggle) {
             onSelectToggle();
             return;
+        }
+        if (onOpen) {
+            onOpen();
         }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
