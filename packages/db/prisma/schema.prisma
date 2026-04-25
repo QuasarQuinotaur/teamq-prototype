@@ -26,6 +26,8 @@ model Employee {
 
   notifications  Notification[] @relation("NotificationEmployees")
   contentChecked Content[]      @relation("CheckedOutContent")
+
+  recentViews RecentContentView[]
   tagsCreated    Tag[]
 
   //added user setting the employee
@@ -54,6 +56,7 @@ model Content {
   checkedOutById Int?
   checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
+  recentViews RecentContentView[]
   tags ContentTag[]
 
   @@index([ownerId])
@@ -102,6 +105,18 @@ model UserPhoto {
   ownerId Int      @unique
   path    String
   owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model RecentContentView {
+  employeeId   Int
+  contentId    Int
+  lastViewedAt DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  content  Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, contentId])
+  @@index([employeeId, lastViewedAt])
 }
 
 model Tag {
