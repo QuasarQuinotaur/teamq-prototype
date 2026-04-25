@@ -1,10 +1,11 @@
 
 
-import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import * as React from "react";
 import type {ComponentProps} from "react";
 import {SelectTrigger} from "@/elements/select.tsx";
 import SelectMapInput from "@/components/input/SelectMapInput.tsx";
+import { id } from "date-fns/locale";
+import useJobNameMap from "@/hooks/useJobNameMap";
 
 type JobPositionInputProps = {
     jobPosition: string;
@@ -15,9 +16,10 @@ export default function JobPositionInput({
                                              setJobPosition,
                                              ...props
 }: JobPositionInputProps) {
+    const jobNameMap = useJobNameMap();
     return (
         <SelectMapInput
-            map={JOB_POSITION_TYPE_MAP}
+            map={jobNameMap}
             initValue={jobPosition}
             setValue={setJobPosition}
             placeholder={"Choose job position"}

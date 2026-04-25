@@ -13,8 +13,8 @@ import {
 import { cn } from "@/lib/utils.ts"
 import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 import type { Employee } from "db";
-import { JOB_POSITION_TYPE_MAP } from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
+import useJobNameMap from "@/hooks/useJobNameMap"
 
 function initialsFromTitle(title: string): string {
   const parts = title.trim().split(/\s+/).filter(Boolean)
@@ -34,8 +34,9 @@ export default function EmployeeCard({
     "h-32 w-32 rounded-full border-4 border-white shadow-md"
 
   const employee = entry.item as Employee;
+  const jobNameMap = useJobNameMap();
   const badges: string[] = [
-    JOB_POSITION_TYPE_MAP[employee.jobPosition as keyof typeof JOB_POSITION_TYPE_MAP] ??
+    jobNameMap[employee.jobPosition as keyof typeof jobNameMap] ??
       employee.jobPosition,
   ];
 

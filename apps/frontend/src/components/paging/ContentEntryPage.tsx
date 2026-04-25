@@ -37,6 +37,7 @@ import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSe
 import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
+import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 
 type ViewerState = {
     contentId: number;
@@ -555,6 +556,8 @@ export default function ContentEntryPage({
         }
     }, [selectedIds, favoritedList, fetchFavorites, exitSelectMode]);
 
+    const getEmployeeIsAdmin = useGetEmployeeIsAdmin();
+
     const bulkCheckoutSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
         setBulkActionLoading(true);
@@ -566,7 +569,7 @@ export default function ContentEntryPage({
                 const item = raw.item as ContentWithCheckout;
                 const canModify =
                     item.jobPositions.includes(employee.jobPosition) ||
-                    employee.jobPosition === "admin";
+                    getEmployeeIsAdmin(employee);
                 if (!canModify) continue;
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
@@ -833,7 +836,7 @@ export default function ContentEntryPage({
                 />
             </>
             const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
-            const isAdmin = employee && employee.jobPosition === "admin";
+            const isAdmin = employee && getEmployeeIsAdmin(employee);
             const canModify = Boolean(isJobPosition || isAdmin);
             const heldByMe =
                 Boolean(employee) &&

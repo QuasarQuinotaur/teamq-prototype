@@ -1,16 +1,7 @@
-import type {ComboboxEntryObject} from "@/components/input/ComboboxMapInput.tsx";
-
 export const CONTENT_TYPE_MAP = {
     reference: "Reference",
     workflow: "Workflow",
     tool: "Tool",
-}
-export const JOB_POSITION_TYPE_MAP = {
-    admin: "Admin",
-    underwriter: "Underwriter",
-    ["business-analyst"]: "Business Analyst",
-    ["actuarial-analyst"]: "Actuarial Analyst",
-    ["exl-operations"]: "EXL Operations"
 }
 export const DOCUMENT_STATUS_TYPE_MAP = {
     ["to-do"]: "To-Do",

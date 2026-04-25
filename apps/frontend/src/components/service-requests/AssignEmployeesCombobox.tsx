@@ -19,8 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/DropdownMenu.tsx";
-import { JOB_POSITION_TYPE_MAP } from "@/components/input/constants.tsx";
 import { ChevronDownIcon } from "lucide-react";
+import useJobNameMap from "@/hooks/useJobNameMap";
 
 export type AssignEmployeeOption = {
   id: number;
@@ -38,8 +38,8 @@ type AssignEmployeesComboboxProps = {
   disabled?: boolean;
 };
 
-function groupLabel(positionKey: string): string {
-  return JOB_POSITION_TYPE_MAP[positionKey as keyof typeof JOB_POSITION_TYPE_MAP] ?? positionKey;
+function groupLabel(positionKey: string, jobNameMap: Record<string, string>): string {
+  return jobNameMap[positionKey as keyof typeof jobNameMap] ?? positionKey;
 }
 
 export function AssignEmployeesCombobox({
@@ -62,10 +62,11 @@ export function AssignEmployeesCombobox({
 
   const stringValue = value.map(String);
 
+    const jobNameMap = useJobNameMap();
   const addAllGroups = React.useMemo(() => {
     const groups: { key: string; ids: number[] }[] = [];
 
-    for (const positionKey of Object.keys(JOB_POSITION_TYPE_MAP)) {
+    for (const positionKey of Object.keys(jobNameMap)) {
       const matched = employees.filter(
           (e) => (e.jobPosition ?? "").toLowerCase() === positionKey.toLowerCase()
       );
@@ -137,7 +138,7 @@ export function AssignEmployeesCombobox({
                   className="text-xs text-muted-foreground"
                   onClick={handleAddAll}
               >
-                Add all {groupLabel(activeGroup.key)}s
+                Add all {groupLabel(activeGroup.key, jobNameMap)}s
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -157,7 +158,7 @@ export function AssignEmployeesCombobox({
                           key={key}
                           onSelect={() => setSelectedGroupKey(key)}
                       >
-                        {groupLabel(key)}s
+                        {groupLabel(key, jobNameMap)}s
                       </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

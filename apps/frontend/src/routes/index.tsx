@@ -115,7 +115,7 @@ export const router = createBrowserRouter([
                                 element: <NotificationDetail />
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />,
+                                element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
                                         path: "/documents/employees",

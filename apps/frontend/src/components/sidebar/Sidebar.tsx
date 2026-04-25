@@ -17,6 +17,7 @@ import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { Link } from "react-router-dom";
+import useJobNameMap from "@/hooks/useJobNameMap"
 
 const data = {
   // user: {
@@ -104,6 +105,14 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const [employee, setEmployee] = useState<{ jobPosition: string } | null>(null);
+  const jobNameMap = useJobNameMap();
+  const otherRolesItems = React.useMemo(() => {
+        return Object.entries(jobNameMap).filter(([id]) => {
+            return id !== employee?.jobPosition
+        }).map(([id, name]) => {
+            return { title: name, url: `/documents/role/${id}` }
+        })
+  }, [jobNameMap])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -136,13 +145,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {
           title: "Other roles",
           url: "/documents/all",
-          items: [
-            { title: "Admin", url: "/documents/role/admin" },
-            { title: "Underwriter", url: "/documents/role/underwriter" },
-            { title: "Business Analyst", url: "/documents/role/business-analyst" },
-            { title: "Actuarial Analyst", url: "/documents/role/actuarial-analyst" },
-            { title: "EXL Operations", url: "/documents/role/exl-operations" },
-          ].filter((r) => r.url !== `/documents/role/${employee?.jobPosition}`),
+          items: otherRolesItems,
         },
         {
           title: "Document type",

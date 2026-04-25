@@ -1,8 +1,8 @@
 import * as React from "react";
-import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import ComboboxMapInput, {type ComboboxMapInputProps} from "@/components/input/ComboboxMapInput.tsx";
 import type {ComponentProps} from "react";
 import {ComboboxChipsInput} from "@/components/Combobox.tsx";
+import useJobNameMap from "@/hooks/useJobNameMap";
 
 
 type JobPositionInputProps = {
@@ -10,9 +10,10 @@ type JobPositionInputProps = {
     setJobPositions: (jobPositions: string[]) => void;
 } & ComponentProps<typeof ComboboxChipsInput>
 export default function JobPositionMultiInput(props: JobPositionInputProps) {
+    const jobNameMap = useJobNameMap();
     return (
         <ComboboxMapInput
-            map={JOB_POSITION_TYPE_MAP}
+            map={jobNameMap}
             values={props.jobPositions}
             setValues={props.setJobPositions}
             placeholder={"Job Position"}
