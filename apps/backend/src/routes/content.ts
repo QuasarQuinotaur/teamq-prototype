@@ -305,6 +305,73 @@ function sortContentsByJobPosition(
     });
 }
 
+
+//===============================
+//Post (Content marked as viewed)
+//===============================
+router.post("/:contentId/view", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        if (Number.isNaN(contentId)) {
+            res.status(400).json({ error: "Invalid content id" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        await contentRepo.recordView(employee.id, contentId);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to record view",
+        });
+    }
+});
+
+
+//===================================
+//GET (recently viewed documents)====
+//===================================
+router.get("/recent", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const limit = Number(req.query.limit);
+        const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
+
+        const recent = await contentRepo.getRecentViews(employee.id, take);
+
+        res.json({
+            success: true,
+            recent: recent.map((row) => ({
+                lastViewedAt: row.lastViewedAt,
+                content: row.content,
+            })),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to load recent documents",
+        });
+    }
+});
+
 // ===================================
 // GET ===============================
 // ===================================
@@ -949,73 +1016,6 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         console.error(err);
         res.status(500).json({
             error: err instanceof Error ? err.message : "Failed to load tags",
-        });
-    }
-});
-
-
-//===============================
-//Post (Content marked as viewed)
-//===============================
-router.post("/:contentId/view", requiresAuth(), async (req, res) => {
-    try {
-        const employee = await getEmployeeFromRequest(req);
-        if (!employee) {
-            res.status(404).json({ error: "No linked employee account found" });
-            return;
-        }
-
-        const contentId = Number(req.params.contentId);
-        if (Number.isNaN(contentId)) {
-            res.status(400).json({ error: "Invalid content id" });
-            return;
-        }
-
-        const content = await contentRepo.getById(contentId);
-        if (!content) {
-            res.status(404).json({ error: "Content not found" });
-            return;
-        }
-
-        await contentRepo.recordView(employee.id, contentId);
-
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            error: err instanceof Error ? err.message : "Failed to record view",
-        });
-    }
-});
-
-
-//===================================
-//GET (recently viewed documents)====
-//===================================
-router.get("/recent", requiresAuth(), async (req, res) => {
-    try {
-        const employee = await getEmployeeFromRequest(req);
-        if (!employee) {
-            res.status(404).json({ error: "No linked employee account found" });
-            return;
-        }
-
-        const limit = Number(req.query.limit);
-        const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
-
-        const recent = await contentRepo.getRecentViews(employee.id, take);
-
-        res.json({
-            success: true,
-            recent: recent.map((row) => ({
-                lastViewedAt: row.lastViewedAt,
-                content: row.content,
-            })),
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            error: err instanceof Error ? err.message : "Failed to load recent documents",
         });
     }
 });

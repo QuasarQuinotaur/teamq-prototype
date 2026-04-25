@@ -178,8 +178,13 @@ export default function ContentEntryPage({
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
     
-    const onContentOpened = useCallback(() => {
-        console.log("CONTENT OPENED NOW")
+    const onContentOpened = useCallback((entry: CardEntry) => {
+        console.log("CONTENT OPENED NOW", entry)
+        // Mark as viewed for recent documents
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}/view`, {
+            method: "POST",
+            credentials: "include",
+        });
     }, [])
 
     const exitSelectMode = useCallback(() => {
@@ -224,7 +229,7 @@ export default function ContentEntryPage({
                     onToggleEntrySelect(entry);
                     return;
                 }
-                onContentOpened();
+                onContentOpened(entry);
                 // Web links (non-file paths) open directly in a new tab
                 if (entry.link && !isSupabasePath(entry.link)) {
                     window.open(entry.link, "_blank", "noopener,noreferrer");
@@ -448,19 +453,18 @@ export default function ContentEntryPage({
             onlyMine,
             onlyMyCheckouts,
         });
-        console.log("LOAD:", qs, onlyRecents)
-        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
-            (qs ? `?${qs}` : "")
-        console.log("URL:", url)
+        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : 
+                qs ? `?${qs}` : "")
         fetch(url, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("Failed to load content");
                 return res.json();
             })
-            .then((data: ContentListRow[]) => {
+            .then((data: object) => {
+                const useData: ContentListRow[] = onlyRecents ? data["recent"] : data
                 setEntries(
-                    data.map((c) =>
-                        getContentEntryFromRow(c, employee, employeeMap),
+                    useData.map((c) =>
+                        getContentEntryFromRow(onlyRecents ? c["content"] : c, employee, employeeMap),
                     ),
                 );
             })

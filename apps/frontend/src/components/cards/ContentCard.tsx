@@ -174,7 +174,7 @@ export default function ContentCard({
             return;
         }
         if (onOpen) {
-            onOpen();
+            onOpen(entry);
         }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
