@@ -23,7 +23,7 @@ import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/pagin
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
-import {StarIcon} from "@phosphor-icons/react";
+import { StarIcon } from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
@@ -37,7 +37,6 @@ import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSe
 import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
-import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 
 type ViewerState = {
     contentId: number;
@@ -421,7 +420,7 @@ export default function ContentEntryPage({
             });
     }
 
-    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const defaultSortFields: SortFields = onlyRecents ? DEFAULT_SORT_FIELDS_RECENT : DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const [searchPhrase, setSearchPhrase] = useState("")
     const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -901,6 +900,11 @@ export default function ContentEntryPage({
         return positions.size > 1;
     }, [entries]);
 
+    const sortByMap = {
+        ...(onlyRecents ? {["lastViewedAt"]: "Last Viewed At"} : {}),
+        ...CONTENT_SORT_BY_MAP
+    }
+
     // Track properties to update querying
     const queryProps: QueryProps<ContentFieldsFilter> = {
         searchBarProps: {
@@ -915,7 +919,7 @@ export default function ContentEntryPage({
             tagList: tagList,
         },
         sortButtonProps: {
-            sortByMap: CONTENT_SORT_BY_MAP,
+            sortByMap: sortByMap,
             defaultSortFields,
             sortFields,
             setSortFields,
