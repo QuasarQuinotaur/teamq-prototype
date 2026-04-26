@@ -24,13 +24,14 @@ model Employee {
   createdRequests  ServiceRequest[] @relation("OwnedRequests")
   assignedRequests ServiceRequest[] @relation("EmployeeRequests")
 
-  notifications  Notification[] @relation("NotificationEmployees")
-  contentChecked Content[]      @relation("CheckedOutContent")
+  notifications  Notification[]  @relation("NotificationEmployees")
+  contentChecked Content[]       @relation("CheckedOutContent")
 
   recentViews RecentContentView[]
   tagsCreated    Tag[]
+  contentReviews ContentReview[]
 
-  //added user setting the employee
+  // added user setting the employee
   userSettings UserSettings?
 }
 
@@ -50,7 +51,7 @@ model Content {
   contentType        String
   dateAdded          DateTime         @default(now())
   dateUpdated        DateTime         @updatedAt
-  dateReview         DateTime? // TODO
+  reviews            ContentReview[]
   expirationDate     DateTime
   employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
   ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
@@ -66,6 +67,9 @@ model Content {
   recentViews RecentContentView[]
   tags ContentTag[]
 
+  isTutorial Boolean @default(false)
+
+  @@index([isTutorial, ownerId])
   @@index([ownerId])
   @@index([contentType])
   @@index([expirationDate])
@@ -159,4 +163,27 @@ model UserSettings {
   tagsEnabled Boolean  @default(true)
   listEnabled Boolean  @default(false)
   owner       Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+// Date Review:
+model ContentReview {
+  id   Int      @id @default(autoincrement())
+  date DateTime
+
+  contentId  Int
+  employeeId Int? // optional specifiy who needs to review it
+
+  status   String  @default("pending") // pending | done | skipped
+  stepName String //  "Watch video", "Complete quiz"
+  note     String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  content  Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([contentId])
+  @@index([employeeId])
+  @@index([status])
 }

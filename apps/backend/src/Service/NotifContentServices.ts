@@ -14,7 +14,7 @@ class ContentService {
     ) {}
 
     async deleteContent(id: number, employee: Employee) {
-        const content = await this.contentRepo.getById(id);
+        const content = await this.contentRepo.getById(id, employee.id);
 
         if (!content) throw new Error("Content not found");
 

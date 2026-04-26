@@ -9,7 +9,10 @@ const contentCatalogInclude = {
 
 class ContentRepository {
     async getAll() {
-        return this.listWithFilters({}, { id: "asc" });
+        return this.listWithFilters(
+            { isTutorial: false },
+            { id: "asc" }
+        );
     }
 
     /**
@@ -23,7 +26,10 @@ class ContentRepository {
             | Prisma.ContentOrderByWithRelationInput[],
     ) {
         return prisma.content.findMany({
-            where,
+            where: {
+                isTutorial: false,
+                ...where,
+            },
             orderBy,
             include: contentCatalogInclude,
         });
@@ -44,6 +50,7 @@ class ContentRepository {
     async getByMultJobPosition(jobPosition: string[]) {
         return prisma.content.findMany({
             where: {
+                isTutorial: false,
                 jobPositions: {
                     hasSome: jobPosition
                 }
@@ -53,9 +60,15 @@ class ContentRepository {
         });
     }
 
-    async getById(id: number) {
-        return prisma.content.findUnique({
-            where: { id },
+    async getById(id: number, userId: number) {
+        return prisma.content.findFirst({
+            where: {
+                id,
+                OR: [
+                    { isTutorial: false },
+                    { isTutorial: true, ownerId: userId }
+                ]
+            },
             include: {
                 owner: true,
                 checkedOutBy: { include: { userPhoto: true } },
@@ -66,7 +79,10 @@ class ContentRepository {
 
     async getByOwner(ownerId: number) {
         return prisma.content.findMany({
-            where: { ownerId },
+            where: {
+                ownerId,
+                isTutorial: false
+            },
             orderBy: { id: "asc" },
             include: { owner: true }
         });
@@ -201,6 +217,7 @@ class ContentRepository {
     async getByTag(tagId: number) {
         return prisma.content.findMany({
             where: {
+                isTutorial: false,
                 tags: {
                     some: {
                         tagId: tagId
@@ -212,6 +229,58 @@ class ContentRepository {
                 owner: true,
                 checkedOutBy: { include: { userPhoto: true } },
             },
+        });
+    }
+
+    // TUT STUFF +========================================================
+    async createTutorial(data: {
+        title: string;
+        ownerId: number;
+    }) {
+        return prisma.content.create({
+            data: {
+                title: data.title,
+                owner: { connect: { id: data.ownerId } },
+                isTutorial: true,
+
+                // minimal required fields if needed:
+                jobPositions: [],
+                contentType: "tutorial",
+                expirationDate: new Date(Date.now() + 1000 * 60 * 60) // 1 hr
+            }
+        });
+    }
+
+    async deleteTutorialContent(userId: number) {
+        return prisma.content.deleteMany({
+            where: {
+                isTutorial: true,
+                ownerId: userId
+            }
+        });
+    }
+
+    async getTutorialByTag(tagId: number, userId: number) {
+        return prisma.content.findMany({
+            where: {
+                isTutorial: true,
+                ownerId: userId,
+                tags: {
+                    some: { tagId }
+                }
+            },
+            include: contentCatalogInclude,
+        });
+    }
+
+    async getTutorialContent(userId: number) {
+        return prisma.content.findMany({
+            where: {
+                isTutorial: true,
+                ownerId: userId
+            },
+            orderBy: { id: "asc" },
+            include: contentCatalogInclude,
         });
     }
 }
