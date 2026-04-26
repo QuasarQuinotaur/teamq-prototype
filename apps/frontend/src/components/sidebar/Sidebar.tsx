@@ -110,8 +110,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { jobNameMap, rolesLoading } = useJobNameMap();
   const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
   const otherRolesItems = React.useMemo(() => {
+        if (!employee) {
+            return null
+        }
         const notOfRole = Object.entries(jobNameMap).filter(([id]) => {
-            return id !== employee?.jobPosition
+            return id !== employee.jobPosition
         })
         if (notOfRole.length === 0) {
             return null
@@ -119,7 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         return notOfRole.map(([id, name]) => {
             return { title: name, url: `/documents/role/${id}` }
         })
-  }, [jobNameMap])
+  }, [jobNameMap, employee])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -149,7 +152,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ...(employee?.jobPosition
           ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
           : []),
-        ...(!rolesLoading
+        ...((!rolesLoading && otherRolesItems && otherRolesItems.length > 0)
           ? [{ title: "Other roles", url: "/documents/all", items: otherRolesItems }]
           : []),
         {

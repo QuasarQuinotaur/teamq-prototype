@@ -7,7 +7,8 @@ export default function useGetEmployeeIsAdmin() {
     const getEmployeeIsAdmin = useMemo((): (employee: Employee) => boolean => {
         return (employee: Employee) => {
             const role = jobInfoMap[employee.jobPosition]
-            return role && role.isAdmin
+            console.log("EMPLOYEE ROLE", role)
+            return role && role.permission === "ADMIN"
         }
     }, [jobInfoMap])
     return { getEmployeeIsAdmin, rolesLoading }

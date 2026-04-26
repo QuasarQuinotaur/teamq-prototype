@@ -42,9 +42,10 @@ export default function useCreateMainContext(): MainContext {
                     if (!rolesData.success) throw new Error("Failed to find tags.")
                     const roles: Role[] = rolesData.roles
                     const roleMap = roles.reduce((map, role) => {
-                        map[role.id] = role
+                        map[role.key] = role
                         return map
                     }, {})
+                    console.log("ROLE MAP:", roleMap)
                     setJobInfoMap(roleMap)
                     setRolesLoading(false)
                 } catch (error) {
