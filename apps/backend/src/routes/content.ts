@@ -106,6 +106,40 @@ router.get("/", requiresAuth(), async (req, res) => {
 });
 
 
+router.get("/expirations", requiresAuth(), async (req, res) => {
+    try {
+        const contents = await prisma.content.findMany({
+            include: {
+                owner: {
+                    include: {
+                        userPhoto: true,
+                    },
+                },
+            },
+        });
+
+        const expirations = await Promise.all(
+            contents.map(async (c) => {
+                const ownerWithUrl = c.owner
+                    ? await employeeWithProfileUrl(c.owner)
+                    : null;
+
+                return {
+                    id: c.id,
+                    title: c.title,
+                    expirationDate: c.expirationDate,
+                    owner: ownerWithUrl,
+                };
+            })
+        );
+
+        res.json(expirations);
+    } catch (err) {
+        console.error("Failed to fetch expirations:", err);
+        res.status(500).json({ error: "Failed to fetch expirations" });
+    }
+});
+
 router.get("/:id", requiresAuth(), async (req, res) => { // get content
     const id = Number(req.params.id);
     if (isNaN(id)) {

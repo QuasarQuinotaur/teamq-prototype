@@ -59,7 +59,7 @@ function border(variant: string) {
 }
 
 // --- MAIN ---
-export default function WeekCalendar({
+export default function RequestsCalendarWidget({
                                          requests,
                                          loading,
                                      }: {

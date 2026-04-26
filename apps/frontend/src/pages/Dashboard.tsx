@@ -15,8 +15,9 @@ import {
 } from "@dnd-kit/sortable";
 
 import StatsWidget from "@/components/widgets/StatsWidget";
-import CalendarWidget from "@/components/widgets/CalendarWidget";
+import RequestsCalendarWidget from "@/components/widgets/RequestsCalendarWidget.tsx";
 import RequestsWidget from "@/components/widgets/RequestsWidget";
+import ExpirationCalendarWidget from "@/components/widgets/ExpirationCalendarWidget.tsx";
 
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -24,6 +25,7 @@ import { addDays, startOfDay } from "date-fns";
 import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
+import DocumentViewer from "@/components/DocumentViewer.tsx";
 
 type Widget = {
     id: string;
@@ -54,17 +56,18 @@ export default function Dashboard() {
         }
         return [
             { id: "1", type: "chart", size: 1 },
-            { id: "2", type: "calendar", size: 2 },
+            { id: "2", type: "requestsCalendar", size: 2 },
             { id: "3", type: "requests", size: 3 },
         ];
     });
 
     const widgetOptions = [
         { type: "stats", label: "Stats" },
-        { type: "calendar", label: "Calendar" },
+        { type: "requestsCalendar", label: "Requests Calendar" },
         { type: "requests", label: "Requests" },
         { type: "chart", label: "Chart" },
         { type: "gif", label: "GIF" },
+        { type: "expirationCalendar", label: "Expiration Calendar" },
     ];
 
     const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
@@ -91,6 +94,8 @@ export default function Dashboard() {
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [openPreview, setOpenPreview] = useState<string | null>(null);
+
+
 
     useEffect(() => {
         localStorage.setItem("widgets", JSON.stringify(widgets));
@@ -212,9 +217,10 @@ export default function Dashboard() {
         const defaultSizes: Record<string, 1 | 2 | 3> = {
             stats: 1,
             chart: 1,
-            calendar: 2,
+            requestsCalendar: 2,
             requests: 2,
             gif: 1,
+            expirationCalendar: 3,
         };
 
         setWidgets(prev => [
@@ -230,6 +236,20 @@ export default function Dashboard() {
 
     function removeWidget(id: string) {
         setWidgets(prev => prev.filter(w => w.id !== id));
+    }
+
+    // for previews for expiration calendar
+    const [viewer, setViewer] = useState(null);
+
+    if (viewer) {
+        return (
+            <DocumentViewer
+                url={viewer.url}
+                filename={viewer.filename}
+                title={viewer.title}
+                onClose={() => setViewer(null)}
+            />
+        );
     }
 
     return (
@@ -282,6 +302,7 @@ export default function Dashboard() {
                                             weekEnd,
                                         }}
                                         url={widget.url}
+                                        onOpenDocument={setViewer}
                                     />
                                 </SortableItem>
                             ))}
@@ -526,10 +547,17 @@ function SortableItem({ id, size, children, onDelete, isActive, isDraggingAny, r
 }
 
 
-function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
-    if (type === "calendar") {
-        return <CalendarWidget requests={data.requests} loading={data.loading} />;
-    }
+function WidgetRenderer({
+                            type,
+                            data,
+                            url,
+                            onOpenDocument,
+                        }: {
+    type: string;
+    data: any;
+    url?: string;
+    onOpenDocument: any;
+}) {
 
     let inner: React.ReactNode;
     switch (type) {
@@ -537,6 +565,8 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         case "requests": inner = <RequestsWidget {...data} />; break;
         case "chart":    inner = <PieChartWidget counts={data.counts} />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
+        case "requestsCalendar":    inner = <RequestsCalendarWidget requests={data.requests} loading={data.loading}/>; break;
+        case "expirationCalendar":  inner = <ExpirationCalendarWidget onOpenDocument={onOpenDocument} />; break;
         default:         inner = <div>Unknown widget</div>;
     }
 

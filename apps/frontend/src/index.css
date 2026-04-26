@@ -256,3 +256,113 @@ html[data-text-size="Large"] { font-size: 18px; }
     @apply scroll-m-20 text-xl font-semibold tracking-tight;
   }
 }
+
+
+/* Match your app typography */
+.rbc-calendar {
+  font-family: inherit;
+  font-size: 14px;
+  color: inherit;
+}
+
+/* Toolbar layout */
+.rbc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Center the month label absolutely */
+.rbc-toolbar-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: inherit;
+  font-weight: 600;
+}
+
+/* Left + right button groups */
+.rbc-btn-group {
+  display: flex;
+  gap: 6px;
+}
+
+/* Buttons */
+.rbc-toolbar button {
+  border: 1px solid #e5e7eb; /* your border color */
+  background: white;
+  color: #374151;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+/* Hover */
+.rbc-toolbar button:hover {
+  background: #f9fafb;
+}
+
+/* Active (Month button) */
+.rbc-toolbar button.rbc-active {
+  background: #111827;
+  color: white;
+  border-color: #111827;
+}
+
+/* Outer calendar */
+.rbc-month-view {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Fix squished day names */
+.rbc-header {
+  padding: 10px 0 !important;
+  font-size: 13px;
+  height: 40px;           /*  forces proper height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: inherit;
+  font-weight: 600; /* bold but not too heavy */
+}
+
+/* Day cells */
+.rbc-day-bg {
+  background: white;
+}
+
+/* Today highlight */
+.rbc-today {
+  background: #f3f4f6;
+}
+
+.rbc-event {
+  background: #2563eb; /* match your blue */
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  border: none;
+}
+
+/* Optional: softer look */
+.rbc-event-content {
+  font-weight: 500;
+}
+
+.rbc-month-row {
+  min-height: 80px;
+}
+
+.rbc-toolbar button {
+  box-shadow: none;
+}
+
+.rbc-toolbar button:focus {
+  outline: none;
+  ring: 2px solid #e5e7eb;
+}
