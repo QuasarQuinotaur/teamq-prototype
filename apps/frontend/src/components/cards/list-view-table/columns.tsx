@@ -1,6 +1,112 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import type { CardEntry } from "@/components/cards/Card.tsx"
 import * as React from "react"
+import { BookOpen, FileText, GitBranch, Globe, Star, Wrench } from "lucide-react"
+import { cn } from "@/lib/utils.ts"
+import { isSupabasePath } from "@/lib/utils.ts"
+import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/elements/tooltip.tsx"
+
+const CONTENT_TYPE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    tool: Wrench,
+    reference: BookOpen,
+    workflow: GitBranch,
+};
+
+function ContentTypeIcon({ badge, link }: { badge?: string; link?: string }) {
+    const TypeIcon = badge ? CONTENT_TYPE_ICON_MAP[badge] : undefined;
+    if (TypeIcon) {
+        return <TypeIcon className="size-4 text-muted-foreground shrink-0" />;
+    }
+    // Uploaded file vs web link fallback
+    if (link && isSupabasePath(link)) {
+        return <FileText className="size-4 text-muted-foreground shrink-0" />;
+    }
+    return <Globe className="size-4 text-muted-foreground shrink-0" />;
+}
+
+function TitleCell({
+    entry,
+    renderTitleCell,
+}: {
+    entry: CardEntry;
+    renderTitleCell?: (entry: CardEntry) => React.ReactNode;
+}) {
+    const titleContent = renderTitleCell ? renderTitleCell(entry) : entry.title;
+    return <div className="min-w-0 truncate">{titleContent}</div>;
+}
+
+function TagsCell({ entry }: { entry: CardEntry }) {
+    const tags = entry.tags ?? [];
+    if (tags.length === 0) return null;
+    return (
+        <div className="flex flex-wrap gap-0.5 whitespace-normal">
+            {tags.map((tag) => (
+                <span
+                    key={tag.id}
+                    className="inline-flex items-center rounded px-1.5 text-[10px] font-medium leading-4 shrink-0"
+                    style={{
+                        backgroundColor: `color-mix(in oklab, ${tag.color} 15%, transparent)`,
+                        color: `color-mix(in srgb, ${tag.color}, black 30%)`,
+                        border: `1px solid color-mix(in srgb, ${tag.color}, black 20%)`,
+                    }}
+                >
+                    {tag.tagName}
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function ownerInitials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function OwnerCell({ owner, ownerImage }: { owner?: string; ownerImage?: string }) {
+    if (!owner) return <span className="text-muted-foreground">—</span>;
+    return (
+        <TooltipProvider delayDuration={200}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Avatar size="sm" className="cursor-default">
+                        {ownerImage && <AvatarImage src={ownerImage} alt={owner} />}
+                        <AvatarFallback>{ownerInitials(owner)}</AvatarFallback>
+                    </Avatar>
+                </TooltipTrigger>
+                <TooltipContent side="top">{owner}</TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
+
+function FavoriteCell({
+    entry,
+    isFavorited,
+    onToggleFavorite,
+}: {
+    entry: CardEntry;
+    isFavorited: (entry: CardEntry) => boolean;
+    onToggleFavorite: (entry: CardEntry) => void;
+}) {
+    const favorited = isFavorited(entry);
+    return (
+        <button
+            type="button"
+            className="rounded p-1 hover:bg-muted transition-colors"
+            onClick={() => onToggleFavorite(entry)}
+            aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+        >
+            <Star
+                className={cn(
+                    "size-4 transition-colors",
+                    favorited ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground",
+                )}
+            />
+        </button>
+    );
+}
 
 function DocumentActionsMenuCell({
     entry,
@@ -42,15 +148,10 @@ export type CreateColumnsOptions = {
     selectMode?: boolean;
     isEntrySelected?: (entry: CardEntry) => boolean;
     onToggleEntrySelect?: (entry: CardEntry) => void;
+    /** Favorite state — when provided, a clickable star column is shown. */
+    isFavorited?: (entry: CardEntry) => boolean;
+    onToggleFavorite?: (entry: CardEntry) => void;
 };
-
-// Legacy mock type (kept for reference)
-// export type Payment = {
-//     id: string
-//     tag: "Business Analyst" | "Underwriter"
-//     name: string
-//     link: string
-// }
 
 export function createColumns(
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode,
@@ -81,21 +182,37 @@ export function createColumns(
         });
     }
 
+    // File type icon column
+    cols.push({
+        id: "type-icon",
+        header: "",
+        size: 36,
+        cell: ({ row }) => {
+            const entry = row.original;
+            return (
+                <div className="flex items-center justify-center">
+                    <ContentTypeIcon badge={entry.badge} link={entry.link} />
+                </div>
+            );
+        },
+    });
+
     cols.push(
         {
             accessorKey: "title",
             header: "Title",
-            cell: ({ row }) => {
-                const entry = row.original;
-                if (options?.renderTitleCell) {
-                    return options.renderTitleCell(entry);
-                }
-                return entry.title;
-            },
+            cell: ({ row }) => (
+                <TitleCell
+                    entry={row.original}
+                    renderTitleCell={options?.renderTitleCell}
+                />
+            ),
         },
         {
             accessorKey: "owner",
             header: "Owner",
+            size: 60,
+            cell: ({ row }) => <OwnerCell owner={row.original.owner} ownerImage={row.original.ownerImage} />,
         },
     );
 
@@ -111,9 +228,9 @@ export function createColumns(
                 const date = new Date(value as string);
 
                 return date.toLocaleDateString("en-US", {
-                    month: "short",   // Apr
-                    day: "numeric",   // 2
-                    year: "numeric",  // 2026
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
                 });
             },
         });
@@ -128,6 +245,31 @@ export function createColumns(
             return badge.charAt(0).toUpperCase() + badge.slice(1);
         },
     });
+
+    // Tags column
+    cols.push({
+        id: "tags",
+        header: "Tags",
+        cell: ({ row }) => <TagsCell entry={row.original} />,
+    });
+
+    // Favorite icon column
+    if (options?.isFavorited && options?.onToggleFavorite) {
+        cols.push({
+            id: "favorite",
+            header: "",
+            size: 44,
+            cell: ({ row }) => (
+                <div data-row-click-ignore className="flex items-center justify-center">
+                    <FavoriteCell
+                        entry={row.original}
+                        isFavorited={options.isFavorited!}
+                        onToggleFavorite={options.onToggleFavorite!}
+                    />
+                </div>
+            ),
+        });
+    }
 
     if (createOptionsElement) {
         cols.push({

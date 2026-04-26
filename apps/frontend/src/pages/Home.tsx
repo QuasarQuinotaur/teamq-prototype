@@ -1,8 +1,49 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Hero from '../components/Hero';
 import { Badge } from '@/elements/badge';
 import { Separator } from '@/elements/separator';
 import { cn } from '@/lib/utils';
+import { WarningIcon } from '@phosphor-icons/react';
+
+function DisclaimerBadge() {
+    const [expanded, setExpanded] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setExpanded(false), 4000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    return (
+        <div
+            className="fixed left-4 top-8 z-50"
+            onMouseEnter={() => setExpanded(true)}
+            onMouseLeave={() => setExpanded(false)}
+        >
+            <div className="flex h-10 items-center gap-2.5">
+                <WarningIcon
+                    weight="duotone"
+                    className="size-8 shrink-0 text-white drop-shadow-sm"
+                />
+                <div
+                    className={cn(
+                        'flex flex-col overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out',
+                        expanded ? 'max-w-[72rem] opacity-100' : 'max-w-0 opacity-0'
+                    )}
+                >
+                    <span className="font-heading text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+                        Disclaimer
+                    </span>
+                    <p className="text-xs leading-snug text-white/80">
+                        This website has been created for WPI&apos;s CS 3733 Software
+                        Engineering as a class project and is not in use by Hanover Insurance.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 function ImagePlaceholder({ label }: { label: string }) {
     return (
@@ -67,17 +108,8 @@ function FeatureSection({
 function Home() {
     return (
         <div className="min-w-full bg-white text-lg">
+            <DisclaimerBadge />
             <section className="flex min-h-[100svh] flex-col">
-                <section className="sticky top-0 z-30 border-b border-sky-200/70 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-                    <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-3 text-center sm:px-6">
-                        <span className="font-heading text-[11px] font-semibold uppercase tracking-[0.18em] text-hanover-blue">
-                            Disclaimer
-                        </span>
-                        <p className="text-sm leading-relaxed text-sky-950/90">
-                            This website has been created for WPI&apos;s CS 3733 Software Engineering as a class project and is not in use by Hanover Insurance.
-                        </p>
-                    </div>
-                </section>
                 <Hero className="min-h-0 flex-1" />
             </section>
             <FeatureSection

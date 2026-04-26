@@ -53,7 +53,7 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="overflow-hidden rounded-md border">
-            <Table className="bg-muted/50">
+            <Table className="bg-background">
                 <TableHeader className={"bg-background"}>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
@@ -74,7 +74,7 @@ export function DataTable<TData, TValue>({
                 </TableHeader>
                 <TableBody>
                     {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
+                        table.getRowModel().rows.map((row, index) => (
                             <TableRow
                                 key={row.id}
                                 data-state={row.getIsSelected() && "selected"}
@@ -89,9 +89,9 @@ export function DataTable<TData, TValue>({
                                     : {})}
                                 className={cn(
                                     onRowClick && "cursor-pointer",
-                                    selectMode &&
-                                        isRowSelected?.(row.original) &&
-                                        "bg-primary/25",
+                                    selectMode && isRowSelected?.(row.original)
+                                        ? "bg-primary/25"
+                                        : index % 2 === 0 ? "bg-background" : "bg-muted/30",
                                     selectMode && "select-none",
                                 )}
                                 onDragStartCapture={

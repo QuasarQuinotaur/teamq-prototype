@@ -3,6 +3,7 @@ import {FieldInput} from "@/components/forms/Field.tsx";
 import {Separator} from "@/elements/separator.tsx";
 import {Input} from "@/elements/input.tsx";
 import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
+import EmployeeCombobox from "@/components/input/EmployeeCombobox.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
 import {Item} from "@/elements/item.tsx";
@@ -10,6 +11,7 @@ import {Button} from "@/elements/buttons/button.tsx";
 import {FileIcon, LinkIcon} from "lucide-react";
 import {cn} from "@/lib/utils.ts";
 import {useEffect, useRef, useState} from "react";
+import type {Employee} from "db";
 
 export type ContentFields = {
     name: string,
@@ -20,6 +22,7 @@ export type ContentFields = {
     contentType: string,
     file: File | null,
     sourceType: "file" | "link",
+    newOwnerID: number,
 }
 export type DocumentDateStrings = {
     expiration: string,
@@ -113,6 +116,21 @@ export default function DocumentFormFields({
                                 contentType={fields.contentType}
                                 setContentType={(type) => {
                                     setKey("contentType", type)
+                                }}
+                            />
+                        )}
+                    />
+                    <FieldInput
+                        id={"document-owner"}
+                        label={"Document Owner"}
+                        required
+                        createElement={() => (
+                            <EmployeeCombobox
+                                isUpdate={isUpdate}
+                                ownerID={fields.newOwnerID}
+                                setNewOwner={(owner: Employee) => {
+                                    console.log(owner)
+                                    setKey("newOwnerID", owner.id)
                                 }}
                             />
                         )}

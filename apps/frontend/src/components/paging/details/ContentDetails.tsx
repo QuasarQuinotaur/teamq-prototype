@@ -1,7 +1,6 @@
 import type {Content, Employee, Tag} from "db";
 import Detail from "@/components/paging/details/Detail.tsx";
 import {formatDate, formatDateWithTime, isSupabasePath} from "@/lib/utils.ts";
-import path from "path";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import {Avatar, AvatarFallback, AvatarImage} from "@/elements/avatar.tsx";
@@ -24,7 +23,6 @@ export default function ContentDetails({
 
     const isExpired = Date.now() > expirationDate.getTime()
     const isFile = isSupabasePath(filePath);
-    const showLinkDetail = !isFile
 
     const [owner, setOwner] = useState<Employee | null>()
     const [ownerPhoto, setOwnerPhoto] = useState<string | null>(null)
@@ -88,18 +86,29 @@ export default function ContentDetails({
                             </div>
                         }
                     />
-                    {showLinkDetail && <Detail
-                        label={isFile ? "File Path" : "URL"}
-                        value={isFile ? filePath : (
-                            <a
-                                className={"text-primary"}
-                                href={filePath}
-                                target="_blank"
-                            >
-                                <u>{filePath}</u>
-                            </a>
-                        )}
-                    />}
+                    <Detail
+                        label={isFile ? "File Name" : "URL"}
+                        value={
+                            filePath ? (
+                                isFile ? (
+                                    <span className="break-all text-muted-foreground">
+                                        {decodeURIComponent(filePath.split("/").pop()?.split("?")[0] ?? filePath)}
+                                    </span>
+                                ) : (
+                                    <a
+                                        className="text-primary break-all hover:underline"
+                                        href={filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {filePath}
+                                    </a>
+                                )
+                            ) : (
+                                <span className="text-muted-foreground">—</span>
+                            )
+                        }
+                    />
                     <Detail
                         label={"Status"}
                         value={isExpired ? "Expired" : "Active"}

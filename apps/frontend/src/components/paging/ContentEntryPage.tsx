@@ -5,7 +5,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import { useSearchParams } from "react-router-dom";
 import type {CardEntry} from "@/components/cards/Card.tsx";
-import type {Content, ContentTag, Employee, Tag} from "db";
+import type {Content, Employee, Tag} from "db";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
 import SplitDocumentWorkspace from "@/components/paging/SplitDocumentWorkspace.tsx";
@@ -21,12 +21,10 @@ import { isDocumentLikeFilename } from "@/lib/document-kind.ts";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
-import useContentQueryEntries from "@/components/paging/hooks/content-query-entries.tsx";
 import { DropdownMenuItem, DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
 import {InfoIcon, StarIcon} from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
-import useContentSortFunction from "@/components/paging/hooks/content-sort-function.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
 import {
@@ -36,7 +34,7 @@ import {
 import axios from "axios";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSelectorButton.tsx";
-import { cn } from "@/lib/utils.ts";
+import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 
@@ -93,6 +91,65 @@ type ContentWithCheckout = Content & {
     } | null;
 };
 
+/** List row from `GET /api/content` (includes `tags` when loaded via catalog query). */
+type ContentListRow = Content & {
+    tags?: { tag: Tag }[];
+};
+
+function buildContentListQueryString(opts: {
+    fieldsFilter: ContentFieldsFilter;
+    debouncedSearch: string;
+    sortFields: SortFields;
+    onlyFavorites?: boolean;
+    onlyMine?: boolean;
+    onlyMyCheckouts?: boolean;
+}): string {
+    const p = new URLSearchParams();
+    const {
+        fieldsFilter,
+        debouncedSearch,
+        sortFields,
+        onlyFavorites,
+        onlyMine,
+        onlyMyCheckouts,
+    } = opts;
+    for (const c of fieldsFilter.contentTypes ?? []) p.append("contentTypes", c);
+    for (const j of fieldsFilter.jobPositions ?? []) p.append("jobPositions", j);
+    for (const d of fieldsFilter.documentTypes ?? [])
+        p.append("documentTypes", d);
+    for (const id of fieldsFilter.tagIds ?? []) p.append("tagIds", String(id));
+    const q = debouncedSearch.trim();
+    if (q) p.set("q", q);
+    p.set("sortBy", sortFields.sortBy);
+    p.set("sortMethod", sortFields.sortMethod);
+    if (onlyFavorites) p.set("onlyFavorites", "1");
+    if (onlyMine) p.set("onlyMine", "1");
+    if (onlyMyCheckouts) p.set("onlyMyCheckouts", "1");
+    return p.toString();
+}
+
+function getContentEntryFromRow(
+    content: ContentListRow,
+    employee: Employee | null,
+    employeeMap: Map<number, { name: string; image?: string }>,
+): CardEntry {
+    const tags: Tag[] =
+        content.tags
+            ?.map((ct) => ct.tag)
+            .filter((t) => (employee ? t.ownerId === employee.id : false)) ?? [];
+    const ownerRecord = employeeMap.get(content.ownerId);
+    return {
+        item: content,
+        title: content.title,
+        link: content.filePath ?? "",
+        owner: ownerRecord?.name,
+        ownerImage: ownerRecord?.image,
+        badge: content.contentType,
+        expirationDate: content.expirationDate,
+        tags,
+    };
+}
+
 export default function ContentEntryPage({
                                              contentType,
                                              jobPosition,
@@ -111,7 +168,7 @@ export default function ContentEntryPage({
     /** Per-pane document; null means that pane shows the grid. */
     const [leftPaneDoc, setLeftPaneDoc] = useState<ViewerState | null>(null);
     const [rightPaneDoc, setRightPaneDoc] = useState<ViewerState | null>(null);
-    const [employeeMap, setEmployeeMap] = useState<Map<number, string>>(new Map());
+    const [employeeMap, setEmployeeMap] = useState<Map<number, { name: string; image?: string }>>(new Map());
     const [employee, setEmployee] = useState<Employee>(null);
 
     const [selectMode, setSelectMode] = useState(false);
@@ -158,6 +215,11 @@ export default function ContentEntryPage({
                 if (selectMode && bulkActionLoading) return;
                 if (selectMode) {
                     onToggleEntrySelect(entry);
+                    return;
+                }
+                // Web links (non-file paths) open directly in a new tab
+                if (entry.link && !isSupabasePath(entry.link)) {
+                    window.open(entry.link, "_blank", "noopener,noreferrer");
                     return;
                 }
                 void opener(entry);
@@ -285,8 +347,8 @@ export default function ContentEntryPage({
     useEffect(() => {
         fetch(`${apiBase}/api/employee`, { credentials: "include" })
             .then(res => res.json())
-            .then((employees: Employee[]) => {
-                setEmployeeMap(new Map(employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])));
+            .then((employees: (Employee & { image?: string })[]) => {
+                setEmployeeMap(new Map(employees.map(e => [e.id, { name: `${e.firstName} ${e.lastName}`, image: e.image }])));
             })
             .catch(() => {});
     }, []);
@@ -324,73 +386,86 @@ export default function ContentEntryPage({
         }
     }
 
-    // Fetches a list of all tags belonging to a specific content
-    async function fetchContentTags(content: Content): Promise<Tag[]> {
-        try {
-            const tagsResponse = await fetch(
-                `${apiBase}/api/content/${content.id}/tags`,
-                {credentials: "include"}
-            );
-            const tagsData = await tagsResponse.json()
-            if (!tagsData.success) throw new Error("Failed to find tags.")
-            const tags: Tag[] = tagsData.tags
-            return tags.filter(tag => tag.ownerId === employee.id)
-        } catch (error) {
-            return []
-        }
-    }
-
-    // Gets card entry from content
-    async function getContentEntry(content: Content): Promise<CardEntry> {
-        const tags = await fetchContentTags(content);
-        return {
-            item: content,
-            title: content.title,
-            link: content.filePath ?? "",
-            owner:
-                employeeMap.get(content.ownerId) ?? undefined,
-            badge: content.contentType,
-            expirationDate: content.expirationDate,
-            tags: tags,
-        }
-    }
-
-    // Fetches individual piece of content by ID. Might be useful if only that content updated
-    async function fetchContentById(contentId: number) {
+    // Fetches individual piece of content by ID (e.g. after tag change on one row).
+    function fetchContentById(contentId: number) {
         fetch(`${apiBase}/api/content/${contentId}`, { credentials: "include" })
             .then((res) => res.json())
-            .then(async (data) => {
-                const content: Content = data.content
-                const mapEntry = await getContentEntry(content)
-                // console.log("FETCH BY ID:", contentId, mapEntry);
-                setEntries(prev => [
-                    ...(prev.filter(entry => entry.item.id !== contentId)),
-                    mapEntry
-                ]);
-            })
+            .then((data) => {
+                const content = data.content as ContentListRow;
+                const mapEntry = getContentEntryFromRow(
+                    content,
+                    employee,
+                    employeeMap,
+                );
+                setEntries((prev) => {
+                    const has = prev.some((e) => e.item.id === contentId);
+                    if (!has) return [...prev, mapEntry];
+                    return prev.map((entry) =>
+                        entry.item.id === contentId ? mapEntry : entry,
+                    );
+                });
+            });
     }
 
-    // This gets all content for the signed-in user
-    function fetchAllContent() {
+    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const [sortFields, setSortFields] = useState(defaultSortFields)
+    const [searchPhrase, setSearchPhrase] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
+    useEffect(() => {
+        const t = window.setTimeout(() => setDebouncedSearch(searchPhrase), 300);
+        return () => clearTimeout(t);
+    }, [searchPhrase]);
+
+    const defaultFieldsFilter = useMemo((): ContentFieldsFilter => ({
+        ...(contentType ? { contentTypes: [contentType] } : {}),
+        ...(jobPosition ? { jobPositions: [jobPosition] } : {}),
+    }), [contentType, jobPosition]);
+    const [filterJobPosition, setFilterJobPosition] = useState(jobPosition);
+    const [fieldsFilter, setFieldsFilter] = useState(defaultFieldsFilter);
+    useEffect(() => {
+        if (filterJobPosition !== jobPosition) {
+            setFilterJobPosition(jobPosition)
+            setFieldsFilter(defaultFieldsFilter)
+        }
+    }, [jobPosition, filterJobPosition, defaultFieldsFilter])
+
+    function loadContentList() {
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
-        // console.log("FETCH ALL CONTENT")
-
-        fetch(`${apiBase}/api/content`, { credentials: "include" })
-            .then((res) => res.json())
-            .then(async (data: Content[]) => {
-                const mapped = await Promise.all(
-                    data.map(getContentEntry)
+        const qs = buildContentListQueryString({
+            fieldsFilter,
+            debouncedSearch,
+            sortFields,
+            onlyFavorites,
+            onlyMine,
+            onlyMyCheckouts,
+        });
+        const url = qs
+            ? `${apiBase}/api/content?${qs}`
+            : `${apiBase}/api/content`;
+        fetch(url, { credentials: "include" })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load content");
+                return res.json();
+            })
+            .then((data: ContentListRow[]) => {
+                setEntries(
+                    data.map((c) =>
+                        getContentEntryFromRow(c, employee, employeeMap),
+                    ),
                 );
-                setEntries(mapped);
+            })
+            .catch((err) => {
+                console.error(err);
+                setEntries([]);
             })
             .finally(() => {
                 if (isInitialLoad) setLoading(false);
             });
     }
 
-    const fetchContentRef = useRef(fetchAllContent);
-    fetchContentRef.current = fetchAllContent;
+    const fetchContentRef = useRef(loadContentList);
+    fetchContentRef.current = loadContentList;
     useEffect(() => {
         return subscribeContentCheckoutSync(() => {
             fetchContentRef.current();
@@ -398,8 +473,19 @@ export default function ContentEntryPage({
     }, []);
 
     useEffect(() => {
-        fetchAllContent();
-    }, [employeeMap]);
+        void loadContentList();
+        // Intentionally omit `entries` from deps: used only to decide initial loading skeleton, not to re-fetch when list updates
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        debouncedSearch,
+        fieldsFilter,
+        sortFields,
+        onlyFavorites,
+        onlyMine,
+        onlyMyCheckouts,
+        employee,
+        employeeMap,
+    ]);
     useEffect(() => {
         void fetchTagList();
     }, [])
@@ -413,7 +499,7 @@ export default function ContentEntryPage({
         if (!res.ok) {
             throw new Error("Delete failed");
         }
-        fetchAllContent();
+        loadContentList();
         notifyContentCheckoutSync();
     }
 
@@ -474,12 +560,12 @@ export default function ContentEntryPage({
                 if (res.ok) anyOk = true;
             }
             if (anyOk) notifyContentCheckoutSync();
-            fetchAllContent();
+            fetchContentRef.current();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, entries, fetchAllContent, exitSelectMode]);
+    }, [selectedIds, employee, entries, exitSelectMode]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
@@ -494,66 +580,23 @@ export default function ContentEntryPage({
                 if (res.ok) anyOk = true;
             }
             if (anyOk) notifyContentCheckoutSync();
-            fetchAllContent();
+            fetchContentRef.current();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, fetchAllContent, exitSelectMode]);
-
-    const defaultFieldsFilter = useMemo((): ContentFieldsFilter => ({
-        ...(contentType ? { contentTypes: [contentType] } : {}),
-        ...(jobPosition ? { jobPositions: [jobPosition] } : {}),
-    }), [contentType, jobPosition]);
-    const [fieldsFilter, setFieldsFilter] = useState<ContentFieldsFilter>(defaultFieldsFilter);
-    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
-    const [sortFields, setSortFields] = useState(defaultSortFields)
-    const sortFunction = useContentSortFunction({sortFields})
-    const [searchPhrase, setSearchPhrase] = useState("")
-
-    const filteredEntries = useMemo(() => {
-        let list = entries;
-        if (onlyFavorites) {
-            list = list.filter((entry) =>
-                favoritedList.some((favorite) => favorite.id === entry.item.id),
-            );
-        }
-        if (onlyMine && employee) {
-            list = list.filter((e) => (e.item as Content).ownerId === employee.id);
-        }
-        if (onlyMyCheckouts && employee) {
-            list = list.filter((e) => {
-                const c = e.item as ContentWithCheckout;
-                return !!c.isCheckedOut && c.checkedOutById === employee.id;
-            });
-        }
-        return list;
-    }, [
-        entries,
-        onlyFavorites,
-        onlyMine,
-        onlyMyCheckouts,
-        employee,
-        favoritedList,
-    ]);
-
-    const queryEntries = useContentQueryEntries({
-        entries: filteredEntries,
-        searchPhrase,
-        fieldsFilter,
-        sortFunction,
-    })
+    }, [selectedIds, employee, exitSelectMode]);
 
     const selectAllFiltered = useCallback(() => {
         if (bulkActionLoading) return;
         setSelectedIds((prev) => {
             const next = new Set(prev);
-            for (const ent of queryEntries) {
+            for (const ent of entries) {
                 next.add(ent.item.id);
             }
             return next;
         });
-    }, [bulkActionLoading, queryEntries]);
+    }, [bulkActionLoading, entries]);
 
     const closeFullscreen = useCallback(() => {
         setFullscreenDoc(null);
@@ -572,7 +615,7 @@ export default function ContentEntryPage({
 
     const formOfTypeProps: FormOfTypeProps = {
         formType: "Document",
-        onCancel: fetchAllContent,
+        onCancel: () => fetchContentRef.current(),
         defaultItem: {
             contentType: contentType,
         },
@@ -600,7 +643,7 @@ export default function ContentEntryPage({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  disabled={bulkActionLoading || queryEntries.length === 0}
+                  disabled={bulkActionLoading || entries.length === 0}
                   onClick={selectAllFiltered}
               >
                   Select all
@@ -661,6 +704,29 @@ export default function ContentEntryPage({
               </Button>,
           ];
 
+    const isFavorited = useCallback(
+        (entry: CardEntry) => favoritedList.some((f) => f.id === entry.item.id),
+        [favoritedList],
+    );
+
+    const onToggleFavorite = useCallback(
+        async (entry: CardEntry) => {
+            const id = entry.item.id;
+            const base = import.meta.env.VITE_BACKEND_URL;
+            const wasFavorited = favoritedList.some((f) => f.id === id);
+            try {
+                await fetch(`${base}/api/favorites/${id}`, {
+                    method: wasFavorited ? "DELETE" : "POST",
+                    credentials: "include",
+                });
+                fetchFavorites();
+            } catch (err) {
+                console.error("Toggle favorite failed", err);
+            }
+        },
+        [favoritedList, fetchFavorites],
+    );
+
     const listColumnOptions = useMemo(
         () => ({
             renderTitleCell(entry: CardEntry) {
@@ -686,8 +752,10 @@ export default function ContentEntryPage({
             selectMode,
             isEntrySelected,
             onToggleEntrySelect,
+            isFavorited,
+            onToggleFavorite,
         }),
-        [employee, selectMode, isEntrySelected, onToggleEntrySelect],
+        [employee, selectMode, isEntrySelected, onToggleEntrySelect, isFavorited, onToggleFavorite],
     );
 
     async function tryAddFavorite(contentId: number) {
@@ -740,7 +808,7 @@ export default function ContentEntryPage({
                         void fetchContentById(item.id) // only this content got changed
                     }}
                     tagsModified={() => {
-                        fetchAllContent() // maybe other content had their tags changed
+                        fetchContentRef.current() // maybe other content had their tags changed
                         void fetchTagList() // update list
                     }}
                 />
@@ -782,7 +850,7 @@ export default function ContentEntryPage({
                         method: "POST",
                         credentials: "include",
                     }).finally(() => {
-                        fetchAllContent();
+                        fetchContentRef.current();
                         notifyContentCheckoutSync();
                     });
                 },
@@ -804,16 +872,16 @@ export default function ContentEntryPage({
 
     const showContentTypeBadge = useMemo(() => {
         const types = new Set(
-            queryEntries.map((e) => (e.item as Content).contentType),
+            entries.map((e) => (e.item as Content).contentType),
         );
         return types.size > 1;
-    }, [queryEntries]);
+    }, [entries]);
     const showJobPositionBadge = useMemo(() => {
         const positions = new Set(
-            queryEntries.flatMap((e) => (e.item as Content).jobPositions),
+            entries.flatMap((e) => (e.item as Content).jobPositions),
         );
         return positions.size > 1;
-    }, [queryEntries]);
+    }, [entries]);
 
     // Track properties to update querying
     const queryProps: QueryProps<ContentFieldsFilter> = {
@@ -837,16 +905,16 @@ export default function ContentEntryPage({
     }
 
     const gridSkeletonCount =
-        loading && entries.length === 0 && !onlyMyCheckouts
+        loading && entries.length === 0
             ? SKELETON_GRID_SLOTS
             : null;
 
     const favoritedQueryEntries = useMemo(() => {
         if (favoritedList.length === 0) return [];
-        return queryEntries.filter((entry) =>
+        return entries.filter((entry) =>
             favoritedList && favoritedList.some((f) => f.id === entry.item.id),
         );
-    }, [queryEntries, favoritedList]);
+    }, [entries, favoritedList]);
 
     const { view, setView } = useMainContext();
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };
@@ -858,7 +926,7 @@ export default function ContentEntryPage({
         const leftPaneEntryPage = (
             <EntryPage
                 key="split-left-grid"
-                entries={queryEntries}
+                entries={entries}
                 displayedEntryLabels={{ one: "document", other: "documents" }}
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}
@@ -892,7 +960,7 @@ export default function ContentEntryPage({
         const rightPaneEntryPage = (
             <EntryPage
                 key="split-right-grid"
-                entries={queryEntries}
+                entries={entries}
                 displayedEntryLabels={{ one: "document", other: "documents" }}
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}
@@ -969,7 +1037,7 @@ export default function ContentEntryPage({
     return (
         <div className="relative flex min-h-0 flex-1 flex-col">
             <EntryPage
-                entries={queryEntries}
+                entries={entries}
                 displayedEntryLabels={{ one: "document", other: "documents" }}
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}

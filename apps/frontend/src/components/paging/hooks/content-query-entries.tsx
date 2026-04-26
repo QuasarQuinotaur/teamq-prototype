@@ -6,7 +6,19 @@ import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content} from "db";
 import type {ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {SortFunction} from "@/components/paging/hooks/sort-function.tsx";
+import type {DocumentType} from "@/components/input/constants.tsx";
 import {isSupabasePath} from "@/lib/utils.ts";
+
+function pathMatchesDocumentTypeFilter(path: string, type: DocumentType): boolean {
+    if (type === "links") {
+        return Boolean(path && !isSupabasePath(path));
+    }
+    if (type === "files") {
+        return Boolean(path && isSupabasePath(path));
+    }
+    const clean = path.split("?")[0].split("#")[0].toLowerCase();
+    return clean.endsWith(`.${type}`);
+}
 
 
 type ContentQueryEntriesProps = {
@@ -37,10 +49,7 @@ export default function useContentQueryEntries({
         const path = c.filePath ?? "";
         const matchDocumentTypes = (
             !fieldsFilter.documentTypes || fieldsFilter.documentTypes.length === 0 ||
-            fieldsFilter.documentTypes.some((type) => (
-                (type == "links" && path && !isSupabasePath(path)) ||
-                (type == "files" && path && isSupabasePath(path))
-            ))
+            fieldsFilter.documentTypes.some((type) => pathMatchesDocumentTypeFilter(path, type))
         )
         if (!matchDocumentTypes) {
             return false;
