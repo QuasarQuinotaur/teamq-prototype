@@ -14,7 +14,12 @@ import multer from "multer";
 import type express from "express";
 
 import { ContentRepository } from "../ContentRepository.ts";
-import { contentService } from "../services.ts";
+import {
+    notifyDocumentEditedByOther,
+    notifyOwnerOnDocumentAccess,
+    notifyOwnershipTransferred,
+} from "../contentNotificationTriggers.ts";
+import { contentService, notificationRepo } from "../services.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -370,6 +375,14 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
             res.status(404).json({ error: "Not found" });
             return;
         }
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
         res.json({ content: content });
     } catch (err) {
         res.status(500).json({ error: err });
@@ -388,6 +401,14 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "Not found" });
             return;
         }
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
         const filePath = content.filePath;
         if (!filePath?.trim()) {
             res.status(404).json({ error: "No file or link" });
@@ -564,6 +585,10 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         },
     });
 
+    void notifyOwnerOnDocumentAccess(content).catch((err) =>
+        console.error("notifyOwnerOnDocumentAccess", err),
+    );
+
     const checkedOutBy = updated.checkedOutBy
         ? await employeeWithProfileUrl(updated.checkedOutBy)
         : null;
@@ -622,6 +647,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         const isOwner = content.ownerId === employee.id;
+        const previousOwnerId = content.ownerId;
         const parsedNewOwnerId = newOwnerID ? Number(newOwnerID) : undefined;
 
         if (parsedNewOwnerId && parsedNewOwnerId !== content.ownerId) {
@@ -682,12 +708,41 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                hasBeenNotifiedExpiringSoon: false,
+                hasBeenNotifiedOfExpiration: false,
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
             include: {
                 owner: true,
             },
         });
+
+        try {
+            if (employee.id !== previousOwnerId) {
+                await notifyDocumentEditedByOther(
+                    id,
+                    name.trim(),
+                    previousOwnerId,
+                    employee,
+                    notificationRepo,
+                );
+            }
+            if (
+                parsedNewOwnerId &&
+                parsedNewOwnerId !== previousOwnerId &&
+                content.owner
+            ) {
+                await notifyOwnershipTransferred(
+                    id,
+                    name.trim(),
+                    parsedNewOwnerId,
+                    content.owner,
+                    notificationRepo,
+                );
+            }
+        } catch (notifyErr) {
+            console.error("content update notifications", notifyErr);
+        }
 
         res.json({
             success: true,

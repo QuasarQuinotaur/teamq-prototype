@@ -20,6 +20,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
 import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 import AdminCheckIn from "@/pages/AdminCheckIn.tsx";
+import Announcements from "@/pages/Announcements.tsx";
 import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
@@ -128,6 +129,10 @@ export const router = createBrowserRouter([
                                     {
                                         path: "admin-check-in",
                                         element: <AdminCheckIn />,
+                                    },
+                                    {
+                                        path: "announcements",
+                                        element: <Announcements />,
                                     },
                                 ],
                             },

@@ -54,6 +54,9 @@ model Content {
   checkedOutById Int?
   checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
+  hasBeenNotifiedExpiringSoon Boolean @default(false)
+  hasBeenNotifiedOfExpiration   Boolean @default(false)
+
   tags ContentTag[]
 
   @@index([ownerId])

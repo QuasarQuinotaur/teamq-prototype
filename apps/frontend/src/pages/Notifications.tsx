@@ -22,6 +22,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/DropdownMenu.tsx";
 import { cn } from "@/lib/utils.ts";
+import { HelpHint } from "@/elements/help-hint.tsx";
 
 type NotificationItem = {
   id: number;
@@ -450,8 +451,15 @@ export default function Notifications() {
     <section className="flex min-h-0 flex-1 flex-col overflow-auto p-6">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-semibold">Notifications</h1>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">Notifications</h1>
+            <HelpHint contentClassName="max-w-sm">
+              Your inbox for alerts and messages. Use All, Unread, and Read to filter; sort
+              changes the order. Open Select to choose multiple notifications for bulk
+              actions.
+            </HelpHint>
+          </span>
           {unreadCount > 0 && (
             <span className="text-sm text-muted-foreground">{unreadCount} unread</span>
           )}

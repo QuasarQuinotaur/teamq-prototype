@@ -21,6 +21,8 @@ import FilterServiceRequestFields, {
   type ServiceRequestFieldsFilter,
   type ServiceRequestPresetKey,
 } from "@/components/service-requests/FilterServiceRequestFields.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
+import { Separator } from "@/elements/separator.tsx";
 import type { Employee } from "db";
 
 type EmployeePayload = {
@@ -403,12 +405,21 @@ export default function ServiceRequestsPage() {
             </p>
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 pt-2">
             {yourTasks.length > 0 ? (
               <section className="flex flex-col gap-3">
-                <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Your tasks
-                </h2>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="border-b-0 pb-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Your tasks
+                    </h2>
+                    <HelpHint>
+                      Requests where you are listed as an assignee. Updates here follow your
+                      current search, filters, and sort.
+                    </HelpHint>
+                  </div>
+                  <Separator />
+                </div>
                 <ul className="flex flex-col gap-2">
                   {yourTasks.map((req) => (
                     <li key={req.id}>
@@ -433,9 +444,15 @@ export default function ServiceRequestsPage() {
 
             {allTasks.length > 0 ? (
               <section className="flex flex-col gap-3">
-                <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Other tasks
-                </h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="border-b-0 pb-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    Other tasks
+                  </h2>
+                  <HelpHint>
+                    Requests where you are not listed as an assignee. This list follows your
+                    current search, filters, and sort.
+                  </HelpHint>
+                </div>
                 <ul className="flex flex-col gap-2">
                   {allTasks.map((req) => (
                     <li key={req.id}>

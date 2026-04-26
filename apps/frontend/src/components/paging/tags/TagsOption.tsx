@@ -16,6 +16,7 @@ import TagFormDialog from "@/components/paging/tags/TagFormDialog.tsx";
 import {TableBody, TableRow} from "@/components/Table.tsx";
 import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog.tsx";
 import TagElement from "@/components/paging/tags/TagElement.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
 
 export type TagsOptionProps = {
     contentId: number;
@@ -143,9 +144,15 @@ export default function TagsOption({
                                  sm:p-6 sm:pr-10 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden`}
                             >
                                 <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
-                                    <DialogTitle className="text-base font-semibold sm:text-lg">
-                                        Modify Tags
-                                    </DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        <DialogTitle className="m-0 border-b-0 pb-0 text-base font-semibold leading-none sm:text-lg sm:leading-none">
+                                            Modify Tags
+                                        </DialogTitle>
+                                        <HelpHint contentClassName="max-w-sm">
+                                            Edit or delete tags from the library. Deleting a tag removes it from all
+                                            documents that use it.
+                                        </HelpHint>
+                                    </div>
                                 </DialogHeader>
                                 <ScrollArea className={"min-h-0 max-h-120"}>
                                     <TableBody className={"flex flex-col gap-1 pr-3"}>
