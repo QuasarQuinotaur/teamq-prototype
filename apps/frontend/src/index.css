@@ -223,6 +223,18 @@ html[data-text-size="Large"] { font-size: 18px; }
   animation-delay: 0.28s;
 }
 
+.flex-return {
+  display: contents;
+}
+.flex-return::after {
+  content: '';
+  width: 100%;
+}
+
+.tutorial-mask {
+  background: rgba(from var(--theme-foreground) r g b / 0.7);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

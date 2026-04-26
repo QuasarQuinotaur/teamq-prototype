@@ -62,6 +62,8 @@ type ContentEntryPageProps = {
     onlyMine?: boolean;
     /** Documents you currently have checked out. */
     onlyMyCheckouts?: boolean;
+    /** Separate table for the tutorial */
+    isTutorial?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -99,6 +101,7 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
+                                             isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -473,6 +476,7 @@ export default function ContentEntryPage({
                     item.jobPositions.includes(employee.jobPosition) ||
                     employee.jobPosition === "admin";
                 if (!canModify) continue;
+                //TODO pull from tutorial repository when isTutorial flag is true
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
                     credentials: "include",
