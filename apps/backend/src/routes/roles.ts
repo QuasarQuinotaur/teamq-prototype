@@ -2,7 +2,8 @@ import { Router } from "express";
 import { prisma } from "db";
 import { getEmployeeFromRequest } from "../app";
 import { getEmployeeIsAdmin } from "../util";
-import { requiresAuth } from "express-openid-connect";
+import pkg from "express-openid-connect";
+const { requiresAuth } = pkg;
 
 const router = Router();
 
