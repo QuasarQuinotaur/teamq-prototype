@@ -32,6 +32,7 @@ export const RoleGuard = ({
       try {
         const response = await api.get('/me');
         const employee: Employee = response.data
+        console.log("ROLE GUARD:", getEmployeeIsAdmin(employee))
         if (
             (!allowedRole || employee.jobPosition === allowedRole) &&
             (!onlyAdmins || getEmployeeIsAdmin(employee))
@@ -45,7 +46,7 @@ export const RoleGuard = ({
       }
     };
     checkRole();
-  }, [allowedRole]);
+  }, [allowedRole, getEmployeeIsAdmin]);
 
   if (status === 'loading') return <div className="p-8">Verifying permissions...</div>;
 

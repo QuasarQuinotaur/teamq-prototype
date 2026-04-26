@@ -15,6 +15,7 @@ import type express from "express";
 
 import { ContentRepository } from "../ContentRepository.ts";
 import { contentService } from "../services.ts";
+import { getEmployeeIsAdmin } from "../util.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -569,7 +570,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
 
     //allow if owner or admin
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
+    const isAdmin = getEmployeeIsAdmin(employee);
 
     if (!isJobPosition && !isAdmin) {
         return res.status(403).json({ error: "Not authorized to check in this content" });
@@ -607,7 +608,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
     }
 
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
+    const isAdmin = getEmployeeIsAdmin(employee);
     if (!isJobPosition && !isAdmin) {
         res.status(403).json({ error: "Not authorized to check out this content" });
         return;
@@ -665,7 +666,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = getEmployeeIsAdmin(employee);
 
         if (!isJobPosition && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to check in this content" });
@@ -841,7 +842,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
 //         }
 //
 //         const isOwner = content.ownerId === employee.id;
-//         const isAdmin = employee.jobPosition === "admin";
+//         const isAdmin = getEmployeeIsAdmin(employee);
 //         if (!isOwner && !isAdmin) {
 //             res.status(403).json({ error: "Not authorized to delete this content" });
 //             return;

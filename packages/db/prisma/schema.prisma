@@ -15,7 +15,6 @@ model Employee {
   lastName    String
   dateOfBirth DateTime
   jobPosition String
-  isAdmin     Boolean
   userPhoto   UserPhoto?
 
   contentsOwned Content[] @relation("ownedContents") // relationship list

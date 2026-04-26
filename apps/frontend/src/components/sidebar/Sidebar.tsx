@@ -18,6 +18,9 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 import { Link } from "react-router-dom";
 import useJobNameMap from "@/hooks/useJobNameMap"
+import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin"
+import type { Employee } from "db"
+import useJobInfoMap from "@/hooks/useJobInfoMap"
 
 const data = {
   // user: {
@@ -104,8 +107,9 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
-  const [employee, setEmployee] = useState<{ jobPosition: string } | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const jobNameMap = useJobNameMap();
+  const getEmployeeIsAdmin = useGetEmployeeIsAdmin();
   const otherRolesItems = React.useMemo(() => {
         return Object.entries(jobNameMap).filter(([id]) => {
             return id !== employee?.jobPosition
@@ -136,7 +140,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       items: [
         { title: "My content", url: "/documents/my-documents" },
         { title: "Checked out", url: "/documents/checked-out" },
-        ...(employee?.jobPosition === 'admin'
+        ...((employee && getEmployeeIsAdmin(employee))
           ? [{ title: "Check in", url: "/documents/admin-check-in" }]
           : []),
         ...(employee?.jobPosition
@@ -162,7 +166,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const navItems = [
       ...data.navMain,
       allDocumentsItem,
-      ...(employee?.jobPosition === 'admin' ? [{
+      ...((employee && getEmployeeIsAdmin(employee)) ? [{
         title: "Employees",
         url: "/documents/employees",
         icon: (
