@@ -26,7 +26,7 @@ import { Loader2 } from "lucide-react";
 import { StarIcon } from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
-import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import {DEFAULT_SORT_FIELDS, DEFAULT_SORT_FIELDS_RECENT} from "@/components/paging/hooks/sort-function.tsx";
 import {
     notifyContentCheckoutSync,
     subscribeContentCheckoutSync,
@@ -37,6 +37,7 @@ import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSe
 import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
+import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 
 type ViewerState = {
     contentId: number;
