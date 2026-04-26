@@ -63,13 +63,13 @@ export default function Dashboard() {
     });
 
     const widgetOptions = [
-        { type: "stats", label: "Stats" },
-        { type: "requestsCalendar", label: "Requests Calendar" },
-        { type: "requests", label: "Requests" },
-        { type: "chart", label: "Chart" },
+        { type: "stats", label: "Requests Completion Progress (Stat Card)" },
+        { type: "chart", label: "Requests Completion Progress (Chart)" },
+        { type: "requestsCalendar", label: "My Service Requests (Calendar)" },
+        { type: "requests", label: "My Service Requests (List)" },
+        { type: "expirationCalendar", label: "Content Expiration (Calendar)" },
+        { type: "expirationLine", label: "Content Expiration (Chart)" },
         { type: "gif", label: "GIF" },
-        { type: "expirationCalendar", label: "Expiration Calendar" },
-        { type: "expirationLine", label: "Document expirations (chart)" },
     ];
 
     const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
