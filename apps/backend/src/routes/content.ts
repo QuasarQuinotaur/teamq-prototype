@@ -185,6 +185,7 @@ type ContentListOrder =
 type ParsedListQuery = {
     where: Prisma.ContentWhereInput;
     order: ContentListOrder;
+    rawSortBy: string;
 };
 
 /**
@@ -256,7 +257,8 @@ function parseContentListQuery(
     const where: Prisma.ContentWhereInput =
         ands.length > 0 ? { AND: ands } : {};
 
-    const sortBy = parseQueryStringList(query, "sortBy")[0] ?? "title";
+    const rawSortBy = parseQueryStringList(query, "sortBy")[0]
+    const sortBy = rawSortBy ?? "title";
     const sortMethod =
         parseQueryStringList(query, "sortMethod")[0] ?? "ascending";
     const desc = sortMethod === "descending";
@@ -281,6 +283,40 @@ function parseContentListQuery(
         };
     }
 
+    return { where, order, rawSortBy };
+}
+
+
+type ParsedRecentListQuery = {
+    where: Prisma.RecentContentViewWhereInput;
+    order?: ContentListOrder;
+};
+
+/**
+ * If `query` is empty, legacy clients get the full list ordered by id (e.g. admin check-in, dev).
+ * Otherwise, optional filter/sort come from the query string.
+ */
+function parseRecentListQuery(
+    query: express.Request["query"],
+    employee: { id: number } | null,
+): ParsedRecentListQuery | { legacyNoQuery: true } {
+    const contentQuery = parseContentListQuery(query, employee)
+    if ("legacyNoQuery" in contentQuery) {
+        return contentQuery
+    }
+    
+    const where: Prisma.RecentContentViewWhereInput = {
+        content: contentQuery.where
+    }
+
+    let order: ContentListOrder = null
+    const contentOrder = contentQuery.order
+    const contentSortBy = contentQuery.rawSortBy
+    console.log("CONTENT SORT BY:", contentSortBy)
+    if (contentSortBy && contentSortBy.trim() && contentSortBy !== "lastViewedAt") {
+        // No ordering if lastViewedAt or unspecified
+        order = contentOrder
+    }
     return { where, order };
 }
 
@@ -302,6 +338,26 @@ function sortContentsByJobPosition(
         const c = sa.localeCompare(sb);
         if (c !== 0) return c * mult;
         return mult * a.title.localeCompare(b.title);
+    });
+}
+
+type RecentListRow = Awaited<
+    ReturnType<typeof contentRepo.getRecentViews>
+>[number];
+
+function sortRecentsByJobPosition(
+    rows: RecentListRow[],
+    ascending: boolean
+): RecentListRow[] {
+    const mult = ascending ? 1 : -1;
+    return [...rows].sort((a, b) => {
+        const ca = a.content
+        const cb = b.content
+        const sa = [...ca.jobPositions].sort().join(",");
+        const sb = [...cb.jobPositions].sort().join(",");
+        const c = sa.localeCompare(sb);
+        if (c !== 0) return c * mult;
+        return mult * ca.title.localeCompare(cb.title);
     });
 }
 
@@ -355,7 +411,34 @@ router.get("/recent", requiresAuth(), async (req, res) => {
         const limit = Number(req.query.limit);
         const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
 
-        const recent = await contentRepo.getRecentViews(employee.id, take);
+        let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
+
+        const parsed = parseRecentListQuery(req.query, employee);
+        console.log("QUERY PARSE:", parsed)
+        if ("legacyNoQuery" in parsed) {1
+            recent = await contentRepo.getRecentViews(employee.id, take);
+        } else {
+            if (!parsed.order) {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+            } else if (parsed.order.kind === "prisma") {
+                let orderBy:
+                    | Prisma.RecentContentViewOrderByWithRelationInput
+                    | Prisma.RecentContentViewOrderByWithRelationInput[] = null
+                const contentOrderBy = parsed.order.orderBy
+                if (Array.isArray(contentOrderBy)) {
+                    orderBy = contentOrderBy.map((order) => {
+                        return {content: order}
+                    })
+                } else {
+                    orderBy = {content: contentOrderBy}
+                }
+                console.log("ORDER BY:", orderBy)
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
+            } else {
+                const unsorted = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+                recent = sortRecentsByJobPosition(unsorted, parsed.order.ascending)
+            }
+        }
 
         res.json({
             success: true,

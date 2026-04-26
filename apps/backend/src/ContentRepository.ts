@@ -1,4 +1,5 @@
 import { prisma, type Prisma } from "db";
+import { RecentContentViewOrderByWithRelationInput, RecentContentViewWhereInput } from "../../../packages/db/generated/prisma/models";
 
 const contentCatalogInclude = {
     owner: true,
@@ -143,10 +144,16 @@ class ContentRepository {
         });
     }
 
-    async getRecentViews(employeeId: number, take = 10) {
+    async getRecentViews(
+        employeeId: number, take = 10,
+        where?: RecentContentViewWhereInput,
+        orderBy?:
+            | Prisma.RecentContentViewOrderByWithRelationInput
+            | Prisma.RecentContentViewOrderByWithRelationInput[]
+    ) {
         return prisma.recentContentView.findMany({
-            where: { employeeId },
-            orderBy: { lastViewedAt: "desc" },
+            where: where ? { employeeId, ...where } : { employeeId },
+            orderBy: orderBy ?? { lastViewedAt: "desc" },
             take,
             include: {
                 content: {
