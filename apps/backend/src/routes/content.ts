@@ -186,6 +186,7 @@ type ParsedListQuery = {
     where: Prisma.ContentWhereInput;
     order: ContentListOrder;
     rawSortBy: string;
+    desc: boolean;
 };
 
 /**
@@ -283,13 +284,13 @@ function parseContentListQuery(
         };
     }
 
-    return { where, order, rawSortBy };
+    return { where, order, rawSortBy, desc };
 }
 
 
 type ParsedRecentListQuery = {
     where: Prisma.RecentContentViewWhereInput;
-    order?: ContentListOrder;
+    order?: ContentListOrder | boolean;
 };
 
 /**
@@ -309,13 +310,15 @@ function parseRecentListQuery(
         content: contentQuery.where
     }
 
-    let order: ContentListOrder = null
+    let order: ContentListOrder | boolean = null
     const contentOrder = contentQuery.order
     const contentSortBy = contentQuery.rawSortBy
-    console.log("CONTENT SORT BY:", contentSortBy)
+    const contentDescending = contentQuery.desc
     if (contentSortBy && contentSortBy.trim() && contentSortBy !== "lastViewedAt") {
         // No ordering if lastViewedAt or unspecified
         order = contentOrder
+    } else {
+        order = contentDescending
     }
     return { where, order };
 }
@@ -414,12 +417,15 @@ router.get("/recent", requiresAuth(), async (req, res) => {
         let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
 
         const parsed = parseRecentListQuery(req.query, employee);
-        console.log("QUERY PARSE:", parsed)
         if ("legacyNoQuery" in parsed) {1
             recent = await contentRepo.getRecentViews(employee.id, take);
         } else {
-            if (!parsed.order) {
+            if (parsed.order === null) {
                 recent = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+            } else if (typeof parsed.order === "boolean") {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, {
+                    lastViewedAt: parsed.order ? "asc" : "desc"
+                });
             } else if (parsed.order.kind === "prisma") {
                 let orderBy:
                     | Prisma.RecentContentViewOrderByWithRelationInput
@@ -432,7 +438,6 @@ router.get("/recent", requiresAuth(), async (req, res) => {
                 } else {
                     orderBy = {content: contentOrderBy}
                 }
-                console.log("ORDER BY:", orderBy)
                 recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
             } else {
                 const unsorted = await contentRepo.getRecentViews(employee.id, take, parsed.where);
