@@ -20,7 +20,7 @@ export const RoleGuard = ({
   // Pass context down
   const mainContext = useMainContext()
 
-  const getEmployeeIsAdmin = useGetEmployeeIsAdmin();
+  const { getEmployeeIsAdmin, rolesLoading } = useGetEmployeeIsAdmin();
 
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
@@ -30,9 +30,12 @@ export const RoleGuard = ({
   useEffect(() => {
     const checkRole = async () => {
       try {
+        if (rolesLoading) {
+            setStatus('loading');
+            return
+        }
         const response = await api.get('/me');
         const employee: Employee = response.data
-        console.log("ROLE GUARD:", getEmployeeIsAdmin(employee))
         if (
             (!allowedRole || employee.jobPosition === allowedRole) &&
             (!onlyAdmins || getEmployeeIsAdmin(employee))

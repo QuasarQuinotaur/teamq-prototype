@@ -20,7 +20,6 @@ import { Link } from "react-router-dom";
 import useJobNameMap from "@/hooks/useJobNameMap"
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin"
 import type { Employee } from "db"
-import useJobInfoMap from "@/hooks/useJobInfoMap"
 
 const data = {
   // user: {
@@ -108,12 +107,16 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const jobNameMap = useJobNameMap();
-  const getEmployeeIsAdmin = useGetEmployeeIsAdmin();
+  const { jobNameMap, rolesLoading } = useJobNameMap();
+  const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
   const otherRolesItems = React.useMemo(() => {
-        return Object.entries(jobNameMap).filter(([id]) => {
+        const notOfRole = Object.entries(jobNameMap).filter(([id]) => {
             return id !== employee?.jobPosition
-        }).map(([id, name]) => {
+        })
+        if (notOfRole.length === 0) {
+            return null
+        }
+        return notOfRole.map(([id, name]) => {
             return { title: name, url: `/documents/role/${id}` }
         })
   }, [jobNameMap])
@@ -146,11 +149,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ...(employee?.jobPosition
           ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
           : []),
-        {
-          title: "Other roles",
-          url: "/documents/all",
-          items: otherRolesItems,
-        },
+        ...(!rolesLoading
+          ? [{ title: "Other roles", url: "/documents/all", items: otherRolesItems }]
+          : []),
         {
           title: "Document type",
           url: "/documents/all",

@@ -62,7 +62,7 @@ export function AssignEmployeesCombobox({
 
   const stringValue = value.map(String);
 
-    const jobNameMap = useJobNameMap();
+    const { jobNameMap } = useJobNameMap();
   const addAllGroups = React.useMemo(() => {
     const groups: { key: string; ids: number[] }[] = [];
 

@@ -16,13 +16,14 @@ export default function JobPositionInput({
                                              setJobPosition,
                                              ...props
 }: JobPositionInputProps) {
-    const jobNameMap = useJobNameMap();
+    const { jobNameMap, rolesLoading } = useJobNameMap();
     return (
         <SelectMapInput
             map={jobNameMap}
             initValue={jobPosition}
             setValue={setJobPosition}
             placeholder={"Choose job position"}
+            emptyText={rolesLoading ? "Loading positions..." : "No positions found."}
             {...props}
         />
     )

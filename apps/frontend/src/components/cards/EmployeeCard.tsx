@@ -34,11 +34,11 @@ export default function EmployeeCard({
     "h-32 w-32 rounded-full border-4 border-white shadow-md"
 
   const employee = entry.item as Employee;
-  const jobNameMap = useJobNameMap();
-  const badges: string[] = [
+  const { jobNameMap, rolesLoading } = useJobNameMap()
+  const badges: string[] = !rolesLoading ? [
     jobNameMap[employee.jobPosition as keyof typeof jobNameMap] ??
       employee.jobPosition,
-  ];
+  ] : [];
 
   return (
     <CardContainer className="relative mx-auto w-fit min-w-[250px] pb-6">

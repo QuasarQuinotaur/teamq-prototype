@@ -18,12 +18,12 @@ export default function EmployeeProfileCard({ employee, onUploadClick }: Employe
         `${employee.firstName} ${employee.lastName}`
     );
 
-    const jobNameMap = useJobNameMap();
-    const badges: string[] = [
+    const { jobNameMap, rolesLoading } = useJobNameMap();
+    const badges: string[] = !rolesLoading ? [
         jobNameMap[
             employee.jobPosition as keyof typeof jobNameMap
         ] ?? employee.jobPosition,
-    ];
+    ] : [];
 
     const initials = `${employee.firstName[0]}${employee.lastName[0]}`;
 

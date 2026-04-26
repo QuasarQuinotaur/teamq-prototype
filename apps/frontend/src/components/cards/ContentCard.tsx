@@ -210,8 +210,8 @@ export default function ContentCard({
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
         : "?";
-    const jobNameMap = useJobNameMap()
-    const jobPositionLabels = showJobPositionBadge
+    const { jobNameMap, rolesLoading } = useJobNameMap()
+    const jobPositionLabels = showJobPositionBadge && !rolesLoading
         ? content.jobPositions.map(
               (pos) =>
                   jobNameMap[

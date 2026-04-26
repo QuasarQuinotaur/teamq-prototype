@@ -10,14 +10,14 @@ type JobPositionInputProps = {
     setJobPositions: (jobPositions: string[]) => void;
 } & ComponentProps<typeof ComboboxChipsInput>
 export default function JobPositionMultiInput(props: JobPositionInputProps) {
-    const jobNameMap = useJobNameMap();
+    const { jobNameMap, rolesLoading } = useJobNameMap();
     return (
         <ComboboxMapInput
             map={jobNameMap}
             values={props.jobPositions}
             setValues={props.setJobPositions}
             placeholder={"Job Position"}
-            emptyText={"No positions found."}
+            emptyText={rolesLoading ? "Loading positions..." : "No positions found."}
             {...props}
         />
     )

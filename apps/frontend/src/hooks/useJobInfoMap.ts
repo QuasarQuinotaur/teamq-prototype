@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function useJobInfoMap() {
     const [jobInfoMap, setJobInfoMap] = useState<Record<string, Role>>({})
-    const isFetched = useRef(false);
+    const [rolesLoading, setRolesLoading] = useState(true)
+    const isFetched = useRef(false); // Does this help? Idk
     useEffect(() => {
         const fetchRoles = async () => {
             try {
+                setRolesLoading(true)
                 console.log("IS FETCHED?", isFetched.current)
                 const rolesResponse = await fetch(
                     `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
@@ -20,6 +22,7 @@ export default function useJobInfoMap() {
                     return map
                 }, {})
                 setJobInfoMap(roleMap)
+                setRolesLoading(false)
                 isFetched.current = true
             } catch (error) {
                 console.error(error)
@@ -27,5 +30,5 @@ export default function useJobInfoMap() {
         }
         void fetchRoles();
     }, [isFetched])
-    return { jobInfoMap }
+    return { jobInfoMap, rolesLoading }
 }

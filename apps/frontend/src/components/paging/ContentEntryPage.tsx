@@ -556,7 +556,7 @@ export default function ContentEntryPage({
         }
     }, [selectedIds, favoritedList, fetchFavorites, exitSelectMode]);
 
-    const getEmployeeIsAdmin = useGetEmployeeIsAdmin();
+    const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
 
     const bulkCheckoutSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
@@ -583,7 +583,7 @@ export default function ContentEntryPage({
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, entries, exitSelectMode]);
+    }, [selectedIds, employee, entries, exitSelectMode, getEmployeeIsAdmin]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
