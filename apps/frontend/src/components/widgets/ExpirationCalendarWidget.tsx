@@ -43,16 +43,18 @@ function CalendarEvent({ event }: any) {
                     className="w-5 h-5 rounded-full object-cover"
                 />
             )}
+        </div>
+    );
+}
 
-            <div
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1
-                   opacity-0 group-hover:opacity-100
-                   transition-opacity duration-150
-                   bg-black text-white text-xs px-2 py-1 rounded
-                   whitespace-nowrap z-50 pointer-events-none"
-            >
-                {ownerName}
-            </div>
+function EventWrapper({ event, children }: any) {
+    const ownerName = event?.owner
+        ? `${event.owner.firstName || ""} ${event.owner.lastName || ""}`.trim() || "Unknown owner"
+        : "No owner";
+
+    return (
+        <div title="">
+            {children}
         </div>
     );
 }
@@ -110,21 +112,25 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
 
                     components={{
                         event: CalendarEvent,
+                        eventWrapper: EventWrapper,
                     }}
 
-                    eventPropGetter={() => ({
-                        style: {
-                            backgroundColor: "white",
-                            color: "#111827",
-                            border: "1px solid #E5E7EB",
-                            borderLeft: "4px solid #EF4444",
-                            borderRadius: "8px",
-                            padding: "2px 8px",
-                            fontSize: "12px",
-                            fontWeight: 500,
-                            cursor: "pointer",
-                        },
-                    })}
+                    eventPropGetter={(event: any) => {
+                        return {
+                            title: "",
+                            style: {
+                                backgroundColor: "white",
+                                color: "#111827",
+                                border: "1px solid #E5E7EB",
+                                borderLeft: "4px solid #EF4444",
+                                borderRadius: "8px",
+                                padding: "2px 8px",
+                                fontSize: "12px",
+                                fontWeight: 500,
+                                cursor: "pointer",
+                            },
+                        };
+                    }}
 
                     onSelectEvent={async (event: any) => {
                         try {
