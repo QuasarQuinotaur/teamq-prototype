@@ -22,7 +22,11 @@ export default function SelectMapInput({
 }: SelectMapInputProps) {
     const entries = Object.entries(map)
     return (
-        <Select value={initValue} onValueChange={setValue} disabled={lockSelect}>
+        <Select
+            value={entries.some(([key]) => key === initValue) ? initValue : undefined}
+            onValueChange={setValue}
+            disabled={lockSelect}
+        >
             <SelectTrigger {...props}>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>

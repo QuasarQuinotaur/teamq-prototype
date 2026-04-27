@@ -80,3 +80,12 @@ export function handleKeyChangeOrDelete<T extends object, K extends keyof T>(
 export function formatDashCase(text: string) {
     return text.toLowerCase().trim().replace(/\s+/g, '-')
 }
+
+// Turns a string into spaced upper case (e.g. test-string -> Test String)
+export function formatSpacedUpperCase(text: string) {
+    return text
+        .toLowerCase()
+        .split(/\W+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
