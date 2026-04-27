@@ -325,6 +325,7 @@ export default function ContentEntryPage({
         () =>
             leftPaneDoc
                 ? {
+                      contentId: leftPaneDoc.contentId,
                       url: leftPaneDoc.url,
                       filename: leftPaneDoc.filename,
                       title: leftPaneDoc.title,
@@ -336,6 +337,7 @@ export default function ContentEntryPage({
         () =>
             rightPaneDoc
                 ? {
+                      contentId: rightPaneDoc.contentId,
                       url: rightPaneDoc.url,
                       filename: rightPaneDoc.filename,
                       title: rightPaneDoc.title,
@@ -1024,6 +1026,7 @@ export default function ContentEntryPage({
         const canEnterSplit = isDocumentLikeFilename(fullscreenDoc.filename);
         return (
             <DocumentViewer
+                contentId={fullscreenDoc.contentId}
                 url={fullscreenDoc.url}
                 filename={fullscreenDoc.filename}
                 title={fullscreenDoc.title}

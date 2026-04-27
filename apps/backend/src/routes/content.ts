@@ -6,7 +6,21 @@ import { getEmployeeFromRequest } from "../app.ts";
 import {
     uploadBuffer,
     getSignedUrl,
+    downloadBuffer,
 } from "../lib/supabase.ts";
+import {
+    MAX_SUMMARY_BYTES,
+    summarizeContentBuffer,
+    SummaryBadRequestError,
+    SummaryTooLargeError,
+    SummaryUnsupportedError,
+} from "../lib/documentSummary.ts";
+import {
+    APIError,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+} from "@anthropic-ai/sdk";
 import pkg from "express-openid-connect";
 import { prisma, type Prisma } from "db";
 const { requiresAuth } = pkg;
@@ -422,6 +436,177 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
+    }
+});
+
+function mapSummaryErrorToMessage(err: unknown): string {
+    if (err instanceof SummaryUnsupportedError) {
+        return err.message;
+    }
+    if (err instanceof SummaryTooLargeError) {
+        return err.message;
+    }
+    if (err instanceof SummaryBadRequestError) {
+        return err.message;
+    }
+    if (err instanceof AuthenticationError) {
+        return "Summarization service is not configured (invalid Anthropic API key).";
+    }
+    if (err instanceof RateLimitError) {
+        return "Summarization rate limited. Try again in a moment.";
+    }
+    if (err instanceof BadRequestError) {
+        return (
+            err.message ||
+            "The summarization service rejected this request (e.g. model or document format)."
+        );
+    }
+    if (err instanceof APIError && err.status != null) {
+        if (err.status >= 500) {
+            return "Summarization failed. Try again later.";
+        }
+        return err.message || "Summarization request failed.";
+    }
+    const message = err instanceof Error ? err.message : "Summarization failed";
+    if (
+        message.includes("ANTHROPIC_API_KEY") ||
+        message.includes("not configured")
+    ) {
+        return "Summarization service is not configured.";
+    }
+    return message || "Summarization failed. Try again later.";
+}
+
+router.post("/:id/summary", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    const summaryReqStart = Date.now();
+    console.log("[summary] POST /api/content/:id/summary start", { contentId: id });
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
+
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+            res.status(400).json({
+                error: "AI summary is only available for uploaded files in the app, not external links.",
+            });
+            return;
+        }
+
+        if (
+            content.fileSize != null &&
+            content.fileSize > MAX_SUMMARY_BYTES
+        ) {
+            res.status(413).json({
+                error: `Document exceeds the ${MAX_SUMMARY_BYTES / (1024 * 1024)} MB limit for summarization.`,
+            });
+            return;
+        }
+
+        console.log("[summary] downloading from storage", {
+            contentId: id,
+            filePathSuffix: filePath.slice(-48),
+        });
+        const buffer = await downloadBuffer(filePath);
+        const filename =
+            path.basename(filePath.split("?")[0] || "") || `content-${id}`;
+        console.log("[summary] storage download done", {
+            contentId: id,
+            bytes: buffer.length,
+            filename,
+        });
+
+        // SSE + comment pings: keeps the socket busy during long Claude calls (Safari ~60s idle drops).
+        res.status(200);
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
+        res.flushHeaders();
+
+        const pingMs = 12_000;
+        const ping = setInterval(() => {
+            try {
+                res.write(": ping\n\n");
+            } catch {
+                clearInterval(ping);
+            }
+        }, pingMs);
+        const stopPing = () => {
+            clearInterval(ping);
+        };
+        req.on("close", stopPing);
+
+        try {
+            const markdown = await summarizeContentBuffer({
+                buffer,
+                filename,
+                title: content.title,
+            });
+            stopPing();
+            req.removeListener("close", stopPing);
+            console.log("[summary] POST /api/content/:id/summary ok", {
+                contentId: id,
+                totalMs: Date.now() - summaryReqStart,
+                markdownChars: markdown.length,
+            });
+            res.write(
+                `event: done\ndata: ${JSON.stringify({ markdown })}\n\n`,
+            );
+            res.end();
+        } catch (summarizeErr) {
+            stopPing();
+            req.removeListener("close", stopPing);
+            const msg = mapSummaryErrorToMessage(summarizeErr);
+            console.error("[summary] summarize failed", summarizeErr);
+            try {
+                res.write(
+                    `event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`,
+                );
+            } catch {
+                /* client disconnected */
+            }
+            res.end();
+        }
+    } catch (err) {
+        if (res.headersSent) {
+            console.error(
+                "[summary] error after SSE headers sent (unexpected)",
+                err,
+            );
+            try {
+                if (!res.writableEnded) {
+                    res.end();
+                }
+            } catch {
+                /* ignore */
+            }
+            return;
+        }
+        console.error("POST /content/:id/summary (pre-stream)", err);
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to prepare summarization",
+        });
     }
 });
 

@@ -273,10 +273,6 @@ export default function Dashboard() {
                               ? `Hello, ${userFirstName}`
                               : "Hello, there"}
                     </h1>
-                    <HelpHint contentClassName="max-w-sm">
-                        Your dashboard layout is saved in this browser. Drag widgets by the grip to reorder. Use + to
-                        add a widget.
-                    </HelpHint>
                 </div>
                 <div className="flex justify-end">
                     <button

@@ -346,6 +346,7 @@ export default function ServiceRequestsPage() {
   if (fullscreenDoc) {
     return (
       <DocumentViewer
+        contentId={fullscreenDoc.contentId}
         url={fullscreenDoc.url}
         filename={fullscreenDoc.filename}
         title={fullscreenDoc.title}
