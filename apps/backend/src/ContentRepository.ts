@@ -60,7 +60,7 @@ class ContentRepository {
         });
     }
 
-    async getById(id: number, userId: number) {
+    async getById(id: number, userId?: number) {
         return prisma.content.findFirst({
             where: {
                 id,
@@ -172,7 +172,7 @@ class ContentRepository {
             orderBy: orderBy ?? { lastViewedAt: "desc" },
             take,
             include: {
-                content: {
+                Content: {
                     include: {
                         owner: true,
                         checkedOutBy: { include: { userPhoto: true } },

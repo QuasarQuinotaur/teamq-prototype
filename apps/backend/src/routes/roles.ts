@@ -7,7 +7,8 @@ const { requiresAuth } = pkg;
 
 const router = Router();
 
-async function canCreateRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
+/** Whether this employee is a higher permission than the level. */
+async function isHigherPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
     const employeePermissionLevel = await getEmployeePermissionLevel(employee)
     if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
         return false
@@ -15,20 +16,29 @@ async function canCreateRoleOfPermissionLevel(employee: Employee, permissionLeve
     return employeePermissionLevel > permissionLevel
 }
 
-async function canUpdateRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
+/** Whether this employee is equal to or higher than permission to the level. */
+async function isAtLeastPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
     const employeePermissionLevel = await getEmployeePermissionLevel(employee)
     if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
         return false
     }
-    return employeePermissionLevel > permissionLevel
+    return employeePermissionLevel >= permissionLevel
 }
 
+/** Whether this employee can create a role at the permission level. */
+async function canCreateRole(employee: Employee, permissionLevel: number): Promise<boolean> {
+    return await isHigherPermissionLevel(employee, permissionLevel)
+}
+
+/** Whether this employee can update *any* aspect of a role at the permission level. */
+async function canUpdateRole(employee: Employee, permissionLevel: number): Promise<boolean> {
+    return await isAtLeastPermissionLevel(employee, permissionLevel)
+}
+
+
+/** Whether this employee can delete a role at the permission level. */
 async function canDeleteRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
-    const employeePermissionLevel = await getEmployeePermissionLevel(employee)
-    if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
-        return false
-    }
-    return employeePermissionLevel > permissionLevel
+    return await isHigherPermissionLevel(employee, permissionLevel)
 }
 
 
@@ -66,7 +76,7 @@ router.post("/", requiresAuth(), async (req, res) => {
         if (!key.trim() || !name.trim() || permissionLevel === null) {
             return res.status(400).json({ error: "Missing required fields" });
         }
-        const canCreate = await canCreateRoleOfPermissionLevel(employee, permissionLevel);    
+        const canCreate = await canCreateRole(employee, permissionLevel);    
         if (!canCreate) {
             return res.status(403).json({ error: "Not authorized to create role of permission level" });
         }
@@ -123,7 +133,7 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "Role not found" });
             return;
         }
-        const canUpdateExisting = await canUpdateRoleOfPermissionLevel(employee, existingRole.permissionLevel);    
+        const canUpdateExisting = await canUpdateRole(employee, existingRole.permissionLevel);    
         if (!canUpdateExisting) {
             return res.status(403).json({ error: "Not authorized to update role" });
         }
@@ -132,8 +142,8 @@ router.put("/:id", requiresAuth(), async (req, res) => {
         if (!name.trim()) {
             return res.status(400).json({ error: "Missing required fields" });
         }
-        if (permissionLevel) {
-            const canUpdateTo = await canUpdateRoleOfPermissionLevel(employee, permissionLevel);    
+        if (permissionLevel && permissionLevel > existingRole.permissionLevel) {
+            const canUpdateTo = await canCreateRole(employee, permissionLevel);    
             if (!canUpdateTo) {
                 return res.status(403).json({ error: "Not authorized to update to permission level" });
             }

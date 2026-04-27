@@ -308,7 +308,7 @@ function parseRecentListQuery(
     }
     
     const where: Prisma.RecentContentViewWhereInput = {
-        content: contentQuery.where
+        Content: contentQuery.where
     }
 
     let order: ContentListOrder | boolean = null
@@ -355,8 +355,8 @@ function sortRecentsByJobPosition(
 ): RecentListRow[] {
     const mult = ascending ? 1 : -1;
     return [...rows].sort((a, b) => {
-        const ca = a.content
-        const cb = b.content
+        const ca = a.Content
+        const cb = b.Content
         const sa = [...ca.jobPositions].sort().join(",");
         const sb = [...cb.jobPositions].sort().join(",");
         const c = sa.localeCompare(sb);
@@ -434,10 +434,10 @@ router.get("/recent", requiresAuth(), async (req, res) => {
                 const contentOrderBy = parsed.order.orderBy
                 if (Array.isArray(contentOrderBy)) {
                     orderBy = contentOrderBy.map((order) => {
-                        return {content: order}
+                        return {Content: order}
                     })
                 } else {
-                    orderBy = {content: contentOrderBy}
+                    orderBy = {Content: contentOrderBy}
                 }
                 recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
             } else {
@@ -450,7 +450,7 @@ router.get("/recent", requiresAuth(), async (req, res) => {
             success: true,
             recent: recent.map((row) => ({
                 lastViewedAt: row.lastViewedAt,
-                content: row.content,
+                content: row.Content,
             })),
         });
     } catch (err) {
