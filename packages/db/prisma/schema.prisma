@@ -56,6 +56,9 @@ model Content {
 
   tags ContentTag[]
 
+  viewCount      Int @default(0)
+  downloadCount  Int @default(0)
+
   @@index([ownerId])
   @@index([contentType])
   @@index([expirationDate])

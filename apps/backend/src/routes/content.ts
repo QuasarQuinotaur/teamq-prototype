@@ -357,8 +357,23 @@ router.get("/", requiresAuth(), async (req, res) => {
     }
 });
 
+// Returns the top N most downloaded content items, sorted by downloadCount descending.
+// Use the ?limit= query param to control how many results come back (default 5).
+router.get("/stats/top", requiresAuth(), async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    try {
+        const top = await prisma.content.findMany({
+            orderBy: { downloadCount: "desc" },
+            take: limit,
+            select: { id: true, title: true, viewCount: true, downloadCount: true }
+        });
+        res.json({ top });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
 
-router.get("/:id", requiresAuth(), async (req, res) => { // get content
+router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -370,13 +385,17 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
             res.status(404).json({ error: "Not found" });
             return;
         }
+        await prisma.content.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } }
+        });
         res.json({ content: content });
     } catch (err) {
         res.status(500).json({ error: err });
     }
 });
 
-router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
+router.get("/:id/download", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -393,6 +412,10 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "No file or link" });
             return;
         }
+        await prisma.content.update({
+            where: { id },
+            data: { downloadCount: { increment: 1 } }
+        });
         if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
             res.json({ url: filePath });
             return;
@@ -401,6 +424,29 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
+    }
+});
+
+// Returns viewCount and downloadCount for a specific content item.
+// Frontend can use either or both fields — just ignore what you don't need.
+router.get("/:id/stats", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await prisma.content.findUnique({
+            where: { id },
+            select: { viewCount: true, downloadCount: true }
+        });
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        res.json({ viewCount: content.viewCount, downloadCount: content.downloadCount });
+    } catch (err) {
+        res.status(500).json({ error: err });
     }
 });
 
