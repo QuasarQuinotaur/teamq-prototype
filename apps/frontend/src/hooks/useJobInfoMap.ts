@@ -6,6 +6,7 @@ export default function useJobInfoMap() {
     const context = useMainContext()
     return {
         jobInfoMap: context.jobInfoMap,
-        rolesLoading: context.rolesLoading
+        rolesLoading: context.rolesLoading,
+        refetchRoles: context.refetchRoles,
     }
 }

@@ -12,7 +12,8 @@ export type MainContext = {
     tagsEnabled: boolean,
     setTagsEnabled: (tagsEnabled: boolean) => void,
     jobInfoMap: Record<string, Role>,
-    rolesLoading: boolean
+    rolesLoading: boolean,
+    refetchRoles: () => void,
 }
 export type ViewType = "List" | "Grid"
 
@@ -29,34 +30,41 @@ export default function useCreateMainContext(): MainContext {
     const useJobInfoMap = useCallback(() => {
         const [jobInfoMap, setJobInfoMap] = useState<Record<string, Role>>({})
         const [rolesLoading, setRolesLoading] = useState(true)
+        const [updateRoles, setUpdateRoles] = useState(true)
+        const refetchRoles = useCallback(() => {
+            setUpdateRoles(true)
+        }, [setUpdateRoles])
         useEffect(() => {
             const fetchRoles = async () => {
+                console.log("RE-FETCH ROLES NOW!!!")
                 try {
-                    setRolesLoading(true)
-                    console.log("FETCH ROLES.")
-                    const rolesResponse = await fetch(
-                        `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
-                        {credentials: "include"}
-                    );
-                    const rolesData = await rolesResponse.json()
-                    if (!rolesData.success) throw new Error("Failed to find tags.")
-                    const roles: Role[] = rolesData.roles
-                    const roleMap = roles.reduce((map, role) => {
-                        map[role.key] = role
-                        return map
-                    }, {})
-                    console.log("ROLE MAP:", roleMap)
-                    setJobInfoMap(roleMap)
-                    setRolesLoading(false)
+                    if (updateRoles) {
+                        setUpdateRoles(false)
+                        setRolesLoading(true)
+                        console.log("FETCH ROLES.")
+                        const rolesResponse = await fetch(
+                            `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
+                            {credentials: "include"}
+                        );
+                        const rolesData = await rolesResponse.json()
+                        if (!rolesData.success) throw new Error("Failed to find tags.")
+                        const roles: Role[] = rolesData.roles
+                        const roleMap = roles.reduce((map, role) => {
+                            map[role.key] = role
+                            return map
+                        }, {})
+                        setJobInfoMap(roleMap)
+                        setRolesLoading(false)
+                    }
                 } catch (error) {
                     console.error(error)
                 }
             }
             void fetchRoles();
-        }, [])
-        return { jobInfoMap, rolesLoading }
+        }, [updateRoles])
+        return { jobInfoMap, rolesLoading, refetchRoles }
     }, [])
-    const { jobInfoMap, rolesLoading } = useJobInfoMap();
+    const { jobInfoMap, rolesLoading, refetchRoles } = useJobInfoMap();
 
     return {
         view,
@@ -66,6 +74,7 @@ export default function useCreateMainContext(): MainContext {
         tagsEnabled,
         setTagsEnabled,
         jobInfoMap,
-        rolesLoading
+        rolesLoading,
+        refetchRoles
     }
 }

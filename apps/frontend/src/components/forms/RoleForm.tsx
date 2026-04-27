@@ -48,22 +48,24 @@ export default function RoleForm({
             : `${import.meta.env.VITE_BACKEND_URL}/api/roles`;
         const name = fields.name
         const role = {
-            key: formatDashCase(name),
+            key: !isUpdate && formatDashCase(name),
             name: name,
             permissionLevel: ROLE_PERMISSION_LEVEL_MAP[fields.permission]
         }
-        console.log("NEW ROLE:", name, role, isUpdate)
         const response = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(role),
         })
-        if (onSubmitted) {
-            const result = await response.json()
-            if (result && result.success) {
+        const result = await response.json()
+        console.log("REPSONSE:", response, "|", result)
+        if (response.ok && result && result.success) {
+            if (onSubmitted) {
                 onSubmitted()
             }
+        } else {
+            throw new Error(result ? result.error : `Failed to ${isUpdate ? "update" : "create"} role`)
         }
     }
 

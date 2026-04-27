@@ -19,13 +19,14 @@ import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog";
 
 export default function RoleDropdownButton() {
     const [modifyRolesOpen, setModifyRolesOpen] = useState(false)
-    const { jobInfoMap } = useJobInfoMap();
+    const { jobInfoMap, refetchRoles } = useJobInfoMap();
     const jobRoleList = useMemo(() => {
         return Object.values(jobInfoMap)
     }, [jobInfoMap])
 
     const onRolesModified = () => {
         console.log("ROLES MODIFIED! Re-Fetch all now")
+        refetchRoles()
     }
 
     async function deleteByRoleId(roleId: number) {
