@@ -56,6 +56,26 @@ const CLAUDE_SUMMARY_MAX_TOKENS = (() => {
     return Math.min(8192, Math.max(512, n));
 })();
 
+/** Max output tokens for tag suggestion (JSON only). */
+const CLAUDE_TAG_SUGGEST_MAX_TOKENS = (() => {
+    const raw = process.env.CLAUDE_TAG_SUGGEST_MAX_TOKENS?.trim();
+    const fallback = 512;
+    if (!raw) return fallback;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(1024, Math.max(128, n));
+})();
+
+const TAG_SUGGEST_SYSTEM_PROMPT = `You assign workplace document tags. Respond with ONLY a single JSON object and no other text before or after it.
+
+The JSON must be exactly this shape: {"tagIds":[number,...]}
+
+Rules:
+- Every number in tagIds must be one of the allowed tag ids from the user message.
+- Include only tags that clearly apply to the document content or title.
+- Prefer a concise set (often 0–8 tags). Use [] if none fit.
+- Do not invent ids. Do not add keys other than tagIds. Do not wrap the JSON in markdown code fences.`;
+
 const log = (step: string, detail?: Record<string, unknown>) => {
     if (detail) {
         console.log(`[summary] ${step}`, detail);
@@ -216,6 +236,188 @@ function messageTextFromResponse(
         }
     }
     return parts.join("\n").trim();
+}
+
+function tagSuggestUserPayload(
+    title: string,
+    candidateTags: { id: number; tagName: string }[],
+): string {
+    const catalog = JSON.stringify(
+        candidateTags.map((t) => ({ id: t.id, tagName: t.tagName })),
+    );
+    return `Document title (metadata): ${JSON.stringify(title)}
+
+Allowed tags (you may ONLY use these id values in tagIds):
+${catalog}
+
+Read the attached or pasted document. Return {"tagIds":[...]} with the subset of allowed tag ids that best describe this document.`;
+}
+
+function parseJsonObjectFromModelText(text: string): Record<string, unknown> {
+    let t = text.trim();
+    const fence = /^```(?:json)?\s*([\s\S]*?)```/i.exec(t);
+    if (fence) {
+        t = fence[1].trim();
+    }
+    const obj = JSON.parse(t) as unknown;
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+        throw new Error("Model did not return a JSON object");
+    }
+    return obj as Record<string, unknown>;
+}
+
+function normalizeSuggestedTagIds(
+    parsed: Record<string, unknown>,
+    allowed: Set<number>,
+): number[] {
+    const raw = parsed.tagIds;
+    if (!Array.isArray(raw)) {
+        throw new Error('Model JSON must include a "tagIds" array');
+    }
+    const out: number[] = [];
+    const seen = new Set<number>();
+    for (const x of raw) {
+        if (typeof x !== "number" || !Number.isInteger(x)) {
+            continue;
+        }
+        if (!allowed.has(x) || seen.has(x)) {
+            continue;
+        }
+        seen.add(x);
+        out.push(x);
+    }
+    return out;
+}
+
+/**
+ * Calls Claude with the document bytes and returns allowed tag ids that fit the content.
+ * Caller must enforce buffer size and storage-only paths.
+ */
+export async function suggestTagIdsFromContent(params: {
+    buffer: Buffer;
+    filename: string;
+    title: string;
+    candidateTags: { id: number; tagName: string }[];
+}): Promise<number[]> {
+    const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+    if (!apiKey) {
+        throw new Error("ANTHROPIC_API_KEY is not configured");
+    }
+
+    const model =
+        process.env.CLAUDE_SUMMARY_MODEL?.trim() || DEFAULT_MODEL;
+
+    if (params.candidateTags.length === 0) {
+        return [];
+    }
+
+    const allowed = new Set(params.candidateTags.map((t) => t.id));
+
+    if (params.buffer.length > MAX_SUMMARY_BYTES) {
+        throw new SummaryTooLargeError(
+            `Document exceeds the ${MAX_SUMMARY_BYTES / (1024 * 1024)} MB limit for AI tag suggestions.`,
+        );
+    }
+
+    const ext = extFromFilename(params.filename);
+    log("tagSuggest:extract:start", {
+        filename: params.filename,
+        ext: ext || "(none)",
+        bytes: params.buffer.length,
+    });
+    const t0 = Date.now();
+    const extracted = await extractTextForKind(params.buffer, ext);
+    log("tagSuggest:extract:done", {
+        ms: Date.now() - t0,
+        kind: extracted.kind,
+        textChars: extracted.kind === "text" ? extracted.text.length : undefined,
+    });
+
+    const baseURL = anthropicMessagesBaseUrl();
+    const client = new Anthropic({
+        apiKey,
+        baseURL,
+        timeout: CLAUDE_REQUEST_TIMEOUT_MS,
+        maxRetries: 1,
+    });
+
+    const payload = tagSuggestUserPayload(params.title, params.candidateTags);
+
+    const userContent: Anthropic.MessageCreateParams["messages"][number]["content"] =
+        extracted.kind === "pdf"
+            ? [
+                  {
+                      type: "document",
+                      source: {
+                          type: "base64",
+                          media_type: "application/pdf",
+                          data: params.buffer.toString("base64"),
+                      },
+                  },
+                  {
+                      type: "text",
+                      text: payload,
+                  },
+              ]
+            : [
+                  {
+                      type: "text",
+                      text: `${payload}\n\n---\n\nDocument text:\n\n${extracted.text || "(empty)"}`,
+                  },
+              ];
+
+    let response: Anthropic.Message;
+    try {
+        const requestOptions =
+            extracted.kind === "pdf"
+                ? { headers: { "anthropic-beta": PDF_BETA_HEADER } }
+                : undefined;
+
+        log("tagSuggest:claude:request", {
+            baseURL,
+            model,
+            maxTokens: CLAUDE_TAG_SUGGEST_MAX_TOKENS,
+            inputKind: extracted.kind,
+        });
+        const t1 = Date.now();
+        response = await client.messages.create(
+            {
+                model,
+                max_tokens: CLAUDE_TAG_SUGGEST_MAX_TOKENS,
+                system: TAG_SUGGEST_SYSTEM_PROMPT,
+                messages: [{ role: "user", content: userContent }],
+            },
+            requestOptions,
+        );
+        log("tagSuggest:claude:response", {
+            ms: Date.now() - t1,
+            stopReason: response.stop_reason,
+        });
+    } catch (err) {
+        console.error("[tagSuggest] Claude error", err);
+        throw err;
+    }
+
+    const out = messageTextFromResponse(response);
+    if (!out) {
+        throw new Error("Empty response from tag suggestion model");
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+        parsed = parseJsonObjectFromModelText(out);
+    } catch (e) {
+        console.error("[tagSuggest] JSON parse failed", { snippet: out.slice(0, 500) });
+        throw new Error(
+            e instanceof Error
+                ? e.message
+                : "Could not parse tag suggestion response",
+        );
+    }
+
+    const ids = normalizeSuggestedTagIds(parsed, allowed);
+    log("tagSuggest:success", { count: ids.length });
+    return ids;
 }
 
 /**

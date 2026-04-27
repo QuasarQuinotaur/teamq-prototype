@@ -10,6 +10,7 @@ import {
 } from "../lib/supabase.ts";
 import {
     MAX_SUMMARY_BYTES,
+    suggestTagIdsFromContent,
     summarizeContentBuffer,
     SummaryBadRequestError,
     SummaryTooLargeError,
@@ -477,6 +478,111 @@ function mapSummaryErrorToMessage(err: unknown): string {
     return message || "Summarization failed. Try again later.";
 }
 
+function tagVisibleWhere(employeeId: number): Prisma.TagWhereInput {
+    return {
+        OR: [{ ownerId: employeeId }, { isGlobal: true }],
+    };
+}
+
+router.post("/:id/suggest-tags", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    console.log("[tagSuggest] POST /api/content/:id/suggest-tags start", {
+        contentId: id,
+    });
+    try {
+        const content = await contentRepo.getById(id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
+
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+            res.status(400).json({
+                error: "AI tag suggestions are only available for uploaded files in the app, not external links.",
+            });
+            return;
+        }
+
+        if (
+            content.fileSize != null &&
+            content.fileSize > MAX_SUMMARY_BYTES
+        ) {
+            res.status(413).json({
+                error: `Document exceeds the ${MAX_SUMMARY_BYTES / (1024 * 1024)} MB limit for AI tag suggestions.`,
+            });
+            return;
+        }
+
+        const candidateTags = await prisma.tag.findMany({
+            where: tagVisibleWhere(employee.id),
+            orderBy: [{ tagName: "asc" }],
+            select: { id: true, tagName: true },
+        });
+
+        if (candidateTags.length === 0) {
+            res.status(400).json({
+                error: "No tags are available to assign. Create a tag first.",
+            });
+            return;
+        }
+
+        const contentWithTags = await contentRepo.getTags(id);
+        const existingTagIds = new Set(
+            (contentWithTags?.tags ?? []).map((ct) => ct.tagId),
+        );
+
+        const buffer = await downloadBuffer(filePath);
+        const filename =
+            path.basename(filePath.split("?")[0] || "") || `content-${id}`;
+
+        let suggested: number[];
+        try {
+            suggested = await suggestTagIdsFromContent({
+                buffer,
+                filename,
+                title: content.title,
+                candidateTags,
+            });
+        } catch (suggestErr) {
+            const msg = mapSummaryErrorToMessage(suggestErr);
+            console.error("[tagSuggest] suggestTagIdsFromContent failed", suggestErr);
+            res.status(500).json({ error: msg });
+            return;
+        }
+
+        const tagIds = suggested.filter((tagId) => !existingTagIds.has(tagId));
+
+        console.log("[tagSuggest] POST /api/content/:id/suggest-tags ok", {
+            contentId: id,
+            offered: tagIds.length,
+        });
+        res.json({ success: true, tagIds });
+    } catch (err) {
+        console.error("POST /content/:id/suggest-tags", err);
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to suggest tags",
+        });
+    }
+});
+
 router.post("/:id/summary", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
@@ -522,6 +628,57 @@ router.post("/:id/summary", requiresAuth(), async (req, res) => {
             return;
         }
 
+        const beginSummarySse = (): (() => void) => {
+            // SSE + comment pings: keeps the socket busy during long Claude calls (Safari ~60s idle drops).
+            res.status(200);
+            res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+            res.setHeader("Cache-Control", "no-cache, no-transform");
+            res.setHeader("Connection", "keep-alive");
+            res.setHeader("X-Accel-Buffering", "no");
+            res.flushHeaders();
+
+            const pingMs = 12_000;
+            const ping = setInterval(() => {
+                try {
+                    res.write(": ping\n\n");
+                } catch {
+                    clearInterval(ping);
+                }
+            }, pingMs);
+            const stopPing = () => {
+                clearInterval(ping);
+            };
+            req.on("close", stopPing);
+            return stopPing;
+        };
+
+        const cached = content.aiSummary?.trim();
+
+        const sendSummaryDone = (
+            markdown: string,
+            cacheHit: boolean,
+        ): void => {
+            console.log("[summary] POST /api/content/:id/summary ok", {
+                contentId: id,
+                totalMs: Date.now() - summaryReqStart,
+                markdownChars: markdown.length,
+                cacheHit,
+            });
+            res.write(
+                `event: done\ndata: ${JSON.stringify({ markdown })}\n\n`,
+            );
+            res.end();
+        };
+
+        if (cached) {
+            console.log("[summary] cache hit", { contentId: id });
+            const stopPing = beginSummarySse();
+            stopPing();
+            req.removeListener("close", stopPing);
+            sendSummaryDone(cached, true);
+            return;
+        }
+
         console.log("[summary] downloading from storage", {
             contentId: id,
             filePathSuffix: filePath.slice(-48),
@@ -535,26 +692,7 @@ router.post("/:id/summary", requiresAuth(), async (req, res) => {
             filename,
         });
 
-        // SSE + comment pings: keeps the socket busy during long Claude calls (Safari ~60s idle drops).
-        res.status(200);
-        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-        res.setHeader("Cache-Control", "no-cache, no-transform");
-        res.setHeader("Connection", "keep-alive");
-        res.setHeader("X-Accel-Buffering", "no");
-        res.flushHeaders();
-
-        const pingMs = 12_000;
-        const ping = setInterval(() => {
-            try {
-                res.write(": ping\n\n");
-            } catch {
-                clearInterval(ping);
-            }
-        }, pingMs);
-        const stopPing = () => {
-            clearInterval(ping);
-        };
-        req.on("close", stopPing);
+        const stopPing = beginSummarySse();
 
         try {
             const markdown = await summarizeContentBuffer({
@@ -562,17 +700,13 @@ router.post("/:id/summary", requiresAuth(), async (req, res) => {
                 filename,
                 title: content.title,
             });
+            await prisma.content.update({
+                where: { id },
+                data: { aiSummary: markdown },
+            });
             stopPing();
             req.removeListener("close", stopPing);
-            console.log("[summary] POST /api/content/:id/summary ok", {
-                contentId: id,
-                totalMs: Date.now() - summaryReqStart,
-                markdownChars: markdown.length,
-            });
-            res.write(
-                `event: done\ndata: ${JSON.stringify({ markdown })}\n\n`,
-            );
-            res.end();
+            sendSummaryDone(markdown, false);
         } catch (summarizeErr) {
             stopPing();
             req.removeListener("close", stopPing);
@@ -895,6 +1029,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 checkedOutOn: null,
                 hasBeenNotifiedExpiringSoon: false,
                 hasBeenNotifiedOfExpiration: false,
+                aiSummary: null,
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
             include: {
@@ -1066,7 +1201,7 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id,
+                OR: [{ ownerId: employee.id }, { isGlobal: true }],
             },
         });
 
@@ -1126,7 +1261,7 @@ router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id,
+                OR: [{ ownerId: employee.id }, { isGlobal: true }],
             },
         });
 

@@ -57,6 +57,8 @@ model Content {
   hasBeenNotifiedExpiringSoon Boolean @default(false)
   hasBeenNotifiedOfExpiration   Boolean @default(false)
 
+  aiSummary String? @db.Text
+
   tags ContentTag[]
 
   @@index([ownerId])
@@ -108,11 +110,12 @@ model UserPhoto {
 }
 
 model Tag {
-  id      Int      @id @default(autoincrement())
-  ownerId Int
-  tagName String
-  color   String   @default("#ff0000")
-  owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id       Int     @id @default(autoincrement())
+  ownerId  Int
+  tagName  String
+  color    String  @default("#ff0000")
+  isGlobal Boolean @default(false)
+  owner    Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   contents ContentTag[]
 

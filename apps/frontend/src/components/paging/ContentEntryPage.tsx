@@ -136,7 +136,11 @@ function getContentEntryFromRow(
     const tags: Tag[] =
         content.tags
             ?.map((ct) => ct.tag)
-            .filter((t) => (employee ? t.ownerId === employee.id : false)) ?? [];
+            .filter((t) =>
+                employee
+                    ? t.isGlobal || t.ownerId === employee.id
+                    : false,
+            ) ?? [];
     const ownerRecord = employeeMap.get(content.ownerId);
     return {
         item: content,
@@ -804,8 +808,10 @@ export default function ContentEntryPage({
                 </DropdownMenuCheckboxItem>
                 <TagsOption
                     contentId={item.id}
+                    filePath={item.filePath}
                     tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
                     tagList={tagList}
+                    isAdmin={employee?.jobPosition === "admin"}
                     contentTagsUpdated={() => {
                         void fetchContentById(item.id) // only this content got changed
                     }}
