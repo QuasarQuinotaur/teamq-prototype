@@ -1,10 +1,10 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import { Label } from "@/elements/label.tsx";
 import { Textarea } from "@/elements/textarea.tsx";
-import { Input } from "@/elements/input.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
-import { HelpHint } from "@/elements/help-hint.tsx";
 import {
   AssignEmployeesCombobox,
   type AssignEmployeeOption,
@@ -14,6 +14,9 @@ import type { Employee } from "db";
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 export default function Announcements() {
+  const navigate = useNavigate();
+  const titleRef = React.useRef<HTMLTextAreaElement>(null);
+
   const [title, setTitle] = React.useState("");
   const [message, setMessage] = React.useState("");
   const [assigneeIds, setAssigneeIds] = React.useState<number[]>([]);
@@ -23,6 +26,17 @@ export default function Announcements() {
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+
+  const resizeTitle = React.useCallback(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, 44)}px`;
+  }, []);
+
+  React.useLayoutEffect(() => {
+    resizeTitle();
+  }, [title, resizeTitle]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -51,6 +65,10 @@ export default function Announcements() {
       cancelled = true;
     };
   }, []);
+
+  function handleBack() {
+    navigate("/documents/notifications");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -104,13 +122,16 @@ export default function Announcements() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b bg-background px-4 py-3">
         <SidebarTrigger className="-ml-1" />
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">Announcements</h1>
-          <HelpHint contentClassName="max-w-sm">
-            Send a notification to selected employees. The title and optional message
-            appear in each recipient&apos;s Notifications inbox.
-          </HelpHint>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="gap-1.5"
+        >
+          <ArrowLeftIcon />
+          Back
+        </Button>
       </header>
 
       {loadError ? (
@@ -118,19 +139,34 @@ export default function Announcements() {
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8"
+          className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8"
         >
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ann-title">Title</Label>
-            <Input
-              id="ann-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Subject"
-              disabled={disabled}
-              required
-            />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="ann-title" className="sr-only">
+                Title
+              </label>
+              <textarea
+                id="ann-title"
+                ref={titleRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                rows={1}
+                placeholder="Announcement title"
+                disabled={disabled}
+                className="w-full resize-none border-0 bg-transparent p-0 text-3xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-0 md:text-4xl"
+              />
+            </div>
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:max-w-xs sm:pt-1">
+              <Label htmlFor="ann-recipients">Recipients</Label>
+              <AssignEmployeesCombobox
+                employees={employees}
+                value={assigneeIds}
+                onValueChange={setAssigneeIds}
+                disabled={disabled}
+                placeholder="Select employees…"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -139,30 +175,28 @@ export default function Announcements() {
               id="ann-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Write your message…"
-              rows={6}
+              placeholder="Add details for your announcement…"
               disabled={disabled}
-              className="min-h-[8rem] resize-y"
+              className="min-h-28"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ann-recipients">Recipients</Label>
-            <AssignEmployeesCombobox
-              employees={employees}
-              value={assigneeIds}
-              onValueChange={setAssigneeIds}
-              disabled={disabled}
-              placeholder="Select employees…"
-            />
+          {submitError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {submitError}
+            </p>
+          ) : null}
+          {success ? (
+            <p className="text-sm text-emerald-600 dark:text-emerald-500" role="status">
+              {success}
+            </p>
+          ) : null}
+
+          <div className="ml-auto flex justify-end border-t border-border pt-6">
+            <Button type="submit" disabled={disabled}>
+              {submitting ? "Sending…" : "Send announcement"}
+            </Button>
           </div>
-
-          {submitError && <p className="text-sm text-destructive">{submitError}</p>}
-          {success && <p className="text-sm text-emerald-600 dark:text-emerald-500">{success}</p>}
-
-          <Button type="submit" disabled={disabled}>
-            {submitting ? "Sending…" : "Send announcement"}
-          </Button>
         </form>
       )}
     </div>

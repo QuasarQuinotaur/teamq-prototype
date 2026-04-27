@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/elements/buttons/button.tsx";
+import { Megaphone } from "lucide-react";
 import SelectMarqueeLayer from "@/components/paging/SelectMarqueeLayer.tsx";
 import {
   MoreHorizontal,
@@ -241,6 +243,22 @@ export default function Notifications() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/me`, { withCredentials: true })
+      .then((res) => {
+        if (!cancelled && res.data?.jobPosition === "admin") setIsAdmin(true);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const exitSelectMode = useCallback(() => {
     setSelectMode(false);
@@ -465,6 +483,14 @@ export default function Notifications() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button asChild>
+              <Link to="/documents/announcements">
+                <Megaphone className="size-4" />
+                New announcement
+              </Link>
+            </Button>
+          )}
           {!selectMode && (
             <button
               type="button"
