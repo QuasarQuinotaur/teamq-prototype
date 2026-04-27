@@ -42,7 +42,7 @@ router.post("/", requiresAuth(), async (req, res) => {
             return res.status(403).json({ error: "Not authorized to create roles" });
         }
 
-        const { key, name, permission } = req.body
+        const { key, name, permissionLevel } = req.body
         if (!key.trim() || !name.trim()) {
             return res.status(400).json({ error: "Missing required fields" });
         }
@@ -58,7 +58,7 @@ router.post("/", requiresAuth(), async (req, res) => {
             data: {
                 key: key.trim(),
                 name: name.trim(),
-                permission: permission && permission.trim(),
+                permissionLevel: permissionLevel,
             },
         });
         res.json({
@@ -104,7 +104,7 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const { name, permission } = req.body;
+        const { name, permissionLevel } = req.body;
         if (!name.trim()) {
             return res.status(400).json({ error: "Missing required fields" });
         }
@@ -115,7 +115,7 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             },
             data: {
                 name: name.trim(),
-                ...(permission ? {permission: permission.trim()} : {})
+                ...(permissionLevel ? {permissionLevel} : {})
             },
         });
         res.json({

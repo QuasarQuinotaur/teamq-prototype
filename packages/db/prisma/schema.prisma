@@ -107,6 +107,7 @@ model Tag {
   color    String       @default("#ff0000")
   contents ContentTag[]
   owner    Employee     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isGlobal Boolean      @default(false)
 
   @@unique([ownerId, tagName])
   @@index([tagName])
@@ -162,14 +163,24 @@ model RecentContentView {
   @@index([employeeId, lastViewedAt])
 }
 
-model Role {
-  name       String
-  key        String         @unique
-  permission RolePermission @default(EMPLOYEE)
-  id         Int            @id @default(autoincrement())
-}
+// model Role {
+//   name       String
+//   key        String         @unique
+//   permission RolePermission @default(EMPLOYEE)
+//   id         Int            @id @default(autoincrement())
+// }
 
-enum RolePermission {
-  ADMIN
-  EMPLOYEE
+// enum RolePermission {
+//   ADMIN
+//   EMPLOYEE
+// }
+
+model Role {
+    id                  Int                 @id @default(autoincrement())
+    key                 String              @unique
+    name                String              
+
+    // 0 or less - Employee
+    // 1+ - Admin
+    permissionLevel     Int                 @default(0)
 }

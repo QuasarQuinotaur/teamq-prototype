@@ -8,7 +8,7 @@ export default function useGetEmployeeIsAdmin() {
         return (employee: Employee) => {
             const role = jobInfoMap[employee.jobPosition]
             console.log("EMPLOYEE ROLE", role)
-            return role && role.permission === "ADMIN"
+            return role && role.permissionLevel >= 1
         }
     }, [jobInfoMap])
     return { getEmployeeIsAdmin, rolesLoading }

@@ -1,17 +1,44 @@
 
 import { Button } from "@/elements/buttons/button";
-import { AddressBookIcon, PencilIcon, PlusIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, PencilIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import useJobInfoMap from '@/hooks/useJobInfoMap';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/DropdownMenu.tsx";
+import RoleFormDialog from "@/components/paging/roles/RoleFormDialog";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/dialog/Dialog.tsx";
+import { useMemo, useState } from "react";
+import { ScrollArea } from "@/elements/scroll-area";
+import { TableBody, TableRow } from "@/components/Table";
+import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog";
 
 
 export default function RoleDropdownButton() {
+    const [modifyRolesOpen, setModifyRolesOpen] = useState(false)
+    const { jobInfoMap } = useJobInfoMap();
+    const jobRoleList = useMemo(() => {
+        return Object.values(jobInfoMap)
+    }, [jobInfoMap])
+
+    const onRolesModified = () => {
+        console.log("ROLES MODIFIED! Re-Fetch all now")
+    }
+
+    async function deleteByRoleId(roleId: number) {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/roles/${roleId}`, {
+            method: "DELETE",
+            credentials: "include",
+        })
+        const result = await response.json()
+        if (result && result.success) {
+            onRolesModified()
+        }
+    }
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -27,14 +54,74 @@ export default function RoleDropdownButton() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
-                        <PlusIcon/>
-                        Create new role
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <PencilIcon/>
-                        Modify roles
-                    </DropdownMenuItem>
+                
+                    {/*Create Role option*/}
+                    <RoleFormDialog
+                        header={"Create Role"}
+                        onSubmitted={onRolesModified}
+                    >
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                e.preventDefault();
+                            }}
+                        >
+                            <PlusIcon/>
+                            Create new role
+                        </DropdownMenuItem>
+                    </RoleFormDialog>
+
+                    {/*Modify Roles option*/}
+                    {jobRoleList.length > 0 && (
+                        <Dialog open={modifyRolesOpen} onOpenChange={setModifyRolesOpen}>
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                >
+                                    <PencilIcon/>
+                                    Modify roles
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                            <DialogContent
+                                className={`w-fit min-w-70 max-w-[90vw] sm:max-w-150 sm:min-w-90 p-5 text-sm gap-4
+                                 sm:p-6 sm:pr-10 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden`}
+                            >
+                                <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
+                                    <DialogTitle className="text-base font-semibold sm:text-lg">
+                                        Modify Roles
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <ScrollArea className={"min-h-0 max-h-120"}>
+                                    <TableBody className={"flex flex-col gap-1 pr-3"}>
+                                        {jobRoleList.map(role => (
+                                            <TableRow className={"w-full justify-between text-base p-1 pl-2 flex flex-nowrap items-center  hover:bg-background"}>
+                                                {role.name}
+                                                <div className={"justify-self-end flex gap-1"}>
+                                                    <RoleFormDialog
+                                                        header={"Edit Role"}
+                                                        onSubmitted={onRolesModified}
+                                                        baseItem={role}
+                                                    >
+                                                        <Button variant={"outline"}>
+                                                            <PencilIcon/>
+                                                        </Button>
+                                                    </RoleFormDialog>
+                                                    <DeleteConfirmDialog
+                                                        onDelete={() => void deleteByRoleId(role.id)}
+                                                    >
+                                                        <Button variant={"outline"}>
+                                                            <TrashIcon color={"var(--destructive)"}/>
+                                                        </Button>
+                                                    </DeleteConfirmDialog>
+                                                </div>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </ScrollArea>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </DropdownMenuGroup>
             </DropdownMenuContent>
         </DropdownMenu>

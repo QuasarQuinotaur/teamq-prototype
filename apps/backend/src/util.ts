@@ -1,4 +1,4 @@
-import { Employee, prisma, RolePermission } from "db";
+import { Employee, prisma } from "db";
 
 
 export async function getEmployeeIsAdmin(employee: Employee) {
@@ -7,5 +7,5 @@ export async function getEmployeeIsAdmin(employee: Employee) {
     const role = await prisma.role.findUnique({
         where: { key: employee.jobPosition },
     });
-    return role && role.permission === RolePermission.ADMIN
+    return role && role.permissionLevel >= 1
 }

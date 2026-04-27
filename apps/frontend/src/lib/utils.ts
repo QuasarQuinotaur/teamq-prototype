@@ -75,3 +75,8 @@ export function handleKeyChangeOrDelete<T extends object, K extends keyof T>(
   }
   handleKeyChange(setObject, key, value);
 }
+
+// Turns a string into lowercase dash case (e.g. Test String -> test-string)
+export function formatDashCase(text: string) {
+    return text.toLowerCase().trim().replace(/\s+/g, '-')
+}
