@@ -20,18 +20,11 @@ import axios from "axios"
 import type { Employee } from "db";
 
 
-export default function RoleDropdownButton() {
-    const [modifyRolesOpen, setModifyRolesOpen] = useState(false)
+export default function RoleDropdownButton() { 
     const { jobInfoMap, refetchRoles } = useJobInfoMap();
     const { getPermissionLevel } = useGetPermissionLevel();
-    const jobRoleList = useMemo(() => {
-        return Object.values(jobInfoMap)
-    }, [jobInfoMap])
 
-    const onRolesModified = () => {
-        console.log("ROLES MODIFIED! Re-Fetch all now")
-        refetchRoles()
-    }
+    const [modifyRolesOpen, setModifyRolesOpen] = useState(false)
     const [employee, setEmployee] = useState<Employee | null>(null);
     useEffect(() => {
         const fetchUser = async () => {
@@ -49,6 +42,24 @@ export default function RoleDropdownButton() {
     const employeePermissionLevel = useMemo(() => {
         return getPermissionLevel(employee)
     }, [getPermissionLevel, employee])
+
+
+    const jobRoleList = useMemo(() => {
+        return Object.values(jobInfoMap)
+            .filter(role => employeePermissionLevel >= role.permissionLevel)
+            .sort((a, b) => b.permissionLevel - a.permissionLevel)
+    }, [jobInfoMap, employeePermissionLevel])
+    
+    useEffect(() => {
+        if (jobRoleList.length === 0) {
+            setModifyRolesOpen(false)
+        }
+    }, [jobRoleList]);
+
+
+    function onRolesModified() {
+        refetchRoles()
+    }
 
 
     async function deleteByRoleId(roleId: number) {
@@ -134,13 +145,15 @@ export default function RoleDropdownButton() {
                                                             <PencilIcon/>
                                                         </Button>
                                                     </RoleFormDialog>
-                                                    <DeleteConfirmDialog
-                                                        onDelete={() => void deleteByRoleId(role.id)}
-                                                    >
-                                                        <Button variant={"outline"}>
-                                                            <TrashIcon color={"var(--destructive)"}/>
-                                                        </Button>
-                                                    </DeleteConfirmDialog>
+                                                    {role.permissionLevel < employeePermissionLevel && (
+                                                        <DeleteConfirmDialog
+                                                            onDelete={() => void deleteByRoleId(role.id)}
+                                                        >
+                                                            <Button variant={"outline"}>
+                                                                <TrashIcon color={"var(--destructive)"}/>
+                                                            </Button>
+                                                        </DeleteConfirmDialog>
+                                                    )}
                                                 </div>
                                             </TableRow>
                                         ))}
