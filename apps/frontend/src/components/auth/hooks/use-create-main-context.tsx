@@ -36,12 +36,10 @@ export default function useCreateMainContext(): MainContext {
         }, [setUpdateRoles])
         useEffect(() => {
             const fetchRoles = async () => {
-                console.log("RE-FETCH ROLES NOW!!!")
                 try {
                     if (updateRoles) {
                         setUpdateRoles(false)
                         setRolesLoading(true)
-                        console.log("FETCH ROLES.")
                         const rolesResponse = await fetch(
                             `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
                             {credentials: "include"}

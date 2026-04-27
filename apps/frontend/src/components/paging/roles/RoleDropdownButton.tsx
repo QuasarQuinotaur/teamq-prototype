@@ -38,10 +38,10 @@ export default function RoleDropdownButton() {
             }
         };
         fetchUser();
-    }, []);
+    }, [getPermissionLevel]);
     const employeePermissionLevel = useMemo(() => {
         return getPermissionLevel(employee)
-    }, [getPermissionLevel, employee])
+    }, [employee])
 
 
     const jobRoleList = useMemo(() => {
