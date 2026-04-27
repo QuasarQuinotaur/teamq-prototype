@@ -399,7 +399,8 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
         return;
     }
     try {
-        const content = await contentRepo.getById(id);
+        const employee = await getEmployeeFromRequest(req);
+        const content = await contentRepo.getById(id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;
@@ -417,7 +418,8 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
         return;
     }
     try {
-        const content = await contentRepo.getById(id);
+        const employee = await getEmployeeFromRequest(req);
+        const content = await contentRepo.getById(id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;
@@ -528,7 +530,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
         return res.status(404).json({ error: "No linked employee account found" });
     }
 
-    const content = await contentRepo.getById(id);
+    const content = await contentRepo.getById(id, employee.id);
 
     if (!content) {
         return res.status(404).json({ error: "Not found" });
@@ -537,8 +539,10 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
     //allow if owner or admin
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
     const isAdmin = employee.jobPosition === "admin";
+    const isTutorialOwner =
+        content.isTutorial && content.ownerId === employee.id;
 
-    if (!isJobPosition && !isAdmin) {
+    if (!isTutorialOwner && !isJobPosition && !isAdmin) {
         return res.status(403).json({ error: "Not authorized to check in this content" });
     }
 
@@ -567,7 +571,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         return;
     }
 
-    const content = await contentRepo.getById(id);
+    const content = await contentRepo.getById(id, employee.id);
     if (!content) {
         res.status(404).json({ error: "Not found" });
         return;
@@ -575,7 +579,10 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
 
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
     const isAdmin = employee.jobPosition === "admin";
-    if (!isJobPosition && !isAdmin) {
+    const isTutorialOwner =
+        content.isTutorial && content.ownerId === employee.id;
+
+    if (!isTutorialOwner && !isJobPosition && !isAdmin) {
         res.status(403).json({ error: "Not authorized to check out this content" });
         return;
     }
@@ -625,7 +632,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return;
         }
 
-        const content = await contentRepo.getById(id);
+        const content = await contentRepo.getById(id, employee.id);
 
         if (!content) {
             return res.status(404).json({ error: "Content not found" });
@@ -634,7 +641,10 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         const isJobPosition = content.jobPositions.includes(employee.jobPosition);
         const isAdmin = employee.jobPosition === "admin";
 
-        if (!isJobPosition && !isAdmin) {
+        const isTutorialOwner =
+            content.isTutorial && content.ownerId === employee.id;
+
+        if (!isTutorialOwner && !isJobPosition && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to check in this content" });
         }
 
@@ -869,10 +879,14 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const content = await contentRepo.getById(contentId);
+        const content = await contentRepo.getById(contentId, employee.id);
         if (!content) {
             res.status(404).json({ error: "Content not found" });
             return;
+        }
+
+        if (content.isTutorial && content.ownerId !== employee.id) {
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         const contentTag = await contentRepo.addTag(contentId, tagId);
@@ -929,7 +943,7 @@ router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const content = await contentRepo.getById(contentId);
+        const content = await contentRepo.getById(contentId, employee.id);
         if (!content) {
             res.status(404).json({ error: "Content not found" });
             return;
@@ -984,6 +998,35 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         res.status(500).json({
             error: err instanceof Error ? err.message : "Failed to load tags",
         });
+    }
+});
+
+//TUT ++++++==========================================
+router.get("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        const contents = await contentRepo.getTutorialContent(employee.id);
+        res.json(contents);
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
+
+router.delete("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        await contentRepo.deleteTutorialContent(employee.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err });
     }
 });
 
