@@ -1,11 +1,35 @@
 import { Router } from "express";
-import { prisma } from "db";
+import { Employee, prisma } from "db";
 import { getEmployeeFromRequest } from "../app";
-import { getEmployeeIsAdmin } from "../util";
+import { getEmployeeIsAdmin, getEmployeePermissionLevel, getPermissionLevelIsAdmin } from "../util";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 
 const router = Router();
+
+async function canCreateRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
+    const employeePermissionLevel = await getEmployeePermissionLevel(employee)
+    if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
+        return false
+    }
+    return employeePermissionLevel > permissionLevel
+}
+
+async function canUpdateRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
+    const employeePermissionLevel = await getEmployeePermissionLevel(employee)
+    if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
+        return false
+    }
+    return employeePermissionLevel > permissionLevel
+}
+
+async function canDeleteRoleOfPermissionLevel(employee: Employee, permissionLevel: number): Promise<boolean> {
+    const employeePermissionLevel = await getEmployeePermissionLevel(employee)
+    if (!getPermissionLevelIsAdmin(employeePermissionLevel)) {
+        return false
+    }
+    return employeePermissionLevel > permissionLevel
+}
 
 
 // ===================================
@@ -37,14 +61,14 @@ router.post("/", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "No linked employee account found" });
             return;
         }
-        const isAdmin = getEmployeeIsAdmin(employee);    
-        if (!isAdmin) {
-            return res.status(403).json({ error: "Not authorized to create roles" });
-        }
 
         const { key, name, permissionLevel } = req.body
-        if (!key.trim() || !name.trim()) {
+        if (!key.trim() || !name.trim() || permissionLevel === null) {
             return res.status(400).json({ error: "Missing required fields" });
+        }
+        const canCreate = await canCreateRoleOfPermissionLevel(employee, permissionLevel);    
+        if (!canCreate) {
+            return res.status(403).json({ error: "Not authorized to create role of permission level" });
         }
 
         const roleOfKey = await prisma.role.findUnique({
@@ -89,10 +113,6 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "No linked employee account found" });
             return;
         }
-        const isAdmin = getEmployeeIsAdmin(employee);    
-        if (!isAdmin) {
-            return res.status(403).json({ error: "Not authorized to create roles" });
-        }
 
         const existingRole = await prisma.role.findFirst({
             where: {
@@ -103,10 +123,20 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "Role not found" });
             return;
         }
+        const canUpdateExisting = await canUpdateRoleOfPermissionLevel(employee, existingRole.permissionLevel);    
+        if (!canUpdateExisting) {
+            return res.status(403).json({ error: "Not authorized to update role" });
+        }
 
         const { name, permissionLevel } = req.body;
         if (!name.trim()) {
             return res.status(400).json({ error: "Missing required fields" });
+        }
+        if (permissionLevel) {
+            const canUpdateTo = await canUpdateRoleOfPermissionLevel(employee, permissionLevel);    
+            if (!canUpdateTo) {
+                return res.status(403).json({ error: "Not authorized to update to permission level" });
+            }
         }
 
         const updatedRole = await prisma.role.update({
@@ -146,10 +176,6 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "No linked employee account found" });
             return;
         }
-        const isAdmin = getEmployeeIsAdmin(employee);    
-        if (!isAdmin) {
-            return res.status(403).json({ error: "Not authorized to create roles" });
-        }
 
         const existingRole = await prisma.role.findFirst({
             where: {
@@ -159,6 +185,10 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         if (!existingRole) {
             res.status(404).json({ error: "Role not found" });
             return;
+        }
+        const canDeleteExisting = await canDeleteRoleOfPermissionLevel(employee, existingRole.permissionLevel);    
+        if (!canDeleteExisting) {
+            return res.status(403).json({ error: "Not authorized to delete role" });
         }
         
         await prisma.role.delete({

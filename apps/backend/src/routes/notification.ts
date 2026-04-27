@@ -96,7 +96,7 @@ router.get("/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to view this notification" });
         }
@@ -188,7 +188,7 @@ router.put("/update/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -224,7 +224,7 @@ router.put("/read/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -257,7 +257,7 @@ router.put("/unread/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -297,7 +297,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to delete this notification" });

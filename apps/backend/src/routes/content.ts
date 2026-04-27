@@ -706,7 +706,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
 
     //allow if owner or admin
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = getEmployeeIsAdmin(employee);
+    const isAdmin = await getEmployeeIsAdmin(employee);
     const isTutorialOwner =
         content.isTutorial && content.ownerId === employee.id;
 
@@ -746,7 +746,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
     }
 
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = getEmployeeIsAdmin(employee);
+    const isAdmin = await getEmployeeIsAdmin(employee);
     const isTutorialOwner =
         content.isTutorial && content.ownerId === employee.id;
 
@@ -807,7 +807,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         const isTutorialOwner =
             content.isTutorial && content.ownerId === employee.id;
@@ -986,7 +986,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
 //         }
 //
 //         const isOwner = content.ownerId === employee.id;
-//         const isAdmin = getEmployeeIsAdmin(employee);
+//         const isAdmin = await getEmployeeIsAdmin(employee);
 //         if (!isOwner && !isAdmin) {
 //             res.status(403).json({ error: "Not authorized to delete this content" });
 //             return;

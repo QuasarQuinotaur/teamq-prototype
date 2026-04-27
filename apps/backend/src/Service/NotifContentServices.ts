@@ -28,7 +28,7 @@ class ContentService {
 
         // authorization (move from route)
         const isOwner = content.ownerId === employee.id;
-        const isAdmin = getEmployeeIsAdmin(employee);
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         if (!isOwner && !isAdmin) {
             throw new Error("Not authorized to delete this content");
