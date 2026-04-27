@@ -1,23 +1,19 @@
 import Form, {type FormState} from "@/components/forms/Form.tsx";
-import type {Role} from "db";
+import type {Employee, Role} from "db";
 import RoleFormFields, { type RoleFields } from "./RoleFormFields";
 import { formatDashCase } from "@/lib/utils";
-import { ROLE_PERMISSION_LEVEL_MAP, type RolePermission } from '../input/constants';
 
 
 const DEFAULT_ROLE_FIELDS: RoleFields = {
     name: "",
-    permission: "employee"
+    permissionLevel: 0
 }
 
 function itemAsRole(item: object): RoleFields {
     const r = item as Role;
-    const permission = (Object.keys(ROLE_PERMISSION_LEVEL_MAP) as RolePermission[])
-        .find(key => ROLE_PERMISSION_LEVEL_MAP[key] === r.permissionLevel)
-    console.log("ITEM AS ROLE:", r, permission)
     return {
         name: r.name,
-        permission: permission
+        permissionLevel: r.permissionLevel
     };
 }
 
@@ -30,9 +26,11 @@ function hasRequiredRoleFields(fields: RoleFields): boolean {
 }
 
 export type RoleFormProps = {
+    permissionLevel: number;
     onSubmitted?: () => void;
 } & FormState
 export default function RoleForm({
+                                    permissionLevel,
                                     onSubmitted,
                                     ...state
 }: RoleFormProps) {
@@ -50,7 +48,7 @@ export default function RoleForm({
         const role = {
             key: !isUpdate && formatDashCase(name),
             name: name,
-            permissionLevel: ROLE_PERMISSION_LEVEL_MAP[fields.permission]
+            permissionLevel: fields.permissionLevel
         }
         const response = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
@@ -77,6 +75,7 @@ export default function RoleForm({
                 // Create document form specific field elements
                 <RoleFormFields
                     {...props}
+                    permissionLevel={permissionLevel}
                 />
             )}
             submit={doSubmit}

@@ -1,15 +1,13 @@
 import type { Employee } from "db";
-import useJobInfoMap from "./useJobInfoMap";
 import { useMemo } from "react";
+import useGetPermissionLevel from "./useGetPermissionLevel";
 
 export default function useGetEmployeeIsAdmin() {
-    const { jobInfoMap, rolesLoading } = useJobInfoMap()
-    const getEmployeeIsAdmin = useMemo((): (employee: Employee) => boolean => {
-        return (employee: Employee) => {
-            const role = jobInfoMap[employee.jobPosition]
-            console.log("EMPLOYEE ROLE", role)
-            return role && role.permissionLevel >= 1
+    const { getPermissionLevel, rolesLoading } = useGetPermissionLevel()
+    const getEmployeeIsAdmin = useMemo((): (employee?: Employee) => boolean => {
+        return (employee?: Employee) => {
+            return getPermissionLevel(employee) >= 1
         }
-    }, [jobInfoMap])
+    }, [getPermissionLevel])
     return { getEmployeeIsAdmin, rolesLoading }
 }

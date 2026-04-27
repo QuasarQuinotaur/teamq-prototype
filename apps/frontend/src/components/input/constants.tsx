@@ -80,14 +80,3 @@ export const SORT_METHOD_TYPE_MAP = {
     descending: "Descending",
 }
 export type SortMethod = keyof typeof SORT_METHOD_TYPE_MAP
-
-
-export const ROLE_PERMISSION_MAP = {
-    admin: "Admin",
-    employee: "Employee"
-}
-export type RolePermission = keyof typeof ROLE_PERMISSION_MAP
-export const ROLE_PERMISSION_LEVEL_MAP: {[P in RolePermission]: number} = {
-    admin: 1,
-    employee: 0,
-}

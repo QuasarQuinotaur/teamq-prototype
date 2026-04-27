@@ -3,14 +3,17 @@ import {FieldInput} from "@/components/forms/Field.tsx";
 import {Input} from "@/elements/input.tsx";
 import {cn} from "@/lib/utils.ts";
 import RolePermissionInput from "../input/RolePermissionInput";
-import type { RolePermission } from "../input/constants";
+import type { Employee } from "db";
 
 export type RoleFields = {
     name: string,
-    permission: RolePermission,
+    permissionLevel: number,
 }
-type RoleFormFieldsProps = FormFieldsProps<RoleFields>
+type RoleFormFieldsProps = {
+    permissionLevel: number;
+} & FormFieldsProps<RoleFields>
 export default function RoleFormFields({
+                                          permissionLevel,
                                           fields,
                                           setKey,
 }: RoleFormFieldsProps) {
@@ -36,15 +39,16 @@ export default function RoleFormFields({
                 )}
             />
             <FieldInput
-                id={"role-create-form-permission"}
+                id={"role-create-form-permission-level"}
                 label={"Permission Level"}
                 required
                 createElement={(id) => (
                     <RolePermissionInput
                         id={id}
-                        permission={fields.permission}
-                        setPermission={(permission) => {
-                            setKey("permission", permission)
+                        employeePermissionLevel={permissionLevel}
+                        permissionLevel={fields.permissionLevel}
+                        setPermissionLevel={(permissionLevel) => {
+                            setKey("permissionLevel", permissionLevel)
                         }}
                     />
                 )}

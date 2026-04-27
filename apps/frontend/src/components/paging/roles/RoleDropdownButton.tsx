@@ -11,15 +11,19 @@ import {
 } from "@/components/DropdownMenu.tsx";
 import RoleFormDialog from "@/components/paging/roles/RoleFormDialog";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/dialog/Dialog.tsx";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollArea } from "@/elements/scroll-area";
 import { TableBody, TableRow } from "@/components/Table";
 import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog";
+import useGetPermissionLevel from "@/hooks/useGetPermissionLevel";
+import axios from "axios"
+import type { Employee } from "db";
 
 
 export default function RoleDropdownButton() {
     const [modifyRolesOpen, setModifyRolesOpen] = useState(false)
     const { jobInfoMap, refetchRoles } = useJobInfoMap();
+    const { getPermissionLevel } = useGetPermissionLevel();
     const jobRoleList = useMemo(() => {
         return Object.values(jobInfoMap)
     }, [jobInfoMap])
@@ -28,6 +32,24 @@ export default function RoleDropdownButton() {
         console.log("ROLES MODIFIED! Re-Fetch all now")
         refetchRoles()
     }
+    const [employee, setEmployee] = useState<Employee | null>(null);
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+                  withCredentials: true,
+                });
+                setEmployee(response.data);
+            } catch (error) {
+                console.error("Not logged in or no employee record found", error);
+            }
+        };
+        fetchUser();
+    }, []);
+    const employeePermissionLevel = useMemo(() => {
+        return getPermissionLevel(employee)
+    }, [getPermissionLevel, employee])
+
 
     async function deleteByRoleId(roleId: number) {
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/roles/${roleId}`, {
@@ -37,6 +59,8 @@ export default function RoleDropdownButton() {
         const result = await response.json()
         if (result && result.success) {
             onRolesModified()
+        } else {
+            throw new Error(result ? result.error : `Failed to delete role`)
         }
     }
 
@@ -60,6 +84,7 @@ export default function RoleDropdownButton() {
                     <RoleFormDialog
                         header={"Create Role"}
                         onSubmitted={onRolesModified}
+                        permissionLevel={employeePermissionLevel}
                     >
                         <DropdownMenuItem
                             onSelect={(e) => {
@@ -103,6 +128,7 @@ export default function RoleDropdownButton() {
                                                         header={"Edit Role"}
                                                         onSubmitted={onRolesModified}
                                                         baseItem={role}
+                                                        permissionLevel={employeePermissionLevel}
                                                     >
                                                         <Button variant={"outline"}>
                                                             <PencilIcon/>
