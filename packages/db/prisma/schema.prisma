@@ -163,18 +163,6 @@ model RecentContentView {
   @@index([employeeId, lastViewedAt])
 }
 
-// model Role {
-//   name       String
-//   key        String         @unique
-//   permission RolePermission @default(EMPLOYEE)
-//   id         Int            @id @default(autoincrement())
-// }
-
-// enum RolePermission {
-//   ADMIN
-//   EMPLOYEE
-// }
-
 model Role {
     id                  Int                 @id @default(autoincrement())
     key                 String              @unique
