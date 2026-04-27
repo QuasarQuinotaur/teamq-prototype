@@ -65,29 +65,63 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
     const [view, setView] = useState(Views.MONTH);
 
     useEffect(() => {
-        fetch("http://localhost:3000/api/content/expirations", {
-            credentials: "include",
-        })
-            .then((res) => res.json())
-            .then((data: Expiration[]) => {
-                const formatted = data.map((c) => {
-                    const d = new Date(c.expirationDate);
+        async function loadData() {
+            try {
+                let expirations = [];
+                let reviews = [];
 
-                    return {
-                        id: c.id,
+                try {
+                    const expRes = await fetch("http://localhost:3000/api/content/expirations", {
+                        credentials: "include",
+                    });
+                    expirations = await expRes.json();
+                } catch (e) {
+                    console.error("Expirations failed:", e);
+                }
+
+                try {
+                    const reviewRes = await fetch("http://localhost:3000/api/content-reviews", {
+                        credentials: "include",
+                    });
+                    reviews = await reviewRes.json();
+                } catch (e) {
+                    console.error("Reviews failed:", e);
+                }
+
+                // 🔴 Expirations
+                const expEvents = Array.isArray(expirations)
+                    ? expirations.map((c: any) => ({
+                        id: `exp-${c.id}`,
                         title: c.title,
-                        start: d,
-                        end: d,
+                        start: new Date(c.expirationDate),
+                        end: new Date(c.expirationDate),
                         allDay: true,
+                        type: "expiration",
                         owner: c.owner,
-                    };
-                });
+                    }))
+                    : [];
 
-                setEvents(formatted);
-            })
-            .catch((err) => {
-                console.error("Failed to load expirations:", err);
-            });
+                // 🟡 Reviews
+                const reviewEvents = Array.isArray(reviews)
+                    ? reviews.map((r: any) => ({
+                        id: `rev-${r.id}`,
+                        title: `Review: ${r.stepName}`,
+                        start: new Date(r.date),
+                        end: new Date(r.date),
+                        allDay: true,
+                        type: "review",
+                        owner: r.employee,
+                    }))
+                    : [];
+
+                setEvents([...expEvents, ...reviewEvents]);
+
+            } catch (err) {
+                console.error("Calendar failed:", err);
+            }
+        }
+
+        loadData();
     }, []);
 
     return (
@@ -116,13 +150,19 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
                     }}
 
                     eventPropGetter={(event: any) => {
+                        let borderColor = "#EF4444"; // expiration default
+
+                        if (event.type === "review") {
+                            borderColor = "#FACC15"; // review = yellow
+                        }
+
                         return {
                             title: "",
                             style: {
                                 backgroundColor: "white",
                                 color: "#111827",
                                 border: "1px solid #E5E7EB",
-                                borderLeft: "4px solid #EF4444",
+                                borderLeft: `4px solid ${borderColor}`,
                                 borderRadius: "8px",
                                 padding: "2px 8px",
                                 fontSize: "12px",
