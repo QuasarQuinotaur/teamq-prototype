@@ -11,12 +11,13 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/elements/sidebar-elements.tsx"
-import {ChartBarIcon, ClockIcon, PersonIcon, FilesIcon, ListBulletsIcon} from "@phosphor-icons/react"
+import {ChartBarIcon, ClockIcon, PersonIcon, FilesIcon, ListBulletsIcon, InfoIcon} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { Link } from "react-router-dom";
+
 
 const data = {
   // user: {
@@ -53,6 +54,11 @@ const data = {
       icon: (
         <ListBulletsIcon/>
       ),
+    },
+    {
+      title: "About",
+      url: "/documents/about",
+      icon: <InfoIcon />,
     },
   ],
   // navSecondary: [
