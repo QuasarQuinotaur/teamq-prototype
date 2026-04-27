@@ -55,11 +55,6 @@ const data = {
         <ListBulletsIcon/>
       ),
     },
-    {
-      title: "About",
-      url: "/documents/about",
-      icon: <InfoIcon />,
-    },
   ],
   // navSecondary: [
   //   {
@@ -171,7 +166,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: (
             <PersonIcon/>
         )
-      }] : [])
+      }] : []),
+      {
+        title: "About",
+        url: "/documents/about",
+        icon: <InfoIcon />,
+      },
   ];
 
   return (
