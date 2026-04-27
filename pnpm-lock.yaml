@@ -14,6 +14,9 @@ importers:
       add:
         specifier: ^2.0.6
         version: 2.0.6
+      dnd-kit:
+        specifier: ^0.0.2
+        version: 0.0.2
       docx-preview:
         specifier: ^0.3.7
         version: 0.3.7
@@ -3019,6 +3022,10 @@ packages:
   diff@8.0.4:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
+
+  dnd-kit@0.0.2:
+    resolution: {integrity: sha512-d8AYd6I7D2b5u882+QNVGw0slBAt851/LWZ2j/pU+onf5/TGEKXeb47sCyhPYKEAUXp4oLfvWfNCqfkU03R1lw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   docx-preview-sync@0.4.20:
     resolution: {integrity: sha512-g4DnVPq4UDLYsqZA+Yz/wBohOfQocYvKKYK8ye0nCk6AwYrRYUIDIx9isiarIMOKings39YQ2dZITCATsF0DbA==}
@@ -8477,6 +8484,8 @@ snapshots:
   diff@4.0.4: {}
 
   diff@8.0.4: {}
+
+  dnd-kit@0.0.2: {}
 
   docx-preview-sync@0.4.20:
     dependencies:

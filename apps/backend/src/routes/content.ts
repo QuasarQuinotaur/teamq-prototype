@@ -360,6 +360,7 @@ router.get("/", requiresAuth(), async (req, res) => {
 
 router.get("/:id", requiresAuth(), async (req, res) => { // get content
     const id = Number(req.params.id);
+    const employee = await getEmployeeFromRequest(req);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
@@ -370,6 +371,13 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
             res.status(404).json({ error: "Not found" });
             return;
         }
+        await prisma.ActivityLog.create({
+            data: {
+                employeeId: employee.id,
+                contentId: id,
+                type: "View"
+            }
+        });
         res.json({ content: content });
     } catch (err) {
         res.status(500).json({ error: err });
@@ -378,6 +386,7 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
 
 router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
     const id = Number(req.params.id);
+    const employee = await getEmployeeFromRequest(req);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
@@ -402,6 +411,13 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
     }
+    await prisma.ActivityLog.create({
+        data: {
+            employeeId: employee.id,
+            contentId: id,
+            type: "Download"
+        }
+    });
 });
 
 // ====================================
@@ -476,12 +492,21 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
             success: true,
             content: created,
         });
+        await prisma.ActivityLog.create({
+            data: {
+                employeeId: employee.id,
+                contentId: created.id,
+                type: "Upload"
+            }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({
             error: err instanceof Error ? err.message : "Upload failed",
         });
     }
+
+
 });
 
 //for manual check in incase some one forgets (maybe after like a week?)
@@ -515,6 +540,13 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
             checkedOutById: null,
             checkedOutOn: null,
         },
+    });
+    await prisma.ActivityLog.create({
+        data: {
+            employeeId: employee.id,
+            contentId: id,
+            type: "Checked In"
+        }
     });
 
     res.json({ success: true });
@@ -570,6 +602,13 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
     res.json({
         success: true,
         content: { ...updated, checkedOutBy },
+    });
+    await prisma.ActivityLog.create({
+        data: {
+            employeeId: employee.id,
+            contentId: id,
+            type: "Checked Out"
+        }
     });
 });
 
@@ -693,6 +732,13 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             success: true,
             content: updated,
         });
+        await prisma.ActivityLog.create({
+            data: {
+                employeeId: employee.id,
+                contentId: id,
+                type: "Updated"
+            }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({
@@ -727,6 +773,15 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         await unlink(thumbFsPath).catch(() => {});
 
         res.json({ success: true });
+        await prisma.ActivityLog.create({
+            data: {
+                employeeId: employee.id,
+                contentId: id,
+                type: "Deleted",
+                contentTitle: req.params.title,
+                contentType: req.params.contentType,
+            }
+        });
     } catch (err) {
         const message = err instanceof Error ? err.message : "Delete failed";
         if (message === "Content not found") {
@@ -823,7 +878,7 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const tag = await prisma.tag.findFirst({
+        const tag = await prisma.Tag.findFirst({
             where: {
                 id: tagId,
                 ownerId: employee.id,
@@ -864,7 +919,7 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
 });
 
 // ===================================
-// DELETE (Tag from content)
+// DELETE (Tag from content)==========
 // ===================================
 router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
     try {
