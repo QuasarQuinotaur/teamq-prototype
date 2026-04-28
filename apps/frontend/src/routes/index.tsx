@@ -136,7 +136,7 @@ export const router = createBrowserRouter([
                         ]
                     },
                     {
-                        path: "tutorial",
+                        path: "tutorial/:hidden",
                         element: <Tutorial />,
                         children: [
                             {
