@@ -33,6 +33,7 @@ router.get("/content/:contentId", requiresAuth(), async (req, res) => {
     try {
         res.json(await contentReviewRepository.getByContentId(id));
     } catch (err) {
+        console.log("ERRROR GET:", err)
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
 });
