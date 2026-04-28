@@ -1,15 +1,8 @@
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
-import {FieldInput} from "@/components/forms/Field.tsx";
-import {Separator} from "@/elements/separator.tsx";
+import {Field, FieldInput, FieldLabel} from "@/components/forms/Field.tsx";
 import {Input} from "@/elements/input.tsx";
-import JobPositionMultiInput from "@/components/input/JobPositionMultiInput.tsx";
-import DateSelectInput from "@/components/input/DateSelectInput.tsx";
-import ContentTypeInput from "@/components/input/ContentTypeInput.tsx";
-import {Item} from "@/elements/item.tsx";
-import {Button} from "@/elements/buttons/button.tsx";
-import {FileIcon, LinkIcon} from "lucide-react";
+import {Switch} from "@/elements/switch.tsx";
 import {cn} from "@/lib/utils.ts";
-import {useEffect, useRef, useState} from "react";
 import ColorPresetPickerInput, {type PresetColor} from "@/components/input/ColorPresetPickerInput.tsx";
 
 const TAG_PRESET_COLORS: PresetColor[] = [
@@ -30,11 +23,17 @@ const TAG_PRESET_COLORS: PresetColor[] = [
 export type TagFields = {
     name: string,
     color: string,
+    isGlobal: boolean,
 }
-type TagFormFieldsProps = FormFieldsProps<TagFields>
+type TagFormFieldsProps = FormFieldsProps<TagFields> & {
+    isAdmin?: boolean;
+    isCreate: boolean;
+}
 export default function TagFormFields({
-                                          fields,
-                                          setKey,
+    fields,
+    setKey,
+    isAdmin,
+    isCreate,
 }: TagFormFieldsProps) {
     const compact = false
     const inputReadable = cn(compact ? "h-8 text-sm" : "h-9 md:text-base", "min-h-8 w-full min-w-0")
@@ -70,6 +69,21 @@ export default function TagFormFields({
                     />
                 )}
             />
+            {isCreate && isAdmin && (
+                <Field orientation="horizontal" className="flex-wrap items-center justify-between gap-3 sm:flex-nowrap">
+                    <FieldLabel className="text-sm font-medium">Global tag (visible to everyone)</FieldLabel>
+                    <Switch
+                        checked={fields.isGlobal}
+                        onCheckedChange={(v) => setKey("isGlobal", v)}
+                        aria-label="Create as global tag"
+                    />
+                </Field>
+            )}
+            {!isCreate && fields.isGlobal && (
+                <p className="text-sm text-muted-foreground">
+                    This tag is organization-wide and visible to everyone.
+                </p>
+            )}
         </div>
     )
 }

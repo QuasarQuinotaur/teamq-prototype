@@ -139,7 +139,11 @@ function getContentEntryFromRow(
     const tags: Tag[] =
         content.tags
             ?.map((ct) => ct.tag)
-            .filter((t) => (employee ? t.ownerId === employee.id : false)) ?? [];
+            .filter((t) =>
+                employee
+                    ? t.isGlobal || t.ownerId === employee.id
+                    : false,
+            ) ?? [];
     const ownerRecord = employeeMap.get(content.ownerId);
     return {
         item: content,
@@ -339,6 +343,7 @@ export default function ContentEntryPage({
         () =>
             leftPaneDoc
                 ? {
+                      contentId: leftPaneDoc.contentId,
                       url: leftPaneDoc.url,
                       filename: leftPaneDoc.filename,
                       title: leftPaneDoc.title,
@@ -350,6 +355,7 @@ export default function ContentEntryPage({
         () =>
             rightPaneDoc
                 ? {
+                      contentId: rightPaneDoc.contentId,
                       url: rightPaneDoc.url,
                       filename: rightPaneDoc.filename,
                       title: rightPaneDoc.title,
@@ -821,8 +827,10 @@ export default function ContentEntryPage({
                 </DropdownMenuCheckboxItem>
                 <TagsOption
                     contentId={item.id}
+                    filePath={item.filePath}
                     tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
                     tagList={tagList}
+                    isAdmin={employee?.jobPosition === "admin"}
                     contentTagsUpdated={() => {
                         void fetchContentById(item.id) // only this content got changed
                     }}
@@ -1050,6 +1058,7 @@ export default function ContentEntryPage({
         const canEnterSplit = isDocumentLikeFilename(fullscreenDoc.filename);
         return (
             <DocumentViewer
+                contentId={fullscreenDoc.contentId}
                 url={fullscreenDoc.url}
                 filename={fullscreenDoc.filename}
                 title={fullscreenDoc.title}

@@ -171,13 +171,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const navItems = [
       ...data.navMain,
       allDocumentsItem,
-      ...((employee && getEmployeeIsAdmin(employee)) ? [{
-        title: "Employees",
-        url: "/documents/employees",
-        icon: (
-            <PersonIcon/>
-        )
-      }] : []),
+      ...((employee && getEmployeeIsAdmin(employee))
+        ? [
+            {
+              title: "Employees",
+              url: "/documents/employees",
+              icon: <PersonIcon />,
+            },
+          ]
+        : []),
       {
         title: "About",
         url: "/documents/about",
