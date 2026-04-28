@@ -119,6 +119,7 @@ class ContentRepository {
         jobPositions?: string[];
         contentType?: string;
 
+        dateUpdated?: Date;
         expirationDate?: Date;
         ownerId?: number;
     }) {

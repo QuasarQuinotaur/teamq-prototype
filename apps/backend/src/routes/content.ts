@@ -692,6 +692,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                dateUpdated: new Date(Date.now()),
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
             include: {

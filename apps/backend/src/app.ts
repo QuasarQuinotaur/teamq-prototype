@@ -21,7 +21,7 @@ import tagsRouter from "./routes/tags.ts";
 import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
 import reviewRouter from "./routes/contentReview.ts"
-import "./Service/ContentReviewServiceJob.ts";
+require('./Service/ContentReviewServiceJob.ts')();
 
 const employeeRepo = new EmployeeRepository();
 
