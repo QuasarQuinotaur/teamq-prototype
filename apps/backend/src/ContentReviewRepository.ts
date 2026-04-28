@@ -20,7 +20,7 @@ class ContentReviewRepository {
         return prisma.contentReview.findMany({
             orderBy: { date: "asc" },
             include: {
-                Content: true,
+                content: true,
                 Employee: true,
             },
         });
@@ -34,7 +34,7 @@ class ContentReviewRepository {
             where: { contentId },
             orderBy: { date: "asc" },
             include: {
-                Employee: true,
+                employee: true,
             },
         });
     }
