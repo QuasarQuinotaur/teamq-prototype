@@ -13,7 +13,11 @@ type DocumentStats = {
     downloadCount: number;
 };
 
-export default function TopDocumentActivityWidget() {
+type Props = {
+    limit?: number;
+};
+
+export default function TopDocumentActivityWidget({limit = 5}: Props) {
     const [data, setData] = useState<DocumentStats[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -44,6 +48,7 @@ export default function TopDocumentActivityWidget() {
                 // 3. Sort by views + downloads and take top 5
                 const sorted = combined
                     .sort((a, b) => (b.viewCount + b.downloadCount) - (a.viewCount + a.downloadCount))
+                    .slice(0, limit);
 
                 setData(sorted);
             } catch (err) {
@@ -57,7 +62,30 @@ export default function TopDocumentActivityWidget() {
     }, []);
 
     if (loading) {
-        return <div className="p-4">Loading top documents...</div>;
+        return (
+            <div className="p-4 space-y-3">
+                {/* header skeleton */}
+                <div className="h-5 w-40 bg-gray-200 rounded" />
+
+                {/* list skeleton */}
+                {[...Array(5)].map((_, i) => (
+                    <div
+                        key={i}
+                        className="flex justify-between items-center p-2 rounded-lg"
+                    >
+                        <div className="flex items-center gap-2 w-full">
+                            <div className="w-6 h-4 bg-gray-200 rounded" />
+                            <div className="h-4 w-40 bg-gray-200 rounded" />
+                        </div>
+
+                        <div className="flex gap-4">
+                            <div className="h-4 w-8 bg-gray-200 rounded" />
+                            <div className="h-4 w-8 bg-gray-200 rounded" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
     }
 
     return (

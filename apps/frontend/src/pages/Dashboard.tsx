@@ -27,6 +27,7 @@ import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
 import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
+import ContentCurrencyWidget from "@/components/widgets/ContentCurrencyWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
 import {
@@ -71,6 +72,7 @@ export default function Dashboard() {
         { type: "progressPieChart", label: "Progress (Chart) " },
         { type: "expirationLine", label: "Document Expirations (Chart) " },
         { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
+        { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
         { type: "gif", label: "GIF" },
     ];
@@ -458,7 +460,7 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
-                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart" || w.type === "topDocumentActivity") ? (
+                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart" || w.type === "topDocumentActivity" || w.type === "contentCurrency") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -636,6 +638,7 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
             />
         ); break;
         case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
+        case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
     }
