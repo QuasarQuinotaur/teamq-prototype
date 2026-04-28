@@ -2,7 +2,6 @@ import type {Content, Employee, Tag} from "db";
 import Detail from "@/components/paging/details/Detail.tsx";
 import {formatDate, formatDateWithTime, isSupabasePath} from "@/lib/utils.ts";
 import {useEffect, useState} from "react";
-import axios from "axios";
 import {Avatar, AvatarFallback, AvatarImage} from "@/elements/avatar.tsx";
 import {Separator} from "@/elements/separator.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
