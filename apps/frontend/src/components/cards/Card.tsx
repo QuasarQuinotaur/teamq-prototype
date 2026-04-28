@@ -27,6 +27,8 @@ export type CardState = {
     selectMode?: boolean;
     selected?: boolean;
     onSelectToggle?: () => void;
+    /** Called whenever an item is directly clicked (document opened or link clicked) */
+    onOpen?: (entry: CardEntry) => void;
 }
 
 function CardContainer({

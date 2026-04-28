@@ -73,6 +73,7 @@ export default function ComboboxMapInput<T extends string>({
                             </ComboboxChip>
                         ))}
                         <ComboboxChipsInput
+                            id="tutorial-7"
                             placeholder={(placeholder && values.length === 0) ? placeholder : ""}
                             {...props}
                         />

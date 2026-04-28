@@ -14,9 +14,9 @@ import {
     rectSortingStrategy,
 } from "@dnd-kit/sortable";
 
-import StatsWidget from "@/components/widgets/StatsWidget";
-import CalendarWidget from "@/components/widgets/CalendarWidget";
-import RequestsWidget from "@/components/widgets/RequestsWidget";
+import StatsWidget from "@/components/widgets/RequestsStatsCardWidget.tsx";
+import CalendarWidget from "@/components/widgets/RequestsCalendarWidget.tsx";
+import RequestsWidget from "@/components/widgets/RequestsListWidget.tsx";
 
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -26,6 +26,13 @@ import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
+import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
+import {
+    allEmployeeIdsFromWorkflow,
+    enrichWorkflowForList,
+    type WorkflowListRow,
+} from "@/components/service-requests/workflowTypes.ts";
 
 type Widget = {
     id: string;
@@ -35,14 +42,7 @@ type Widget = {
 };
 
 
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-    employees: { id: number }[];
-};
+type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -55,19 +55,19 @@ export default function Dashboard() {
             } catch {}
         }
         return [
-            { id: "1", type: "chart", size: 1 },
-            { id: "2", type: "calendar", size: 2 },
-            { id: "3", type: "requests", size: 3 },
+            { id: "1", type: "progressStatsCard", size: 1 },
+            { id: "2", type: "requestsCalendar", size: 2 },
+            { id: "3", type: "requestsList", size: 3 },
         ];
     });
 
     const widgetOptions = [
-        { type: "stats", label: "Stats" },
-        { type: "calendar", label: "Calendar" },
-        { type: "requests", label: "Requests" },
-        { type: "chart", label: "Chart" },
-        { type: "expirationLine", label: "Document expirations (chart)" },
-        { type: "expirationCalendar", label: "Document expirations (calendar)" },
+        { type: "progressStatsCard", label: "Requests (Stats) " },
+        { type: "requestsCalendar", label: "Requests (Calendar) " },
+        { type: "requestsList", label: "Requests (List) " },
+        { type: "progressPieChart", label: "Progress (Chart) " },
+        { type: "expirationLine", label: "Document Expirations (Chart) " },
+        { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
         { type: "gif", label: "GIF" },
     ];
 
@@ -117,8 +117,9 @@ export default function Dashboard() {
             .then(([me, data, content]) => {
                 const meRow = me as { id: number; firstName?: string | null } | undefined;
                 setUserFirstName(meRow?.firstName?.trim() || null);
-                const rows = Array.isArray(data) ? data : [];
-                setRequests(rows.filter(r => r.employees?.some(e => e.id === me.id)));
+                const raw = Array.isArray(data) ? (data as WorkflowPayload[]) : [];
+                const rows = raw.map(enrichWorkflowForList);
+                setRequests(rows.filter((r) => allEmployeeIdsFromWorkflow(r.stages).has(me.id)));
                 setContentItems(
                     Array.isArray(content)
                         ? content.map(c => ({
@@ -236,10 +237,10 @@ export default function Dashboard() {
         const id = crypto.randomUUID();
 
         const defaultSizes: Record<string, 1 | 2 | 3> = {
-            stats: 1,
-            chart: 1,
-            calendar: 2,
-            requests: 2,
+            progressStatsCard: 1,
+            progressPieChart: 1,
+            requestsCalendar: 2,
+            requestsList: 2,
             expirationLine: 3,
             expirationCalendar: 3,
             gif: 1,
@@ -264,13 +265,15 @@ export default function Dashboard() {
         <>
             <div className="grid grid-cols-3 items-center px-6 py-4">
                 <div />
-                <h1 className="text-2xl font-heading text-center">
-                    {loading
-                        ? "Hello"
-                        : userFirstName
-                          ? `Hello, ${userFirstName}`
-                          : "Hello, there"}
-                </h1>
+                <div className="flex items-center justify-center gap-2 min-w-0">
+                    <h1 className="text-2xl font-heading text-center truncate">
+                        {loading
+                            ? "Hello"
+                            : userFirstName
+                              ? `Hello, ${userFirstName}`
+                              : "Hello, there"}
+                    </h1>
+                </div>
                 <div className="flex justify-end">
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -351,8 +354,16 @@ export default function Dashboard() {
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-card rounded-lg max-h-[85vh] w-[min(1100px,90vw)] overflow-y-auto p-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold">Add Widget</h2>
+                        <div className="flex justify-between items-center gap-3 mb-4">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h2 className="m-0 border-b-0 pb-0 text-lg font-semibold leading-none">
+                                    Add Widget
+                                </h2>
+                                <HelpHint contentClassName="max-w-sm">
+                                    Expand a widget type to preview it, then choose a size. Some types offer small,
+                                    medium, or large widths; charts and stats default to a compact tile.
+                                </HelpHint>
+                            </div>
                             <button
                                 onClick={() => {
                                     setShowAddModal(false);
@@ -430,7 +441,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Full row)
+                                                    Add {w.label} (Large
                                                 </button>
                                             ) : w.type === "expirationCalendar" ? (
                                                 <button
@@ -441,9 +452,9 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Full width, 2 rows tall)
+                                                    Add {w.label} (Large)
                                                 </button>
-                                            ) : (w.type === "stats" || w.type === "chart") ? (
+                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -601,21 +612,19 @@ function SortableItem({
 
 
 function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
-    if (type === "calendar") {
-        return <CalendarWidget requests={data.requests} loading={data.loading} />;
-    }
 
     let inner: React.ReactNode;
     switch (type) {
-        case "stats":    inner = <StatsWidget counts={data.counts} />; break;
-        case "requests": inner = <RequestsWidget {...data} />; break;
-        case "chart":    inner = <PieChartWidget counts={data.counts} />; break;
+        case "progressStatsCard":    inner = <StatsWidget counts={data.counts} />; break;
+        case "requestsList": inner = <RequestsWidget {...data} />; break;
+        case "progressPieChart":    inner = <PieChartWidget counts={data.counts} />; break;
         case "expirationLine": inner = (
             <DocumentExpirationLineWidget
                 items={data.contentForExpiration ?? []}
                 loading={data.loading}
             />
         ); break;
+        case "requestsCalendar": inner = <CalendarWidget requests={data.requests} loading={data.loading} />; break;
         case "expirationCalendar": inner = (
             <DocumentExpirationCalendarWidget
                 items={data.contentForExpiration ?? []}

@@ -15,7 +15,7 @@ export default function Blocked() {
 
         <h1 className="text-2xl font-semibold mb-2">Access Denied</h1>
         <p className="text-gray-500 text-center max-w-xs mb-8">
-          You do not have the required permissions to view the Employee directory. 
+          You do not have the required permissions to view this page. 
           Please contact an administrator if you believe this is an error.
         </p>
 

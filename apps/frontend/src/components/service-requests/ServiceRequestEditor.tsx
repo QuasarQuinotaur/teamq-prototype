@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, isValid, parseISO } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { Calendar } from "@/components/Calendar.tsx";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
@@ -29,11 +29,16 @@ import {
   LinkContentsCombobox,
   type LinkContentOption,
 } from "@/components/service-requests/LinkContentsCombobox.tsx";
+import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
+import { sortedStages } from "@/components/service-requests/workflowTypes.ts";
 import type { Employee } from "db";
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-type FormSnapshot = {
+export type StageDraft = {
+  /** Stable React key; new stages only have key until saved */
+  key: string;
+  stageId?: number;
   title: string;
   description: string;
   dueDate: string;
@@ -42,14 +47,9 @@ type FormSnapshot = {
   contentIds: number[];
 };
 
-type ServiceRequestDetail = {
-  id: number;
-  title: string | null;
-  description: string | null;
-  dateDue: string | null;
-  priority: string | null;
-  employees: { id: number; firstName: string; lastName: string }[];
-  contents: { id: number; title: string }[];
+type EditBaseline = {
+  workflowTitle: string;
+  stages: StageDraft[];
 };
 
 const PRIORITY_OPTIONS = [
@@ -91,7 +91,7 @@ function priorityToApi(internal: string): string | null {
 
 function mergeContentOptions(
   fromApi: LinkContentOption[],
-  fromRequest: { id: number; title: string }[]
+  fromRequest: { id: number; title: string }[],
 ): LinkContentOption[] {
   const map = new Map<number, string>();
   for (const c of fromApi) map.set(c.id, c.title);
@@ -103,9 +103,21 @@ function mergeContentOptions(
     .sort((a, b) => a.id - b.id);
 }
 
+function newStageDraft(key?: string): StageDraft {
+  return {
+    key: key ?? crypto.randomUUID(),
+    title: "",
+    description: "",
+    dueDate: "",
+    priority: "none",
+    assigneeIds: [],
+    contentIds: [],
+  };
+}
+
 export type ServiceRequestEditorProps = {
   mode: "create" | "edit";
-  /** Numeric id when `mode` is `"edit"` */
+  /** Workflow id when `mode` is `"edit"` */
   requestId?: string;
 };
 
@@ -120,24 +132,24 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
   const [searchParams] = useSearchParams();
   const titleRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [dueDate, setDueDate] = React.useState("");
-  const [priority, setPriority] = React.useState("none");
-  const [assigneeIds, setAssigneeIds] = React.useState<number[]>([]);
-  const [contentIds, setContentIds] = React.useState<number[]>([]);
+  const [workflowTitle, setWorkflowTitle] = React.useState("");
+  const [stages, setStages] = React.useState<StageDraft[]>(() => [newStageDraft()]);
 
   const [employees, setEmployees] = React.useState<AssignEmployeeOption[]>([]);
   const [contents, setContents] = React.useState<LinkContentOption[]>([]);
   const [ownerId, setOwnerId] = React.useState<number | null>(null);
 
-  const [baseline, setBaseline] = React.useState<FormSnapshot | null>(null);
-  const [editRequestNumericId, setEditRequestNumericId] = React.useState<number | null>(null);
+  const [baseline, setBaseline] = React.useState<EditBaseline | null>(null);
+  const [editWorkflowId, setEditWorkflowId] = React.useState<number | null>(null);
 
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
-  const [dueDateOpen, setDueDateOpen] = React.useState(false);
+  const [duePopoverKey, setDuePopoverKey] = React.useState<string | null>(null);
+
+  const updateStage = React.useCallback((key: string, patch: Partial<StageDraft>) => {
+    setStages((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -150,13 +162,11 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
     }
 
     const detailPromise = isEdit
-      ? fetch(`${base}/servicereqs/detail/${idNum}`, { credentials: "include" }).then(
-          (r) => {
-            if (r.status === 404) throw new Error("Request not found.");
-            if (!r.ok) throw new Error("Could not load this request.");
-            return r.json() as Promise<ServiceRequestDetail>;
-          }
-        )
+      ? fetch(`${base}/servicereqs/detail/${idNum}`, { credentials: "include" }).then((r) => {
+          if (r.status === 404) throw new Error("Request not found.");
+          if (!r.ok) throw new Error("Could not load this request.");
+          return r.json() as Promise<WorkflowPayload>;
+        })
       : Promise.resolve(null);
 
     Promise.all([
@@ -183,38 +193,40 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
             firstName: e.firstName,
             lastName: e.lastName,
             jobPosition: e.jobPosition,
-          }))
+          })),
         );
 
         const docOpts = docs.map((c) => ({ id: c.id, title: c.title }));
+
         if (detail) {
-          setEditRequestNumericId(detail.id);
-          const nextTitle = detail.title ?? "";
-          const nextDescription = detail.description ?? "";
-          const nextDue = isoToDateInput(detail.dateDue);
-          const nextPriority = priorityFromApi(detail.priority);
-          const nextAssignees = detail.employees.map((e) => e.id);
-          const nextContents = detail.contents.map((c) => c.id);
-          setContents(mergeContentOptions(docOpts, detail.contents));
-          setTitle(nextTitle);
-          setDescription(nextDescription);
-          setDueDate(nextDue);
-          setPriority(nextPriority);
-          setAssigneeIds(nextAssignees);
-          setContentIds(nextContents);
+          setEditWorkflowId(detail.id);
+          const ordered = sortedStages(detail.stages);
+          const allReqContents = ordered.flatMap((s) => s.contents);
+          setContents(mergeContentOptions(docOpts, allReqContents));
+
+          const loadedStages: StageDraft[] = ordered.map((st) => ({
+            key: `stage-${st.id}`,
+            stageId: st.id,
+            title: st.title ?? "",
+            description: st.description ?? "",
+            dueDate: isoToDateInput(st.dateDue),
+            priority: priorityFromApi(st.priority),
+            assigneeIds: st.employees.map((e) => e.id),
+            contentIds: st.contents.map((c) => c.id),
+          }));
+
+          const wt = detail.title?.trim() ?? "";
+          setWorkflowTitle(wt);
+          setStages(loadedStages.length ? loadedStages : [newStageDraft()]);
           setBaseline({
-            title: nextTitle,
-            description: nextDescription,
-            dueDate: nextDue,
-            priority: nextPriority,
-            assigneeIds: [...nextAssignees],
-            contentIds: [...nextContents],
+            workflowTitle: wt,
+            stages: loadedStages.map((s) => ({ ...s })),
           });
         } else {
           setContents(docOpts);
-          setAssigneeIds((prev) =>
-            prev.includes(me.id) ? prev : [...prev, me.id]
-          );
+          setStages([newStageDraft()]);
+          setWorkflowTitle("");
+          setBaseline(null);
         }
       })
       .catch((err: unknown) => {
@@ -231,7 +243,11 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
   React.useEffect(() => {
     if (mode !== "create") return;
     if (!dueFromUrl?.trim() || !isValidYyyyMmDd(dueFromUrl)) return;
-    setDueDate(dueFromUrl.trim());
+    setStages((prev) => {
+      if (prev.length === 0) return [newStageDraft()];
+      const first = prev[0]!;
+      return [{ ...first, dueDate: dueFromUrl.trim() }, ...prev.slice(1)];
+    });
   }, [mode, dueFromUrl]);
 
   const resizeTitle = React.useCallback(() => {
@@ -243,19 +259,15 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
 
   React.useLayoutEffect(() => {
     resizeTitle();
-  }, [title, resizeTitle]);
+  }, [workflowTitle, resizeTitle]);
 
   const disabled =
-    loadError != null || (mode === "create" ? ownerId == null : editRequestNumericId == null);
+    loadError != null || (mode === "create" ? ownerId == null : editWorkflowId == null);
 
   function handleReset() {
     if (!baseline) return;
-    setTitle(baseline.title);
-    setDescription(baseline.description);
-    setDueDate(baseline.dueDate);
-    setPriority(baseline.priority);
-    setAssigneeIds([...baseline.assigneeIds]);
-    setContentIds([...baseline.contentIds]);
+    setWorkflowTitle(baseline.workflowTitle);
+    setStages(baseline.stages.map((s) => ({ ...s, key: s.key })));
     setSubmitError(null);
   }
 
@@ -263,36 +275,50 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
     navigate("/documents/service-requests");
   }
 
+  function addStage() {
+    setStages((prev) => [...prev, newStageDraft()]);
+  }
+
+  function removeStage(key: string) {
+    setStages((prev) => (prev.length <= 1 ? prev : prev.filter((s) => s.key !== key)));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
 
+    if (ownerId == null) return;
+
     if (mode === "create") {
-      if (ownerId == null) return;
       setSubmitting(true);
       try {
-        const dueIso = dateInputToIsoForApi(dueDate);
-        const employeeIdsMerged = Array.from(
-          new Set([...assigneeIds, ownerId])
-        );
+        const payloadStages = stages.map((s) => {
+          const dueIso = dateInputToIsoForApi(s.dueDate);
+          const pri = priorityToApi(s.priority);
+          return {
+            title: s.title.trim() || undefined,
+            description: s.description.trim() || undefined,
+            ...(dueIso ? { dateDue: dueIso } : {}),
+            ...(pri ? { priority: pri } : {}),
+            employeeIds: Array.from(new Set(s.assigneeIds)),
+            contentIds: s.contentIds.length ? s.contentIds : undefined,
+          };
+        });
+
         const res = await fetch(`${base}/servicereqs`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ownerId,
-            title: title.trim() || undefined,
-            description: description.trim() || undefined,
-            ...(dueIso ? { dateDue: dueIso } : {}),
-            ...(priority && priority !== "none" ? { priority } : {}),
-            employeeIds: employeeIdsMerged,
-            contentIds: contentIds.length ? contentIds : undefined,
+            title: workflowTitle.trim() || undefined,
+            stages: payloadStages,
           }),
         });
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
           throw new Error(
-            typeof errBody.error === "string" ? errBody.error : "Could not create request."
+            typeof errBody.error === "string" ? errBody.error : "Could not create request.",
           );
         }
         await res.json();
@@ -305,29 +331,47 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
       return;
     }
 
-    if (editRequestNumericId == null) return;
+    if (editWorkflowId == null) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${base}/servicereqs/${editRequestNumericId}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          dateDue: dateInputToIsoForApi(dueDate),
-          priority: priorityToApi(priority),
-          employeeIds: assigneeIds,
-          contentIds: contentIds,
-        }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(
-          typeof errBody.error === "string" ? errBody.error : "Could not update request."
-        );
+      if (baseline && workflowTitle.trim() !== baseline.workflowTitle.trim()) {
+        const wfRes = await fetch(`${base}/servicereqs/workflow/${editWorkflowId}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: workflowTitle.trim() }),
+        });
+        if (!wfRes.ok) {
+          const errBody = await wfRes.json().catch(() => ({}));
+          throw new Error(
+            typeof errBody.error === "string" ? errBody.error : "Could not update workflow.",
+          );
+        }
       }
-      await res.json();
+
+      for (const s of stages) {
+        if (s.stageId == null) continue;
+        const res = await fetch(`${base}/servicereqs/stage/${s.stageId}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: s.title.trim(),
+            description: s.description.trim(),
+            dateDue: dateInputToIsoForApi(s.dueDate),
+            priority: priorityToApi(s.priority),
+            employeeIds: Array.from(new Set(s.assigneeIds)),
+            contentIds: s.contentIds,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(
+            typeof errBody.error === "string" ? errBody.error : "Could not update a stage.",
+          );
+        }
+      }
+
       navigate("/documents/service-requests");
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : "Could not update request.");
@@ -355,130 +399,194 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
       {loadError ? (
         <p className="px-4 py-8 text-center text-destructive">{loadError}</p>
       ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-            <div className="min-w-0 flex-1">
-              <label htmlFor="sr-title" className="sr-only">
-                Request name
-              </label>
-              <textarea
-                id="sr-title"
-                ref={titleRef}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                rows={1}
-                placeholder="Untitled request"
-                disabled={disabled}
-                className="w-full resize-none border-0 bg-transparent p-0 text-3xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-0 md:text-4xl"
-              />
-            </div>
-            <div className="flex w-full shrink-0 flex-col gap-2 sm:max-w-xs sm:pt-1">
-              <Label htmlFor="sr-assignees">Assign to</Label>
-              <AssignEmployeesCombobox
-                employees={employees}
-                value={assigneeIds}
-                onValueChange={setAssigneeIds}
-                disabled={disabled}
-                placeholder="Select employees…"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="sr-description">Description</Label>
-            <Textarea
-              id="sr-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add details about this request…"
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <form
+            onSubmit={handleSubmit}
+            className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8"
+          >
+          <div className="min-w-0 flex-1">
+            <label htmlFor="sr-workflow-title" className="sr-only">
+              Workflow title
+            </label>
+            <textarea
+              id="sr-workflow-title"
+              ref={titleRef}
+              value={workflowTitle}
+              onChange={(e) => setWorkflowTitle(e.target.value)}
+              rows={1}
+              placeholder="Untitled workflow"
               disabled={disabled}
-              className="min-h-28"
+              className="w-full resize-none border-0 bg-transparent p-0 text-3xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-0 md:text-4xl"
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sr-due">Due date</Label>
-              <div className="flex flex-wrap items-center gap-2">
-                <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="sr-due"
-                      type="button"
-                      variant="outline"
-                      disabled={disabled}
-                      className={cn(
-                        "h-9 w-full max-w-xs justify-start text-left font-normal",
-                        !dueDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 size-4 shrink-0 opacity-70" />
-                      {dueDate ? (
-                        formatDate(dueStringToDate(dueDate))
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dueStringToDate(dueDate)}
-                      defaultMonth={dueStringToDate(dueDate) ?? new Date()}
-                      onSelect={(d) => {
-                        setDueDate(d ? format(d, "yyyy-MM-dd") : "");
-                        setDueDateOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {dueDate ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 text-muted-foreground"
-                    disabled={disabled}
-                    onClick={() => setDueDate("")}
-                  >
-                    Clear
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sr-priority">Priority</Label>
-              <Select
-                value={priority}
-                onValueChange={setPriority}
-                disabled={disabled}
+          <div className="flex flex-col gap-10">
+            {stages.map((stage, index) => (
+              <section
+                key={stage.key}
+                className="flex flex-col gap-6 rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
               >
-                <SelectTrigger id="sr-priority" className="w-full max-w-xs">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Stage {index + 1}
+                    {mode === "create" && stages.length > 1 ? (
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        (order {index + 1})
+                      </span>
+                    ) : null}
+                  </h2>
+                  {mode === "create" && stages.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      aria-label={`Remove stage ${index + 1}`}
+                      onClick={() => removeStage(stage.key)}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+                  <div className="min-w-0 flex-1 flex-col gap-2">
+                    <Label htmlFor={`sr-stage-title-${stage.key}`}>Stage title</Label>
+                    <Textarea
+                      id={`sr-stage-title-${stage.key}`}
+                      value={stage.title}
+                      onChange={(e) => updateStage(stage.key, { title: e.target.value })}
+                      placeholder="Untitled stage"
+                      disabled={disabled}
+                      rows={2}
+                      className="min-h-[52px] resize-y"
+                    />
+                  </div>
+                  <div className="flex w-full shrink-0 flex-col gap-2 sm:max-w-xs">
+                    <Label htmlFor={`sr-assignees-${stage.key}`}>Assign to</Label>
+                    <AssignEmployeesCombobox
+                      employees={employees}
+                      value={stage.assigneeIds}
+                      onValueChange={(ids) => updateStage(stage.key, { assigneeIds: ids })}
+                      disabled={disabled}
+                      placeholder="Select employees…"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`sr-desc-${stage.key}`}>Description</Label>
+                  <Textarea
+                    id={`sr-desc-${stage.key}`}
+                    value={stage.description}
+                    onChange={(e) => updateStage(stage.key, { description: e.target.value })}
+                    placeholder="Add details for this stage…"
+                    disabled={disabled}
+                    className="min-h-28"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`sr-due-${stage.key}`}>Due date</Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Popover
+                        open={duePopoverKey === stage.key}
+                        onOpenChange={(o) => setDuePopoverKey(o ? stage.key : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            id={`sr-due-${stage.key}`}
+                            type="button"
+                            variant="outline"
+                            disabled={disabled}
+                            className={cn(
+                              "h-9 w-full max-w-xs justify-start text-left font-normal",
+                              !stage.dueDate && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 size-4 shrink-0 opacity-70" />
+                            {stage.dueDate ? (
+                              formatDate(dueStringToDate(stage.dueDate))
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dueStringToDate(stage.dueDate)}
+                            defaultMonth={dueStringToDate(stage.dueDate) ?? new Date()}
+                            onSelect={(d) => {
+                              updateStage(stage.key, {
+                                dueDate: d ? format(d, "yyyy-MM-dd") : "",
+                              });
+                              setDuePopoverKey(null);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {stage.dueDate ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 text-muted-foreground"
+                          disabled={disabled}
+                          onClick={() => updateStage(stage.key, { dueDate: "" })}
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`sr-priority-${stage.key}`}>Priority</Label>
+                    <Select
+                      value={stage.priority}
+                      onValueChange={(v) => updateStage(stage.key, { priority: v })}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger id={`sr-priority-${stage.key}`} className="w-full max-w-xs">
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITY_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`sr-docs-${stage.key}`}>Linked documents</Label>
+                  <LinkContentsCombobox
+                    contents={contents}
+                    value={stage.contentIds}
+                    onValueChange={(ids) => updateStage(stage.key, { contentIds: ids })}
+                    disabled={disabled}
+                  />
+                </div>
+              </section>
+            ))}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="sr-docs">Linked documents</Label>
-            <LinkContentsCombobox
-              contents={contents}
-              value={contentIds}
-              onValueChange={setContentIds}
+          {mode === "create" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2 border-dashed"
               disabled={disabled}
-            />
-          </div>
+              onClick={addStage}
+            >
+              <PlusIcon className="size-4" />
+              Add stage
+            </Button>
+          ) : null}
 
           {submitError ? (
             <p className="text-sm text-destructive" role="alert">
@@ -528,6 +636,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
             )}
           </div>
         </form>
+        </div>
       )}
     </div>
   );

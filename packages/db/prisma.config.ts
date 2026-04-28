@@ -5,6 +5,22 @@ import path from "path";
 config({ path: path.resolve(__dirname, "../../.env") });
 import { defineConfig } from "prisma/config";
 
+/**
+ * URL used by Prisma CLI only (`migrate deploy`, `db push`, etc.).
+ *
+ * Supabase: the **transaction pooler** (port 6543) often makes `prisma migrate` hang or fail.
+ * Add a **direct** Postgres URL (port **5432**) to `.env` — Supabase Dashboard → Connect → "Direct connection".
+ *
+ * Priority: `PRISMA_MIGRATE_URL` → `DIRECT_URL` → `DATABASE_URL`
+ * (Keep `DATABASE_URL` as the pooler for the running app if you want; the app uses its own pool in `db` package code.)
+ */
+function prismaCliDatabaseUrl(): string | undefined {
+  const explicit = process.env["PRISMA_MIGRATE_URL"]?.trim();
+  const direct = process.env["DIRECT_URL"]?.trim();
+  const pooled = process.env["DATABASE_URL"]?.trim();
+  return explicit || direct || pooled;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -12,6 +28,6 @@ export default defineConfig({
     seed: "ts-node prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: prismaCliDatabaseUrl(),
   },
 });

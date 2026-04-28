@@ -10,6 +10,7 @@ import EmployeeFormFields, {
     type EmployeeDateStrings,
     type EmployeeFields
 } from "@/components/forms/EmployeeFormFields.tsx";
+import useJobInfoMap from "@/hooks/useJobInfoMap";
 
 
 const DEFAULT_EMPLOYEE_FIELDS: EmployeeFields = {
@@ -49,6 +50,7 @@ export default function EmployeeForm(state: FormState) {
         initialFields.dateOfBirth ? formatDate(initialFields.dateOfBirth) : ""
 
     const [dobString, setDobString] = useState(initialDobString);
+    const { refetchRoles } = useJobInfoMap();
 
     const dateStrings: EmployeeDateStrings = {
         dob: dobString,
@@ -83,6 +85,7 @@ export default function EmployeeForm(state: FormState) {
         if (!res.ok) {
             throw new Error(result.error || (isUpdate ? "Update failed" : "Create failed"));
         }
+        refetchRoles();
     }
 
     return (

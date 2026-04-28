@@ -1,63 +1,64 @@
-import {formatDate} from "@/lib/utils.ts";
-import {useState} from "react";
-import DocumentFormFields, {type ContentFields, type DocumentDateStrings} from "@/components/forms/DocumentFormFields.tsx";
 import Form, {type FormState} from "@/components/forms/Form.tsx";
 import TagFormFields, {type TagFields} from "@/components/forms/TagFormFields.tsx";
-import type {Employee, Tag} from "db";
-import type {EmployeeFields} from "@/components/forms/EmployeeFormFields.tsx";
-
+import type {Tag} from "db";
 
 const DEFAULT_TAG_FIELDS: TagFields = {
     name: "",
-    color: "#ff0000"
-}
+    color: "#ff0000",
+    isGlobal: false,
+};
 
 function itemAsTag(item: object): TagFields {
     const t = item as Tag;
     return {
         name: t.tagName,
         color: t.color,
+        isGlobal: t.isGlobal ?? false,
     };
 }
 
-function getDefaultTagFields(defaultItem: object = null): TagFields {
-    return DEFAULT_TAG_FIELDS
+function getDefaultTagFields(): TagFields {
+    return DEFAULT_TAG_FIELDS;
 }
 
 function hasRequiredTagFields(fields: TagFields): boolean {
-    return fields.name.trim().length > 0
+    return fields.name.trim().length > 0;
 }
 
 export type TagFormProps = {
     onSubmitted?: () => void;
-} & FormState
-export default function TagForm({
-                                    onSubmitted,
-                                    ...state
-}: TagFormProps) {
-    const initialFields =
-        state.baseItem ? itemAsTag(state.baseItem) :
-            getDefaultTagFields(state.defaultItem)
+    isAdmin?: boolean;
+} & FormState;
 
-    // Create or update tag on backend from fields
+export default function TagForm({ onSubmitted, isAdmin, ...state }: TagFormProps) {
+    const initialFields = state.baseItem
+        ? itemAsTag(state.baseItem)
+        : getDefaultTagFields();
+
+    const isCreate = !state.baseItem;
+
     async function doSubmit(fields: TagFields) {
-        console.log("NEW TAG:", fields)
         const isUpdate = state.baseItem != null;
         const url = isUpdate
             ? `${import.meta.env.VITE_BACKEND_URL}/api/tags/${state.baseItem.id}`
             : `${import.meta.env.VITE_BACKEND_URL}/api/tags`;
-        const tag = {
+
+        const payload: { tagName: string; color: string; isGlobal?: boolean } = {
             tagName: fields.name,
             color: fields.color,
+        };
+        if (!isUpdate && isAdmin && fields.isGlobal) {
+            payload.isGlobal = true;
         }
+
         await fetch(url, {
             method: isUpdate ? "PATCH" : "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(tag),
-        })
+            body: JSON.stringify(payload),
+        });
         if (onSubmitted) {
-            onSubmitted()
+            onSubmitted();
         }
     }
 
@@ -66,19 +67,19 @@ export default function TagForm({
             state={state}
             initialFields={initialFields}
             createFieldsElement={(props) => (
-                // Create document form specific field elements
                 <TagFormFields
                     {...props}
+                    isAdmin={isAdmin}
+                    isCreate={isCreate}
                 />
             )}
             submit={doSubmit}
             getFieldsError={(fields) => {
-                // Show an error if missing fields
                 if (!hasRequiredTagFields(fields)) {
-                    return "Missing required fields."
+                    return "Missing required fields.";
                 }
             }}
             noUpdateConfirm
         />
-    )
+    );
 }

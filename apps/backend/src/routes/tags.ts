@@ -9,6 +9,17 @@ const { requiresAuth } = pkg;
 const router = Router();
 
 const contentRepo = new ContentRepository();
+
+function isAdmin(employee: { jobPosition: string }): boolean {
+    return employee.jobPosition === "admin";
+}
+
+function tagVisibleWhere(employeeId: number) {
+    return {
+        OR: [{ ownerId: employeeId }, { isGlobal: true }],
+    };
+}
+
 // ====================================
 // POST ===============================
 // ====================================
@@ -21,20 +32,37 @@ router.post("/tags", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const { tagName, color } = req.body;
+        const { tagName, color, isGlobal: wantGlobal } = req.body;
 
         if (!tagName || typeof tagName !== "string" || !tagName.trim()) {
             res.status(400).json({ error: "tagName is required" });
             return;
         }
 
+        if (wantGlobal === true && !isAdmin(employee)) {
+            res.status(403).json({ error: "Only admins can create global tags" });
+            return;
+        }
+
         const normalizedTagName = tagName.trim();
+        const makeGlobal = wantGlobal === true && isAdmin(employee);
+
+        if (makeGlobal) {
+            const dup = await prisma.tag.findFirst({
+                where: { isGlobal: true, tagName: normalizedTagName },
+            });
+            if (dup) {
+                res.status(409).json({ error: "A global tag with this name already exists" });
+                return;
+            }
+        }
 
         const tag = await prisma.tag.create({
             data: {
                 ownerId: employee.id,
                 tagName: normalizedTagName,
                 color: color,
+                isGlobal: makeGlobal,
             },
             include: {
                 owner: true,
@@ -48,6 +76,14 @@ router.post("/tags", requiresAuth(), async (req, res) => {
     } catch (err: any) {
         console.error(err);
 
+        if (err.code === "P2002") {
+            res.status(409).json({
+                error: err.message?.includes("Tag_tagName_global_key")
+                    ? "A global tag with this name already exists"
+                    : "You already have a tag with this name",
+            });
+            return;
+        }
 
         res.status(500).json({
             error: err instanceof Error ? err.message : "Tag creation failed",
@@ -55,12 +91,11 @@ router.post("/tags", requiresAuth(), async (req, res) => {
     }
 });
 
-
 // ===================================
 // GET ===============================
 // ===================================
 
-// all tags belonging to current employee
+// Personal tags + global tags for the organization
 router.get("/tags", requiresAuth(), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
@@ -71,15 +106,9 @@ router.get("/tags", requiresAuth(), async (req, res) => {
         }
 
         const tags = await prisma.tag.findMany({
-            where: {
-                ownerId: employee.id,
-            },
+            where: tagVisibleWhere(employee.id),
+            orderBy: [{ isGlobal: "desc" }, { tagName: "asc" }],
         });
-
-        if (!tags) {
-            res.status(404).json({ error: "Tags not found" });
-            return;
-        }
 
         res.json({
             success: true,
@@ -93,12 +122,11 @@ router.get("/tags", requiresAuth(), async (req, res) => {
     }
 });
 
-
 // ===================================
 // GET ===============================
 // ===================================
 
-// tag by ID for employee
+// Tag by id if global or owned by this employee
 router.get("/tags/:id", requiresAuth(), async (req, res) => {
     try {
         const employee = await getEmployeeFromRequest(req);
@@ -118,7 +146,7 @@ router.get("/tags/:id", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id,
+                ...tagVisibleWhere(employee.id),
             },
             include: {
                 contents: {
@@ -164,7 +192,11 @@ router.patch("/tags/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const { tagName, color } = req.body;
+        const { tagName, color, isGlobal: _bodyIsGlobal } = req.body;
+        if (_bodyIsGlobal !== undefined && !isAdmin(employee)) {
+            res.status(403).json({ error: "Only admins can change the global flag" });
+            return;
+        }
 
         if (!tagName || typeof tagName !== "string" || !tagName.trim()) {
             res.status(400).json({ error: "tagName is required" });
@@ -175,11 +207,8 @@ router.patch("/tags/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const existingTag = await prisma.tag.findFirst({
-            where: {
-                id: tagId,
-                ownerId: employee.id,
-            },
+        const existingTag = await prisma.tag.findUnique({
+            where: { id: tagId },
         });
 
         if (!existingTag) {
@@ -187,12 +216,37 @@ router.patch("/tags/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
+        if (existingTag.isGlobal) {
+            if (!isAdmin(employee)) {
+                res.status(403).json({ error: "Only admins can edit global tags" });
+                return;
+            }
+        } else if (existingTag.ownerId !== employee.id) {
+            res.status(403).json({ error: "You can only edit your own tags" });
+            return;
+        }
+
+        const nextName = tagName.trim();
+        if (existingTag.isGlobal) {
+            const nameConflict = await prisma.tag.findFirst({
+                where: {
+                    isGlobal: true,
+                    tagName: nextName,
+                    NOT: { id: tagId },
+                },
+            });
+            if (nameConflict) {
+                res.status(409).json({ error: "A global tag with this name already exists" });
+                return;
+            }
+        }
+
         const updatedTag = await prisma.tag.update({
             where: {
                 id: tagId,
             },
             data: {
-                tagName: tagName.trim(),
+                tagName: nextName,
                 color: color.trim(),
             },
         });
@@ -206,7 +260,9 @@ router.patch("/tags/:id", requiresAuth(), async (req, res) => {
 
         if (err.code === "P2002") {
             res.status(409).json({
-                error: "You already have a tag with this name",
+                error: err.message?.includes("Tag_tagName_global_key")
+                    ? "A global tag with this name already exists"
+                    : "You already have a tag with this name",
             });
             return;
         }
@@ -236,15 +292,22 @@ router.delete("/tags/:id", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const tag = await prisma.tag.findFirst({
-            where: {
-                id: tagId,
-                ownerId: employee.id,
-            },
+        const tag = await prisma.tag.findUnique({
+            where: { id: tagId },
         });
 
         if (!tag) {
             res.status(404).json({ error: "Tag not found" });
+            return;
+        }
+
+        if (tag.isGlobal) {
+            if (!isAdmin(employee)) {
+                res.status(403).json({ error: "Only admins can delete global tags" });
+                return;
+            }
+        } else if (tag.ownerId !== employee.id) {
+            res.status(403).json({ error: "You can only delete your own tags" });
             return;
         }
 
@@ -262,7 +325,6 @@ router.delete("/tags/:id", requiresAuth(), async (req, res) => {
         });
     }
 });
-
 
 //==============================
 //GET===========================
@@ -286,8 +348,8 @@ router.get("/tags/:tagId/content", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id
-            }
+                ...tagVisibleWhere(employee.id),
+            },
         });
 
         if (!tag) {
@@ -299,7 +361,7 @@ router.get("/tags/:tagId/content", requiresAuth(), async (req, res) => {
 
         res.json({
             success: true,
-            content
+            content,
         });
     } catch (err) {
         console.error(err);
@@ -307,6 +369,39 @@ router.get("/tags/:tagId/content", requiresAuth(), async (req, res) => {
             error: err instanceof Error ? err.message : "Failed to load content for tag",
         });
     }
+});
+
+// TUT ============================
+router.get("/tutorial/tags/:tagId/content", requiresAuth(), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        return res.status(404).json({error: "No linked employee account found"});
+    }
+
+    const tagId = Number(req.params.tagId);
+
+    if (Number.isNaN(tagId)) {
+        return res.status(400).json({error: "Invalid tag id"});
+    }
+
+    const tag = await prisma.tag.findFirst({
+        where: {
+            id: tagId,
+            ownerId: employee.id,
+        },
+    });
+
+    if (!tag) {
+        return res.status(404).json({error: "Tag not found"});
+    }
+
+    const content = await contentRepo.getTutorialByTag(tagId, employee.id);
+
+    res.json({
+        success: true,
+        content,
+    });
 });
 
 export default router;

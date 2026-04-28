@@ -20,6 +20,9 @@ import linkPreviewRouter from "./routes/linkPreview.ts";
 import tagsRouter from "./routes/tags.ts";
 import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
+import rolesRouter from "./routes/roles.ts";
+import reviewRouter from "./routes/contentReview.ts"
+import "./Service/ContentReviewServiceJob.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -58,6 +61,7 @@ app.use("/tmp", express.static("tmp"));
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
 app.use("/api/employee", employeeRouter);
+app.use("/api/roles", rolesRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
 app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);
@@ -66,7 +70,7 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api", tagsRouter);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRouter);
-
+app.use("/api/reviews", reviewRouter);
 
 export async function getEmployeeFromRequest(req: express.Request) {
     if (!req.oidc.isAuthenticated()) return null;
@@ -74,9 +78,13 @@ export async function getEmployeeFromRequest(req: express.Request) {
     return employeeRepo.getByAuth0Id(sub);
 }
 
-// Start server
-app.listen(port, () => {
+// Start server — generous timeouts so long routes (e.g. AI document summary) are not cut off.
+const server = app.listen(port, () => {
     console.log(`Server running`);
 });
+const LONG_REQUEST_MS = 600_000; // 10 minutes
+server.requestTimeout = LONG_REQUEST_MS;
+server.headersTimeout = LONG_REQUEST_MS + 10_000;
+server.setTimeout(LONG_REQUEST_MS);
 
 export default app;

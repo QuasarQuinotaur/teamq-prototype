@@ -21,12 +21,12 @@ import { isDocumentLikeFilename } from "@/lib/document-kind.ts";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
-import { DropdownMenuItem, DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
+import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
-import {InfoIcon, StarIcon} from "@phosphor-icons/react";
+import { StarIcon } from "@phosphor-icons/react";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
-import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
+import {DEFAULT_SORT_FIELDS, DEFAULT_SORT_FIELDS_RECENT} from "@/components/paging/hooks/sort-function.tsx";
 import {
     notifyContentCheckoutSync,
     subscribeContentCheckoutSync,
@@ -37,6 +37,8 @@ import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSe
 import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
+import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
+import ContentReviewsOption from "./review/ContentReviewsOption";
 
 type ViewerState = {
     contentId: number;
@@ -60,6 +62,10 @@ type ContentEntryPageProps = {
     onlyMine?: boolean;
     /** Documents you currently have checked out. */
     onlyMyCheckouts?: boolean;
+    /** Documents opened recently. */
+    onlyRecents?: boolean;
+    /** Separate table for the tutorial */
+    isTutorial?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -136,7 +142,11 @@ function getContentEntryFromRow(
     const tags: Tag[] =
         content.tags
             ?.map((ct) => ct.tag)
-            .filter((t) => (employee ? t.ownerId === employee.id : false)) ?? [];
+            .filter((t) =>
+                employee
+                    ? t.isGlobal || t.ownerId === employee.id
+                    : false,
+            ) ?? [];
     const ownerRecord = employeeMap.get(content.ownerId);
     return {
         item: content,
@@ -156,6 +166,8 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
+                                             onlyRecents,
+                                             isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -174,6 +186,15 @@ export default function ContentEntryPage({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+    const onContentOpened = useCallback((entry: CardEntry) => {
+        console.log("CONTENT OPENED NOW", entry)
+        // Mark as viewed for recent documents
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${entry.item.id}/view`, {
+            method: "POST",
+            credentials: "include",
+        });
+    }, [])
 
     const exitSelectMode = useCallback(() => {
         setSelectMode(false);
@@ -217,6 +238,7 @@ export default function ContentEntryPage({
                     onToggleEntrySelect(entry);
                     return;
                 }
+                onContentOpened(entry);
                 // Web links (non-file paths) open directly in a new tab
                 if (entry.link && !isSupabasePath(entry.link)) {
                     window.open(entry.link, "_blank", "noopener,noreferrer");
@@ -225,7 +247,7 @@ export default function ContentEntryPage({
                 void opener(entry);
             };
         },
-        [selectMode, bulkActionLoading, onToggleEntrySelect],
+        [selectMode, bulkActionLoading, onToggleEntrySelect, onContentOpened],
     );
 
     const openDocumentMenuFromRow = useCallback((entry: CardEntry, e: React.MouseEvent) => {
@@ -325,6 +347,7 @@ export default function ContentEntryPage({
         () =>
             leftPaneDoc
                 ? {
+                      contentId: leftPaneDoc.contentId,
                       url: leftPaneDoc.url,
                       filename: leftPaneDoc.filename,
                       title: leftPaneDoc.title,
@@ -336,6 +359,7 @@ export default function ContentEntryPage({
         () =>
             rightPaneDoc
                 ? {
+                      contentId: rightPaneDoc.contentId,
                       url: rightPaneDoc.url,
                       filename: rightPaneDoc.filename,
                       title: rightPaneDoc.title,
@@ -407,7 +431,7 @@ export default function ContentEntryPage({
             });
     }
 
-    const defaultSortFields: SortFields = DEFAULT_SORT_FIELDS
+    const defaultSortFields: SortFields = onlyRecents ? DEFAULT_SORT_FIELDS_RECENT : DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
     const [searchPhrase, setSearchPhrase] = useState("")
     const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -440,18 +464,20 @@ export default function ContentEntryPage({
             onlyMine,
             onlyMyCheckouts,
         });
-        const url = qs
-            ? `${apiBase}/api/content?${qs}`
-            : `${apiBase}/api/content`;
+        /** TODO: Can you sort */
+        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
+                (qs ? `?${qs}` : "")
+        console.log(qs, url)
         fetch(url, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("Failed to load content");
                 return res.json();
             })
-            .then((data: ContentListRow[]) => {
+            .then((data: object) => {
+                const useData: ContentListRow[] = onlyRecents ? data["recent"] : data
                 setEntries(
-                    data.map((c) =>
-                        getContentEntryFromRow(c, employee, employeeMap),
+                    useData.map((c) =>
+                        getContentEntryFromRow(onlyRecents ? c["content"] : c, employee, employeeMap),
                     ),
                 );
             })
@@ -540,6 +566,8 @@ export default function ContentEntryPage({
         }
     }, [selectedIds, favoritedList, fetchFavorites, exitSelectMode]);
 
+    const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
+
     const bulkCheckoutSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
         setBulkActionLoading(true);
@@ -551,8 +579,9 @@ export default function ContentEntryPage({
                 const item = raw.item as ContentWithCheckout;
                 const canModify =
                     item.jobPositions.includes(employee.jobPosition) ||
-                    employee.jobPosition === "admin";
+                    getEmployeeIsAdmin(employee);
                 if (!canModify) continue;
+                //TODO pull from tutorial repository when isTutorial flag is true
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
                     credentials: "include",
@@ -565,7 +594,7 @@ export default function ContentEntryPage({
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, entries, exitSelectMode]);
+    }, [selectedIds, employee, entries, exitSelectMode, getEmployeeIsAdmin]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
@@ -608,6 +637,7 @@ export default function ContentEntryPage({
     }, [searchPhrase, fieldsFilter, defaultFieldsFilter]);
 
     const showFavoritesSection =
+        !onlyRecents &&
         !onlyFavorites &&
         !onlyMine &&
         !onlyMyCheckouts &&
@@ -802,8 +832,10 @@ export default function ContentEntryPage({
                 </DropdownMenuCheckboxItem>
                 <TagsOption
                     contentId={item.id}
+                    filePath={item.filePath}
                     tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
                     tagList={tagList}
+                    isAdmin={employee?.jobPosition === "admin"}
                     contentTagsUpdated={() => {
                         void fetchContentById(item.id) // only this content got changed
                     }}
@@ -812,13 +844,19 @@ export default function ContentEntryPage({
                         void fetchTagList() // update list
                     }}
                 />
+                <ContentReviewsOption
+                    content={item}
+                    contentReviewsUpdated={() => {
+                        void fetchContentById(item.id) // only this content got changed
+                    }}
+                />
                 <ContentDetailsOption
                     content={item}
                     tags={entry.tags}
                 />
             </>
             const isJobPosition = employee && item.jobPositions.includes(employee.jobPosition);
-            const isAdmin = employee && employee.jobPosition === "admin";
+            const isAdmin = employee && getEmployeeIsAdmin(employee);
             const canModify = Boolean(isJobPosition || isAdmin);
             const heldByMe =
                 Boolean(employee) &&
@@ -883,6 +921,11 @@ export default function ContentEntryPage({
         return positions.size > 1;
     }, [entries]);
 
+    const sortByMap = {
+        ...(onlyRecents ? {["lastViewedAt"]: "Last Viewed At"} : {}),
+        ...CONTENT_SORT_BY_MAP
+    }
+
     // Track properties to update querying
     const queryProps: QueryProps<ContentFieldsFilter> = {
         searchBarProps: {
@@ -897,7 +940,7 @@ export default function ContentEntryPage({
             tagList: tagList,
         },
         sortButtonProps: {
-            sortByMap: CONTENT_SORT_BY_MAP,
+            sortByMap: sortByMap,
             defaultSortFields,
             sortFields,
             setSortFields,
@@ -951,6 +994,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     ),
                 }}
@@ -985,6 +1029,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     ),
                 }}
@@ -1024,6 +1069,7 @@ export default function ContentEntryPage({
         const canEnterSplit = isDocumentLikeFilename(fullscreenDoc.filename);
         return (
             <DocumentViewer
+                contentId={fullscreenDoc.contentId}
                 url={fullscreenDoc.url}
                 filename={fullscreenDoc.filename}
                 title={fullscreenDoc.title}
@@ -1064,6 +1110,7 @@ export default function ContentEntryPage({
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
                             {...state}
+                            onOpen={onContentOpened}
                         />
                     )),
                 }}
