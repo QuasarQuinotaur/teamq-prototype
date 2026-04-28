@@ -79,6 +79,17 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 8.  **Commit your merge** `git commit -m "merge: YOUR-FEATURE-NAME"`
 9.  **Push the updated dev branch:** `git push origin dev`
 
+## Special Features
+1. Confetti
+2. List/Grid View
+3. Themes
+4. Notification set-up
+5. Settings
+6. Split-screen
+7. AI Summary
+8. Recents Table
+9. Adaptive Card Sizing
+
 ## Credits
 Ben Reinherz - Assistant Lead SWE Frontend
 
