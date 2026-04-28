@@ -1,16 +1,7 @@
-import type {ComboboxEntryObject} from "@/components/input/ComboboxMapInput.tsx";
-
 export const CONTENT_TYPE_MAP = {
     reference: "Reference",
     workflow: "Workflow",
     tool: "Tool",
-}
-export const JOB_POSITION_TYPE_MAP = {
-    admin: "Admin",
-    underwriter: "Underwriter",
-    ["business-analyst"]: "Business Analyst",
-    ["actuarial-analyst"]: "Actuarial Analyst",
-    ["exl-operations"]: "EXL Operations"
 }
 export const DOCUMENT_STATUS_TYPE_MAP = {
     ["to-do"]: "To-Do",
@@ -20,7 +11,20 @@ export const DOCUMENT_STATUS_TYPE_MAP = {
 export const DOCUMENT_TYPE_MAP = {
     links: "Links",
     files: "Files",
-}
+    pdf: "PDF (.pdf)",
+    doc: "Word (.doc)",
+    docx: "Word (.docx)",
+    xls: "Excel (.xls)",
+    xlsx: "Excel (.xlsx)",
+    csv: "CSV (.csv)",
+    ppt: "PowerPoint (.ppt)",
+    pptx: "PowerPoint (.pptx)",
+    txt: "Text (.txt)",
+    rtf: "Rich Text (.rtf)",
+    odt: "OpenDocument Text (.odt)",
+    ods: "OpenDocument Spreadsheet (.ods)",
+    odp: "OpenDocument Presentation (.odp)",
+} as const
 export type DocumentType = keyof typeof DOCUMENT_TYPE_MAP
 
 export const CONTENT_SORT_BY_MAP = {

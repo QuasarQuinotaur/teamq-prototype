@@ -1,11 +1,31 @@
 import { Router } from "express";
-import { ServiceRequestRepository } from "../ServiceRequestRepository.ts";
+import { prisma } from "db";
+import {
+    ServiceRequestRepository,
+    uniqueStageEmployeeIds,
+    type WorkflowCatalogEntry,
+} from "../ServiceRequestRepository.ts";
+import { NotificationRepository } from "../NotificationRepository.ts";
+import { notifyStageReady, notifyWorkflowAssignmentFyi } from "../serviceRequestNotifications.ts";
 import { getSignedUrl } from "../lib/supabase.ts";
+import { getEmployeeFromRequest } from "../app.ts";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 
 const router = Router();
 const serviceRequestRepo = new ServiceRequestRepository();
+const notificationRepo = new NotificationRepository();
+
+function toIdList(raw: unknown): number[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((x) => Number(x)).filter((n) => !Number.isNaN(n));
+}
+
+/** For PUT bodies: omitted/non-array → leave field unchanged; array (maybe empty) → replace. */
+function bodyIdArray(raw: unknown): number[] | undefined {
+    if (!Array.isArray(raw)) return undefined;
+    return raw.map((x) => Number(x)).filter((n) => !Number.isNaN(n));
+}
 
 function parseBodyDateDue(raw: unknown): Date | null | undefined {
     if (raw === undefined) return undefined;
@@ -40,7 +60,7 @@ type EmployeeWithPhoto = {
 };
 
 async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
-    emp: T
+    emp: T,
 ): Promise<Omit<T, "userPhoto"> & { profileImageUrl?: string }> {
     const { userPhoto, ...rest } = emp;
     let profileImageUrl: string | undefined;
@@ -54,31 +74,33 @@ async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
     return { ...rest, profileImageUrl };
 }
 
-// GET /api/servicereqs/:flag
-// flag=1 returns an HTML debug page, flag=0 returns JSON
-router.get("/:flag", requiresAuth(), async (req, res) => {
-    const requests = await serviceRequestRepo.getAll();
+async function hydrateWorkflowEntry(wf: WorkflowCatalogEntry) {
+    const owner = await employeeWithProfileUrl(wf.owner);
+    const stages = await Promise.all(
+        wf.stages.map(async (st) => ({
+            ...st,
+            employees: await Promise.all(st.employees.map((e) => employeeWithProfileUrl(e))),
+        })),
+    );
+    return { ...wf, owner, stages };
+}
 
-    const flag = Number(req.params.flag);
-    if (flag == 1) {
-        res.send(`
-        <html>
-          <body>
-            <h1>Service Request</h1>
-            <script>
-              const data = ${JSON.stringify(requests)};
-              console.log("=== SERVICE REQUESTS ===", data);
-            </script>
-          </body>
-        </html>
-      `);
-    } else {
-        res.json(requests);
-    }
-});
+async function hydrateStageDeep(stage: NonNullable<Awaited<ReturnType<ServiceRequestRepository["getStageById"]>>>) {
+    const wf = stage.workflow;
+    const owner = await employeeWithProfileUrl(wf.owner);
+    const stages = await Promise.all(
+        wf.stages.map(async (s) => ({
+            ...s,
+            employees: await Promise.all(s.employees.map((e) => employeeWithProfileUrl(e))),
+        })),
+    );
+    return {
+        ...stage,
+        employees: await Promise.all(stage.employees.map((e) => employeeWithProfileUrl(e))),
+        workflow: { ...wf, owner, stages },
+    };
+}
 
-// GET /api/servicereqs/assigned/:flag
-// flag=1 returns an HTML debug page, flag=0 returns JSON with full details (profile image URLs for people)
 router.get("/assigned/:flag", requiresAuth(), async (req, res) => {
     const assigned = await serviceRequestRepo.getAllWithDetails();
 
@@ -87,30 +109,20 @@ router.get("/assigned/:flag", requiresAuth(), async (req, res) => {
         res.send(`
         <html>
           <body>
-            <h1>Assigned Requests</h1>
+            <h1>Assigned workflows</h1>
             <script>
               const data = ${JSON.stringify(assigned)};
-              console.log("=== ASSIGNED ===", data);
+              console.log("=== ASSIGNED WORKFLOWS ===", data);
             </script>
           </body>
         </html>
       `);
     } else {
-        const withUrls = await Promise.all(
-            assigned.map(async (sr) => {
-                const owner = await employeeWithProfileUrl(sr.owner);
-                const employees = await Promise.all(
-                    sr.employees.map((e) => employeeWithProfileUrl(e))
-                );
-                return { ...sr, owner, employees };
-            })
-        );
+        const withUrls = await Promise.all(assigned.map((wf) => hydrateWorkflowEntry(wf)));
         res.json(withUrls);
     }
 });
 
-// GET /api/servicereqs/detail/:id
-// get a single service request with full details
 router.get("/detail/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -118,122 +130,245 @@ router.get("/detail/:id", requiresAuth(), async (req, res) => {
         return;
     }
     try {
-        const request = await serviceRequestRepo.getById(id);
-        if (!request) {
+        const wf = await serviceRequestRepo.getWorkflowById(id);
+        if (!wf) {
             res.status(404).json({ error: "Not found" });
             return;
         }
-        res.json(request);
+        res.json(await hydrateWorkflowEntry(wf));
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to fetch" });
     }
 });
 
-// POST /api/servicereqs
-// create a new service request
+/**
+ * Create workflow with ordered stages.
+ * Body: { ownerId, title?, stages: [{ title?, description?, dateDue?, priority?, employeeIds?, contentIds? }] }
+ */
+function parseRequiredPositiveInt(raw: unknown): number | null {
+    if (raw === undefined || raw === null) return null;
+    const n = typeof raw === "number" ? raw : Number(raw);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return null;
+    return n;
+}
+
 router.post("/", requiresAuth(), async (req, res) => {
-    const { ownerId, title, description, dateDue, priority, employeeIds, contentIds } = req.body;
-    if (!ownerId) {
-        res.status(400).json({ error: "ownerId is required" });
+    const { title, stages } = req.body;
+    const ownerId = parseRequiredPositiveInt(req.body.ownerId);
+    if (ownerId === null) {
+        res.status(400).json({ error: "ownerId is required (positive integer)" });
         return;
     }
+    if (!Array.isArray(stages) || stages.length < 1) {
+        res.status(400).json({ error: "stages must be a non-empty array" });
+        return;
+    }
+    if (!stages.every((raw: unknown) => raw !== null && typeof raw === "object")) {
+        res.status(400).json({ error: "Each stage must be an object" });
+        return;
+    }
+
+    const parsedStages = stages.map((raw: Record<string, unknown>, index: number) => ({
+        title: typeof raw.title === "string" ? raw.title : undefined,
+        description: typeof raw.description === "string" ? raw.description : undefined,
+        dateDue: parseBodyDateDue(raw.dateDue),
+        priority: parseBodyPriority(raw.priority),
+        employeeIds: toIdList(raw.employeeIds),
+        contentIds: toIdList(raw.contentIds),
+        stageOrder: index + 1,
+    }));
+
     try {
-        const request = await serviceRequestRepo.create({
+        const wf = await serviceRequestRepo.createWorkflowWithStages({
             ownerId,
             title: typeof title === "string" ? title : undefined,
-            description: typeof description === "string" ? description : undefined,
-            dateDue: parseBodyDateDue(dateDue),
-            priority: parseBodyPriority(priority),
-            employeeIds,
-            contentIds,
+            stages: parsedStages.map(
+                ({ title: st, description, dateDue, priority, employeeIds, contentIds }) => ({
+                    title: st,
+                    description,
+                    dateDue,
+                    priority,
+                    employeeIds,
+                    contentIds,
+                }),
+            ),
         });
-        res.json(request);
+
+        const fyiStages = parsedStages.map((s, index) => ({
+            stageOrder: index + 1,
+            title: s.title,
+            employeeIds: uniqueStageEmployeeIds(s.employeeIds),
+            contentIds: s.contentIds,
+        }));
+
+        await notifyWorkflowAssignmentFyi(notificationRepo, wf.title, fyiStages);
+
+        const first = parsedStages[0]!;
+        await notifyStageReady(
+            notificationRepo,
+            wf.title,
+            first.title ?? null,
+            1,
+            uniqueStageEmployeeIds(first.employeeIds),
+            first.contentIds.length ? first.contentIds : undefined,
+        );
+
+        res.json(await hydrateWorkflowEntry(wf));
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Create failed" });
     }
 });
 
-// PUT /api/servicereqs/:id
-// update a service request
-router.put("/:id", requiresAuth(), async (req, res) => {
-    const id = Number(req.params.id);
+router.put("/workflow/:workflowId", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.workflowId);
     if (isNaN(id)) {
-        res.status(400).json({ error: "Invalid id" });
+        res.status(400).json({ error: "Invalid workflow id" });
         return;
     }
-    const { title, description, dateDue, priority, status, ownerId, employeeIds, contentIds } = req.body;
-    const toIdList = (raw: unknown): number[] | undefined => {
-        if (!Array.isArray(raw)) return undefined;
-        return raw
-            .map((x) => Number(x))
-            .filter((n) => !Number.isNaN(n));
-    };
-    const statusParse = parseBodyServiceRequestStatus(status);
-    if (statusParse.error) {
-        res.status(400).json({ error: statusParse.error });
-        return;
-    }
+    const { title, ownerId: rawOwnerId } = req.body;
+    const parsedOwner = parseRequiredPositiveInt(rawOwnerId);
     try {
-        const request = await serviceRequestRepo.update(id, {
-            title: typeof title === "string" ? title : undefined,
-            description: typeof description === "string" ? description : undefined,
-            dateDue: parseBodyDateDue(dateDue),
-            priority: parseBodyPriority(priority),
-            status: statusParse.value,
-            ownerId: typeof ownerId === "number" && !Number.isNaN(ownerId) ? ownerId : undefined,
-            employeeIds: toIdList(employeeIds),
-            contentIds: toIdList(contentIds),
+        const wf = await serviceRequestRepo.updateWorkflow(id, {
+            ...(typeof title === "string" ? { title } : {}),
+            ...(rawOwnerId !== undefined && parsedOwner !== null ? { ownerId: parsedOwner } : {}),
         });
-        res.json(request);
+        res.json(await hydrateWorkflowEntry(wf));
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
     }
 });
 
-// DELETE /api/servicereqs/:id
-// delete a service request
-router.delete("/:id", requiresAuth(), async (req, res) => {
-    const id = Number(req.params.id);
-    // #region agent log
-    fetch("http://127.0.0.1:7709/ingest/1f29aa8a-afae-46fa-8349-08eaddd29392", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ed2763" },
-        body: JSON.stringify({
-            sessionId: "ed2763",
-            location: "serviceRequests.ts:DELETE",
-            message: "DELETE /servicereqs handler entered",
-            data: { rawParam: req.params.id, parsedId: id, invalidId: Number.isNaN(id) },
-            timestamp: Date.now(),
-            hypothesisId: "H2",
-        }),
-    }).catch(() => {});
-    // #endregion
+router.put("/stage/:stageId", requiresAuth(), async (req, res) => {
+    const stageId = Number(req.params.stageId);
+    if (isNaN(stageId)) {
+        res.status(400).json({ error: "Invalid stage id" });
+        return;
+    }
+
+    const {
+        title,
+        description,
+        dateDue,
+        priority,
+        status,
+        employeeIds,
+        contentIds,
+    } = req.body;
+    const statusParse = parseBodyServiceRequestStatus(status);
+    if (statusParse.error) {
+        res.status(400).json({ error: statusParse.error });
+        return;
+    }
+    const parsedEmployeeIds = bodyIdArray(employeeIds);
+    const parsedContentIds = bodyIdArray(contentIds);
+
+    try {
+        const existing = await serviceRequestRepo.getStageById(stageId);
+        if (!existing) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+
+        let notifyFyiIds: number[] = [];
+        if (parsedEmployeeIds !== undefined) {
+            const oldSet = new Set(existing.employees.map((e) => e.id));
+            const actor = await getEmployeeFromRequest(req);
+            notifyFyiIds = parsedEmployeeIds.filter(
+                (eid) => !oldSet.has(eid) && (actor == null || eid !== actor.id),
+            );
+        }
+
+        const wasDone = existing.status === "done";
+
+        const updated = await serviceRequestRepo.updateStage(stageId, {
+            ...(typeof title === "string" ? { title } : {}),
+            ...(typeof description === "string" ? { description } : {}),
+            ...(dateDue !== undefined ? { dateDue: parseBodyDateDue(dateDue) } : {}),
+            ...(priority !== undefined ? { priority: parseBodyPriority(priority) } : {}),
+            ...(statusParse.value !== undefined ? { status: statusParse.value } : {}),
+            ...(parsedEmployeeIds !== undefined ? { employeeIds: parsedEmployeeIds } : {}),
+            ...(parsedContentIds !== undefined ? { contentIds: parsedContentIds } : {}),
+        });
+
+        const wfTitle = existing.workflow.title;
+
+        if (notifyFyiIds.length) {
+            const linkIds =
+                parsedContentIds !== undefined && parsedContentIds.length
+                    ? parsedContentIds
+                    : existing.contents.map((c) => c.id);
+            await notifyWorkflowAssignmentFyi(notificationRepo, wfTitle, [
+                {
+                    stageOrder: existing.stageOrder,
+                    title: updated.title ?? existing.title,
+                    employeeIds: notifyFyiIds,
+                    contentIds: linkIds,
+                },
+            ]);
+        }
+
+        const nowDone = updated.status === "done";
+        if (!wasDone && nowDone) {
+            const next = await prisma.serviceRequestStage.findUnique({
+                where: {
+                    workflowId_stageOrder: {
+                        workflowId: existing.workflowId,
+                        stageOrder: existing.stageOrder + 1,
+                    },
+                },
+                include: { employees: true, contents: true },
+            });
+            if (next) {
+                await notifyStageReady(
+                    notificationRepo,
+                    wfTitle,
+                    next.title,
+                    next.stageOrder,
+                    next.employees.map((e) => e.id),
+                    next.contents.length ? next.contents.map((c) => c.id) : undefined,
+                );
+            }
+        }
+
+        const fresh = await serviceRequestRepo.getStageById(stageId);
+        res.json(fresh ? await hydrateStageDeep(fresh) : updated);
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Update failed" });
+    }
+});
+
+router.delete("/workflow/:workflowId", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.workflowId);
     if (isNaN(id)) {
-        res.status(400).json({ error: "Invalid id" });
+        res.status(400).json({ error: "Invalid workflow id" });
         return;
     }
     try {
-        await serviceRequestRepo.delete(id);
+        await serviceRequestRepo.deleteWorkflow(id);
         res.json({ success: true });
     } catch (err) {
-        // #region agent log
-        fetch("http://127.0.0.1:7709/ingest/1f29aa8a-afae-46fa-8349-08eaddd29392", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ed2763" },
-            body: JSON.stringify({
-                sessionId: "ed2763",
-                location: "serviceRequests.ts:DELETE:catch",
-                message: "Prisma delete failed",
-                data: {
-                    id,
-                    err: err instanceof Error ? err.message : String(err),
-                },
-                timestamp: Date.now(),
-                hypothesisId: "H2",
-            }),
-        }).catch(() => {});
-        // #endregion
         res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
+    }
+});
+
+router.get("/:flag", requiresAuth(), async (req, res) => {
+    const requests = await serviceRequestRepo.getAll();
+
+    const flag = Number(req.params.flag);
+    if (flag == 1) {
+        res.send(`
+        <html>
+          <body>
+            <h1>Service workflows</h1>
+            <script>
+              const data = ${JSON.stringify(requests)};
+              console.log("=== SERVICE WORKFLOWS ===", data);
+            </script>
+          </body>
+        </html>
+      `);
+    } else {
+        res.json(requests);
     }
 });
 

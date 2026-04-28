@@ -8,93 +8,104 @@ datasource db {
 }
 
 model Employee {
-  id          Int        @id @default(autoincrement())
-  auth0Id     String?    @unique
-  email       String     @unique
-  firstName   String
-  lastName    String
-  dateOfBirth DateTime
-  jobPosition String
-  userPhoto   UserPhoto?
-
-  contentsOwned Content[] @relation("ownedContents") // relationship list
-
-  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table yippee)
-
-  createdRequests  ServiceRequest[] @relation("OwnedRequests")
-  assignedRequests ServiceRequest[] @relation("EmployeeRequests")
-
-  notifications  Notification[] @relation("NotificationEmployees")
-  contentChecked Content[]      @relation("CheckedOutContent")
-  tagsCreated    Tag[]
-
-  //added user setting the employee
-  userSettings UserSettings?
+  id                Int                 @id @default(autoincrement())
+  auth0Id           String?             @unique
+  dateOfBirth       DateTime
+  email             String              @unique
+  firstName         String
+  jobPosition       String
+  lastName          String
+  contentChecked    Content[]           @relation("CheckedOutContent")
+  contentsOwned     Content[]           @relation("ownedContents")
+  ContentReview     ContentReview[]
+  notifications     Notification[]      @relation("NotificationEmployees")
+  RecentContentView RecentContentView[]
+  createdWorkflows  ServiceRequestWorkflow[] @relation("OwnedWorkflows")
+  tagsCreated       Tag[]
+  userPhoto         UserPhoto?
+  userSettings      UserSettings?
+  assignedStages    ServiceRequestStage[]  @relation("StageAssignees")
+  contentsFavorited Content[]              @relation("Favorites")
 }
 
 model Content {
-  id                 Int              @id @default(autoincrement())
-  title              String
-  filePath           String? // path in Supabase bucket
-  fileSize           Int?
-  jobPositions       String[] // scalar list
-  contentType        String
-  dateAdded          DateTime         @default(now())
-  dateUpdated        DateTime         @updatedAt
-  dateReview         DateTime? // TODO
-  expirationDate     DateTime
-  employeesFavorited Employee[]       @relation("Favorites") // one content can have many favorites from dif people
-  ownerId            Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
-  owner              Employee         @relation("ownedContents", fields: [ownerId], references: [id])
-  serviceRequests    ServiceRequest[] @relation("ContentRequests")
-  notifications      Notification[]   @relation("NotificationContents")
-
-  isCheckedOut   Boolean   @default(false)
-  checkedOutOn   DateTime?
-  checkedOutById Int?
-  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
-
-  tags ContentTag[]
+  id                          Int                 @id @default(autoincrement())
+  dateAdded                   DateTime            @default(now())
+  dateUpdated                 DateTime            @updatedAt
+  ownerId                     Int
+  title                       String
+  contentType                 String
+  expirationDate              DateTime
+  checkedOutById              Int?
+  filePath                    String?
+  fileSize                    Int?
+  isCheckedOut                Boolean             @default(false)
+  jobPositions                String[]
+  checkedOutOn                DateTime?
+  hasBeenNotifiedExpiringSoon Boolean             @default(false)
+  hasBeenNotifiedOfExpiration Boolean             @default(false)
+  isTutorial                  Boolean             @default(false)
+  dateReview                  DateTime?
+  checkedOutBy                Employee?           @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+  owner                       Employee            @relation("ownedContents", fields: [ownerId], references: [id])
+  ContentReview               ContentReview[]
+  tags                        ContentTag[]
+  RecentContentView           RecentContentView[]
+  serviceRequestStages        ServiceRequestStage[] @relation("StageContents")
+  employeesFavorited          Employee[]            @relation("Favorites")
+  notifications               Notification[]        @relation("NotificationContents")
+  viewCount                   Int                   @default(0)
+  downloadCount               Int                   @default(0)
+  aiSummary                   String?               @db.Text
 
   @@index([ownerId])
   @@index([contentType])
   @@index([expirationDate])
   @@index([isCheckedOut, checkedOutOn])
+  @@index([isTutorial, ownerId])
 }
 
-// Service Request:
-
-model ServiceRequest {
-  id          Int       @id @default(autoincrement())
+model ServiceRequestWorkflow {
+  id          Int      @id @default(autoincrement())
+  dateCreated DateTime @default(now())
   title       String?
-  description String?
-  dateCreated DateTime  @default(now())
+  ownerId     Int
+  owner       Employee @relation("OwnedWorkflows", fields: [ownerId], references: [id])
+  stages      ServiceRequestStage[]
+
+  @@index([ownerId])
+}
+
+model ServiceRequestStage {
+  id          Int                     @id @default(autoincrement())
+  workflowId  Int
+  stageOrder  Int
+  dateCreated DateTime                @default(now())
   dateDue     DateTime?
+  description String?
   priority    String?
-  status      String    @default("to-do") // allowed: to-do | done (DB CHECK)
+  status      String                  @default("to-do")
+  title       String?
+  workflow    ServiceRequestWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  contents    Content[]               @relation("StageContents")
+  employees   Employee[]              @relation("StageAssignees")
 
-  ownerId Int
-  owner   Employee @relation("OwnedRequests", fields: [ownerId], references: [id])
-
-  employees Employee[] @relation("EmployeeRequests")
-  contents  Content[]  @relation("ContentRequests")
+  @@unique([workflowId, stageOrder])
+  @@index([workflowId])
 }
 
 model Notification {
-  id                  Int      @id @default(autoincrement())
+  id                  Int       @id @default(autoincrement())
   type                String
-  dateSent            DateTime @default(now())
+  dateSent            DateTime  @default(now())
+  dateRead            DateTime?
+  employeeNotifiedID  Int
+  employeeWasNotified Boolean   @default(false)
   customMsg           String?
-  employeeWasNotified Boolean  @default(false)
+  employeeNotified    Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
+  contentsUsed        Content[] @relation("NotificationContents")
 
-  dateRead DateTime?
-
-  employeeNotifiedID Int
-
-  employeeNotified Employee  @relation("NotificationEmployees", fields: [employeeNotifiedID], references: [id])
-  contentsUsed     Content[] @relation("NotificationContents") //"contents a part of notification (can be none)"
-
-  @@index([employeeNotifiedID, employeeWasNotified]) // index for O(log(n)) time
+  @@index([employeeNotifiedID, employeeWasNotified])
 }
 
 model UserPhoto {
@@ -105,12 +116,12 @@ model UserPhoto {
 }
 
 model Tag {
-  id      Int      @id @default(autoincrement())
-  ownerId Int
-  tagName String
-  color   String   @default("#ff0000")
-  owner   Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
+  id       Int          @id @default(autoincrement())
+  ownerId  Int
+  tagName  String
+  color    String       @default("#ff0000")
+  isGlobal Boolean      @default(false)
+  owner    Employee     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   contents ContentTag[]
 
   @@unique([ownerId, tagName])
@@ -120,9 +131,8 @@ model Tag {
 model ContentTag {
   contentId Int
   tagId     Int
-
-  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([contentId, tagId])
   @@index([tagId])
@@ -137,4 +147,43 @@ model UserSettings {
   tagsEnabled Boolean  @default(true)
   listEnabled Boolean  @default(false)
   owner       Employee @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model ContentReview {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  contentId   Int
+  employeeId  Int?
+  status      String    @default("pending")
+  stepName    String
+  note        String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  Content     Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  Employee    Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([contentId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+model RecentContentView {
+  employeeId   Int
+  contentId    Int
+  lastViewedAt DateTime @default(now())
+  Content      Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  Employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, contentId])
+  @@index([employeeId, lastViewedAt])
+}
+
+model Role {
+    id                  Int                 @id @default(autoincrement())
+    key                 String              @unique
+    name                String              
+
+    // 0 or less - Employee
+    // 1+ - Admin
+    permissionLevel     Int                 @default(0)
 }

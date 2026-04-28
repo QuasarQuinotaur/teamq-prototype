@@ -24,6 +24,15 @@ import { addDays, startOfDay } from "date-fns";
 import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
+import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
+import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
+import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
+import {
+    allEmployeeIdsFromWorkflow,
+    enrichWorkflowForList,
+    type WorkflowListRow,
+} from "@/components/service-requests/workflowTypes.ts";
 
 type Widget = {
     id: string;
@@ -33,14 +42,7 @@ type Widget = {
 };
 
 
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-    employees: { id: number }[];
-};
+type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -64,11 +66,17 @@ export default function Dashboard() {
         { type: "calendar", label: "Calendar" },
         { type: "requests", label: "Requests" },
         { type: "chart", label: "Chart" },
+        { type: "expirationLine", label: "Document expirations (chart)" },
+        { type: "expirationCalendar", label: "Document expirations (calendar)" },
         { type: "gif", label: "GIF" },
     ];
 
     const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
+    const [contentItems, setContentItems] = useState<
+        { id: number; title: string; expirationDate: string }[]
+    >([]);
     const [loading, setLoading] = useState(true);
+    const [userFirstName, setUserFirstName] = useState<string | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -102,12 +110,31 @@ export default function Dashboard() {
             fetch(`${base}/servicereqs/assigned/0`, { credentials: "include" }).then(res =>
                 res.ok ? res.json() : []
             ),
+            fetch(`${base}/content`, { credentials: "include" }).then(res =>
+                res.ok ? res.json() : []
+            ),
         ])
-            .then(([me, data]) => {
-                const rows = Array.isArray(data) ? data : [];
-                setRequests(rows.filter(r => r.employees?.some(e => e.id === me.id)));
+            .then(([me, data, content]) => {
+                const meRow = me as { id: number; firstName?: string | null } | undefined;
+                setUserFirstName(meRow?.firstName?.trim() || null);
+                const raw = Array.isArray(data) ? (data as WorkflowPayload[]) : [];
+                const rows = raw.map(enrichWorkflowForList);
+                setRequests(rows.filter((r) => allEmployeeIdsFromWorkflow(r.stages).has(me.id)));
+                setContentItems(
+                    Array.isArray(content)
+                        ? content.map(c => ({
+                              id: c.id,
+                              title: c.title,
+                              expirationDate: c.expirationDate,
+                          }))
+                        : []
+                );
             })
-            .catch(() => setRequests([]))
+            .catch(() => {
+                setUserFirstName(null);
+                setRequests([]);
+                setContentItems([]);
+            })
             .finally(() => setLoading(false));
     }, []);
 
@@ -214,6 +241,8 @@ export default function Dashboard() {
             chart: 1,
             calendar: 2,
             requests: 2,
+            expirationLine: 3,
+            expirationCalendar: 3,
             gif: 1,
         };
 
@@ -236,7 +265,15 @@ export default function Dashboard() {
         <>
             <div className="grid grid-cols-3 items-center px-6 py-4">
                 <div />
-                <h1 className="text-2xl font-heading text-center">Dashboard</h1>
+                <div className="flex items-center justify-center gap-2 min-w-0">
+                    <h1 className="text-2xl font-heading text-center truncate">
+                        {loading
+                            ? "Hello"
+                            : userFirstName
+                              ? `Hello, ${userFirstName}`
+                              : "Hello, there"}
+                    </h1>
+                </div>
                 <div className="flex justify-end">
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -263,6 +300,7 @@ export default function Dashboard() {
                                     key={widget.id}
                                     id={widget.id}
                                     size={widget.size}
+                                    tall={widget.type === "expirationCalendar"}
                                     onDelete={removeWidget}
                                     isActive={widget.id === activeId}
                                     isDraggingAny={activeId !== null}
@@ -280,6 +318,7 @@ export default function Dashboard() {
                                             todoList,
                                             today,
                                             weekEnd,
+                                            contentForExpiration: contentItems,
                                         }}
                                         url={widget.url}
                                     />
@@ -291,7 +330,11 @@ export default function Dashboard() {
                     <DragOverlay dropAnimation={null}>
                         {activeWidget ? (
                             <div
-                                className={`flex-none relative min-h-[300px] pb-8 rounded-lg border bg-card mb-2 shadow-2xl opacity-90 cursor-grabbing ${
+                                className={`flex-none relative pb-8 rounded-lg border bg-card mb-2 shadow-2xl opacity-90 cursor-grabbing ${
+                                    activeWidget.type === "expirationCalendar"
+                                        ? "min-h-[616px]"
+                                        : "min-h-[300px]"
+                                } ${
                                     activeWidget.size === 3
                                         ? "w-full"
                                         : activeWidget.size === 2
@@ -311,8 +354,16 @@ export default function Dashboard() {
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-card rounded-lg max-h-[85vh] w-[min(1100px,90vw)] overflow-y-auto p-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold">Add Widget</h2>
+                        <div className="flex justify-between items-center gap-3 mb-4">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h2 className="m-0 border-b-0 pb-0 text-lg font-semibold leading-none">
+                                    Add Widget
+                                </h2>
+                                <HelpHint contentClassName="max-w-sm">
+                                    Expand a widget type to preview it, then choose a size. Some types offer small,
+                                    medium, or large widths; charts and stats default to a compact tile.
+                                </HelpHint>
+                            </div>
                             <button
                                 onClick={() => {
                                     setShowAddModal(false);
@@ -358,6 +409,7 @@ export default function Dashboard() {
                                                                 todoList: [],
                                                                 today: new Date(),
                                                                 weekEnd: new Date(),
+                                                                contentForExpiration: [],
                                                             }}
                                                             url="https://tenor.com/view/twerken-twerk-duck-maincord-gif-25993381"
                                                         />
@@ -379,6 +431,28 @@ export default function Dashboard() {
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
                                                     Add GIF (Small)
+                                                </button>
+                                            ) : w.type === "expirationLine" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget("expirationLine", 3);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add {w.label} (Full row)
+                                                </button>
+                                            ) : w.type === "expirationCalendar" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget("expirationCalendar", 3);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add {w.label} (Full width, 2 rows tall)
                                                 </button>
                                             ) : (w.type === "stats" || w.type === "chart") ? (
                                                 <button
@@ -428,7 +502,16 @@ export default function Dashboard() {
     );
 }
 
-function SortableItem({ id, size, children, onDelete, isActive, isDraggingAny, registerNode }: any) {
+function SortableItem({
+    id,
+    size,
+    tall,
+    children,
+    onDelete,
+    isActive,
+    isDraggingAny,
+    registerNode,
+}: any) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
     const [menuOpen, setMenuOpen] = useState(false);
@@ -466,6 +549,8 @@ function SortableItem({ id, size, children, onDelete, isActive, isDraggingAny, r
                 ? "w-[calc(66.666%-1rem)]"
                 : "w-[calc(33.333%-1rem)]";
 
+    const minHeightClass = tall ? "min-h-[616px]" : "min-h-[300px]";
+
     function handleGripPointerDown(e: React.PointerEvent) {
         dragStartPos.current = { x: e.clientX, y: e.clientY };
         didDrag.current = false;
@@ -490,7 +575,7 @@ function SortableItem({ id, size, children, onDelete, isActive, isDraggingAny, r
             ref={(el) => { setNodeRef(el); registerNode(id, el); }}
             style={style}
             {...attributes}
-            className={`group ${widthClass} flex-none relative min-h-[300px] rounded-lg border bg-card mb-2 overflow-hidden ${
+            className={`group ${widthClass} flex-none relative ${minHeightClass} rounded-lg border bg-card mb-2 overflow-hidden ${
                 isActive ? "opacity-0" : ""
             }`}
         >
@@ -536,6 +621,18 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         case "stats":    inner = <StatsWidget counts={data.counts} />; break;
         case "requests": inner = <RequestsWidget {...data} />; break;
         case "chart":    inner = <PieChartWidget counts={data.counts} />; break;
+        case "expirationLine": inner = (
+            <DocumentExpirationLineWidget
+                items={data.contentForExpiration ?? []}
+                loading={data.loading}
+            />
+        ); break;
+        case "expirationCalendar": inner = (
+            <DocumentExpirationCalendarWidget
+                items={data.contentForExpiration ?? []}
+                loading={data.loading}
+            />
+        ); break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
     }

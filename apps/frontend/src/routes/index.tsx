@@ -20,10 +20,12 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Profile from "@/pages/Profile.tsx";
 import DevCheckoutPage from "@/pages/DevCheckoutPage.tsx";
 import AdminCheckIn from "@/pages/AdminCheckIn.tsx";
+import Announcements from "@/pages/Announcements.tsx";
 import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
+import About from "@/pages/About.tsx"
 import Tutorial from "@/pages/Tutorial.tsx";
 import TutorialContent from "@/pages/TutorialContent.tsx";
 
@@ -117,7 +119,11 @@ export const router = createBrowserRouter([
                                 element: <NotificationDetail />
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />,
+                                path: "about",
+                                element: <About />,
+                            },
+                            {
+                                element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
                                         path: "/documents/employees",
@@ -130,6 +136,10 @@ export const router = createBrowserRouter([
                                     {
                                         path: "admin-check-in",
                                         element: <AdminCheckIn />,
+                                    },
+                                    {
+                                        path: "announcements",
+                                        element: <Announcements />,
                                     },
                                 ],
                             },
