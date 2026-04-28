@@ -27,6 +27,9 @@ export default function TutorialMask({disabled}) {
         if(tutorialStage > 1) {
             const unHighlightedButton = top.document.getElementById(ids[tutorialStage-2])
             unHighlightedButton.classList.remove("z-101");
+            if (tutorialStage === 8) {
+                unHighlightedButton.parentElement.classList.remove("z-101");
+            }
         }
 
         const observer = new MutationObserver(() => {
@@ -52,14 +55,14 @@ export default function TutorialMask({disabled}) {
         }
 
         if(tutorialStage === 2) {
-            navigate("/tutorial/true/all")
+            navigate("/tutorial/all")
         }
 
         console.log("navigation completed")
 
         const mask = top.document.getElementById("tutorial-mask")
         const maskClone = mask.cloneNode()
-        const highlightedButton = top.document.getElementById(`tutorial-${tutorialStage}`)
+        const highlightedButton = top.document.getElementById(ids[tutorialStage-1])
 
         if (mask && maskClone && highlightedButton) {
             manipulateElements(mask, maskClone, highlightedButton);
@@ -69,22 +72,29 @@ export default function TutorialMask({disabled}) {
 
         function manipulateElements(mask: HTMLElement, maskClone: Node, highlightedButton: HTMLElement) {
 
-
-            highlightedButton.classList.add("z-101", "bg-background", "relative")
-            highlightedButton.classList.remove("bg-transparent")
-            highlightedButton.parentElement.appendChild(maskClone)
-            highlightedButton.setAttribute("href", "#")
+            if (tutorialStage != 7) {
+                highlightedButton.classList.add("z-101", "bg-background", "relative")
+                highlightedButton.classList.remove("bg-transparent")
+                highlightedButton.parentElement.appendChild(maskClone)
+            }
+            if (tutorialStage == 1) {
+                highlightedButton.setAttribute("href", "#")
+            }
 
             if (tutorialStage === 3 || tutorialStage === 6) {
                 highlightedButton.addEventListener("change", advanceTutorial)
             } else if (tutorialStage === 4) {
                 highlightedButton.addEventListener("focusin", advanceTutorial)
             } else if (tutorialStage === 7) {
+                console.log("parents")
                 highlightedButton.parentElement.addEventListener("focusout", advanceTutorial)
                 highlightedButton.parentElement.classList.add("z-101", "bg-background", "relative")
                 highlightedButton.parentElement.classList.remove("bg-transparent")
+                highlightedButton.parentElement.parentElement.appendChild(maskClone)
             } else if (tutorialStage === 8) {
                 highlightedButton.addEventListener("focusout", advanceTutorial)
+            } else if (tutorialStage == 9) {
+                highlightedButton.addEventListener("submit", advanceTutorial)
             } else {
                 highlightedButton.addEventListener("click", advanceTutorial)
             }

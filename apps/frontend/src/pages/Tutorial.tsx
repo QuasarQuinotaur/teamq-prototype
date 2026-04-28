@@ -4,7 +4,7 @@ import {useParams} from "react-router-dom";
 
 
 export default function Tutorial() {
-    const { hidden } = useParams<{ hidden: string }>();
+    // const { hidden } = useParams<{ hidden: string }>();
 
 
 
@@ -12,7 +12,7 @@ export default function Tutorial() {
     return (
         <>
             <Documents />
-            <TutorialMask disabled={hidden === "true"} />
+            <TutorialMask disabled={false} />
         </>
     )
 }

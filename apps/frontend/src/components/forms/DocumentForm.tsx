@@ -11,6 +11,7 @@ import DocumentFormFields, {
     type ContentFields,
     type DocumentDateStrings
 } from "@/components/forms/DocumentFormFields.tsx";
+import {useLocation} from "react-router-dom";
 
 
 const DEFAULT_DOCUMENT_FIELDS: ContentFields = {
@@ -110,6 +111,7 @@ export default function DocumentForm(state: FormState) {
     // Create Content on backend from fields
     async function doSubmit(documentFields: ContentFields) {
         const isUpdate = state.baseItem != null;
+        const isTutorial: boolean = window.location.href.includes("tutorial")
         console.log("updating")
 
         const url = isUpdate
@@ -137,6 +139,12 @@ export default function DocumentForm(state: FormState) {
             formData.append("file", documentFields.file);
         } else if (documentFields.link.trim()) {
             formData.append("link", documentFields.link.trim());
+        }
+
+        if (isTutorial) {
+            formData.append("isTutorial", "true")
+        } else {
+            formData.append("isTutorial", "false")
         }
 
         const res = await fetch(url, {

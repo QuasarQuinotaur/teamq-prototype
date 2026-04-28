@@ -465,7 +465,7 @@ export default function ContentEntryPage({
         });
         /** TODO: Can you sort */
         const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
-                (qs ? `?${qs}` : "")
+            (isTutorial ? "/tutorial" : "") + (qs ? `?${qs}` : "")
         console.log(qs, url)
         fetch(url, { credentials: "include" })
             .then((res) => {
@@ -580,7 +580,6 @@ export default function ContentEntryPage({
                     item.jobPositions.includes(employee.jobPosition) ||
                     getEmployeeIsAdmin(employee);
                 if (!canModify) continue;
-                //TODO pull from tutorial repository when isTutorial flag is true
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
                     credentials: "include",
