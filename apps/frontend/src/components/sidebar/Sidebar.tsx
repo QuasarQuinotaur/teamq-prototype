@@ -17,6 +17,9 @@ import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { Link } from "react-router-dom";
+import useJobNameMap from "@/hooks/useJobNameMap"
+import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin"
+import type { Employee } from "db"
 
 
 const data = {
@@ -104,7 +107,23 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
-  const [employee, setEmployee] = useState<{ jobPosition: string } | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const { jobNameMap, rolesLoading } = useJobNameMap();
+  const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
+  const otherRolesItems = React.useMemo(() => {
+        if (!employee) {
+            return null
+        }
+        const notOfRole = Object.entries(jobNameMap).filter(([id]) => {
+            return id !== employee.jobPosition
+        })
+        if (notOfRole.length === 0) {
+            return null
+        }
+        return notOfRole.map(([id, name]) => {
+            return { title: name, url: `/documents/role/${id}` }
+        })
+  }, [jobNameMap, employee])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -128,23 +147,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       items: [
         { title: "My content", url: "/documents/my-documents" },
         { title: "Checked out", url: "/documents/checked-out" },
-        ...(employee?.jobPosition === 'admin'
+        ...((employee && getEmployeeIsAdmin(employee))
           ? [{ title: "Check in", url: "/documents/admin-check-in" }]
           : []),
         ...(employee?.jobPosition
           ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
           : []),
-        {
-          title: "Other roles",
-          url: "/documents/all",
-          items: [
-            { title: "Admin", url: "/documents/role/admin" },
-            { title: "Underwriter", url: "/documents/role/underwriter" },
-            { title: "Business Analyst", url: "/documents/role/business-analyst" },
-            { title: "Actuarial Analyst", url: "/documents/role/actuarial-analyst" },
-            { title: "EXL Operations", url: "/documents/role/exl-operations" },
-          ].filter((r) => r.url !== `/documents/role/${employee?.jobPosition}`),
-        },
+        ...((!rolesLoading && otherRolesItems && otherRolesItems.length > 0)
+          ? [{ title: "Other roles", url: "/documents/all", items: otherRolesItems }]
+          : []),
         {
           title: "Document type",
           url: "/documents/all",
@@ -160,7 +171,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const navItems = [
       ...data.navMain,
       allDocumentsItem,
-      ...(employee?.jobPosition === 'admin' ? [{
+      ...((employee && getEmployeeIsAdmin(employee)) ? [{
         title: "Employees",
         url: "/documents/employees",
         icon: (

@@ -3,16 +3,24 @@ import { Outlet } from 'react-router-dom';
 import axios from 'axios';
 import Blocked from '@/pages/Blocked';
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import type { Employee } from 'db';
+import useGetEmployeeIsAdmin from '@/hooks/useGetEmployeeIsAdmin';
 
 interface RoleGuardProps {
-  allowedRole: string;
+  allowedRole?: string;
+  onlyAdmins?: boolean;
 }
 
-export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
+export const RoleGuard = ({
+    allowedRole,
+    onlyAdmins
+}: RoleGuardProps) => {
   const [status, setStatus] = useState<'loading' | 'unauthorized' | 'authorized'>('loading');
 
   // Pass context down
   const mainContext = useMainContext()
+
+  const { getEmployeeIsAdmin, rolesLoading } = useGetEmployeeIsAdmin();
 
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
@@ -22,8 +30,16 @@ export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
   useEffect(() => {
     const checkRole = async () => {
       try {
+        if (rolesLoading) {
+            setStatus('loading');
+            return
+        }
         const response = await api.get('/me');
-        if (response.data.jobPosition === allowedRole) {
+        const employee: Employee = response.data
+        if (
+            (!allowedRole || employee.jobPosition === allowedRole) &&
+            (!onlyAdmins || getEmployeeIsAdmin(employee))
+        ) {
           setStatus('authorized');
         } else {
           setStatus('unauthorized');
@@ -33,7 +49,7 @@ export const RoleGuard = ({ allowedRole }: RoleGuardProps) => {
       }
     };
     checkRole();
-  }, [allowedRole]);
+  }, [allowedRole, getEmployeeIsAdmin]);
 
   if (status === 'loading') return <div className="p-8">Verifying permissions...</div>;
 

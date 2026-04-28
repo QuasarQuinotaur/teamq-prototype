@@ -120,7 +120,7 @@ export const router = createBrowserRouter([
                                 element: <About />,
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />,
+                                element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
                                         path: "/documents/employees",

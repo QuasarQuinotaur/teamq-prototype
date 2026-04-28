@@ -1,11 +1,11 @@
 import type {Employee} from "db";
 import {stringToAccentBgClass} from "@/lib/card-accent.ts";
-import {JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
 import {CardContainer, CardDescription, CardTitle} from "@/components/cards/Card.tsx";
 import {cn} from "@/lib/utils.ts";
 import BadgeList from "@/elements/badge-list.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import {useRef} from "react";
+import useJobNameMap from "@/hooks/useJobNameMap";
 
 type EmployeeProfileCardProps = {
     employee: Employee;
@@ -18,11 +18,12 @@ export default function EmployeeProfileCard({ employee, onUploadClick }: Employe
         `${employee.firstName} ${employee.lastName}`
     );
 
-    const badges: string[] = [
-        JOB_POSITION_TYPE_MAP[
-            employee.jobPosition as keyof typeof JOB_POSITION_TYPE_MAP
-            ] ?? employee.jobPosition,
-    ];
+    const { jobNameMap, rolesLoading } = useJobNameMap();
+    const badges: string[] = !rolesLoading ? [
+        jobNameMap[
+            employee.jobPosition as keyof typeof jobNameMap
+        ] ?? employee.jobPosition,
+    ] : [];
 
     const initials = `${employee.firstName[0]}${employee.lastName[0]}`;
 

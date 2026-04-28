@@ -26,6 +26,9 @@ router.get("/", requiresAuth(), async (req, res) => {
             where: { id: employee.id },
             include: {
                 contentsFavorited: {
+                    where: {
+                        isTutorial: false
+                    },
                     include: {
                         owner: true,
                         checkedOutBy: true,
@@ -67,7 +70,7 @@ router.post("/:contentId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const content = await contentRepo.getById(contentId);
+        const content = await contentRepo.getById(contentId, employee.id);
 
         if (!content) {
             res.status(404).json({ error: "Content not found" });
@@ -85,6 +88,9 @@ router.post("/:contentId", requiresAuth(), async (req, res) => {
             },
             include: {
                 contentsFavorited: {
+                    where: {
+                        isTutorial: false
+                    },
                     include: {
                         owner: true,
                         checkedOutBy: true,
@@ -138,6 +144,9 @@ router.delete("/:contentId", requiresAuth(), async (req, res) => {
             },
             include: {
                 contentsFavorited: {
+                    where: {
+                        isTutorial: false
+                    },
                     include: {
                         owner: true,
                         checkedOutBy: true,
@@ -159,6 +168,39 @@ router.delete("/:contentId", requiresAuth(), async (req, res) => {
             error: err instanceof Error ? err.message : "Failed to remove favorite",
         });
     }
+
+});
+
+
+//TUT ========================================
+
+router.get("/tutorial", requiresAuth(), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        return res.status(404).json({ error: "No linked employee account found" });
+    }
+
+    const fullEmployee = await prisma.employee.findUnique({
+        where: { id: employee.id },
+        include: {
+            contentsFavorited: {
+                where: {
+                    isTutorial: true,
+                    ownerId: employee.id
+                },
+                include: {
+                    owner: true,
+                    checkedOutBy: true,
+                },
+                orderBy: {
+                    dateAdded: "desc",
+                },
+            },
+        },
+    });
+
+    res.json(fullEmployee?.contentsFavorited ?? []);
 });
 
 export default router;
