@@ -1275,6 +1275,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                dateUpdated: new Date(Date.now()),
                 hasBeenNotifiedExpiringSoon: false,
                 hasBeenNotifiedOfExpiration: false,
                 aiSummary: null,
@@ -1579,7 +1580,6 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         });
     }
 });
-
 
 //TUT ++++++==========================================
 router.get("/tutorial", requiresAuth(), async (req, res) => {
