@@ -31,6 +31,8 @@ model Employee {
 
   // added user setting the employee
   userSettings      UserSettings?
+
+  deletedContentLogs DeletedContentLog[]
 }
 
 model Content {
@@ -204,4 +206,17 @@ model Role {
     // 0 or less - Employee
     // 1+ - Admin
     permissionLevel     Int                 @default(0)
+}
+
+model DeletedContentLog {
+  id          Int       @id @default(autoincrement())
+  contentId   Int
+  title       String
+  contentType String
+  deletedAt   DateTime  @default(now())
+  deletedById Int?
+  deletedBy   Employee? @relation(fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([deletedAt])
+  @@index([deletedById])
 }

@@ -23,6 +23,7 @@ import settingsRouter from "./routes/settings.ts";
 import rolesRouter from "./routes/roles.ts";
 import reviewRouter from "./routes/contentReview.ts"
 import "./Service/ContentReviewServiceJob.ts";
+import activityRouter from "./routes/activity.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -71,6 +72,7 @@ app.use("/api", tagsRouter);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRouter);
 app.use("/api/reviews", reviewRouter);
+app.use("/api/activity", activityRouter);
 
 export async function getEmployeeFromRequest(req: express.Request) {
     if (!req.oidc.isAuthenticated()) return null;
