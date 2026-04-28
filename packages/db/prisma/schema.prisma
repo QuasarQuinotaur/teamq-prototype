@@ -20,11 +20,11 @@ model Employee {
   ContentReview     ContentReview[]
   notifications     Notification[]      @relation("NotificationEmployees")
   RecentContentView RecentContentView[]
-  createdRequests   ServiceRequest[]    @relation("OwnedRequests")
+  createdWorkflows ServiceRequestWorkflow[] @relation("OwnedWorkflows")
   tagsCreated       Tag[]
   userPhoto         UserPhoto?
   userSettings      UserSettings?
-  assignedRequests  ServiceRequest[]    @relation("EmployeeRequests")
+  assignedStages    ServiceRequestStage[]    @relation("StageAssignees")
   contentsFavorited Content[]           @relation("Favorites")
 }
 
@@ -51,7 +51,7 @@ model Content {
   ContentReview               ContentReview[]
   tags                        ContentTag[]
   RecentContentView           RecentContentView[]
-  serviceRequests             ServiceRequest[]    @relation("ContentRequests")
+  serviceRequestStages        ServiceRequestStage[] @relation("StageContents")
   employeesFavorited          Employee[]          @relation("Favorites")
   notifications               Notification[]      @relation("NotificationContents")
   viewCount                   Int                 @default(0)
@@ -65,18 +65,33 @@ model Content {
   @@index([isTutorial, ownerId])
 }
 
-model ServiceRequest {
-  id          Int        @id @default(autoincrement())
-  dateCreated DateTime   @default(now())
+model ServiceRequestWorkflow {
+  id          Int      @id @default(autoincrement())
+  dateCreated DateTime @default(now())
+  title       String?
+  ownerId     Int
+  owner       Employee @relation("OwnedWorkflows", fields: [ownerId], references: [id])
+  stages      ServiceRequestStage[]
+
+  @@index([ownerId])
+}
+
+model ServiceRequestStage {
+  id          Int                     @id @default(autoincrement())
+  workflowId  Int
+  stageOrder  Int
+  dateCreated DateTime                @default(now())
   dateDue     DateTime?
   description String?
-  ownerId     Int
   priority    String?
-  status      String     @default("to-do")
+  status      String                  @default("to-do")
   title       String?
-  owner       Employee   @relation("OwnedRequests", fields: [ownerId], references: [id])
-  contents    Content[]  @relation("ContentRequests")
-  employees   Employee[] @relation("EmployeeRequests")
+  workflow    ServiceRequestWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  contents    Content[]               @relation("StageContents")
+  employees   Employee[]              @relation("StageAssignees")
+
+  @@unique([workflowId, stageOrder])
+  @@index([workflowId])
 }
 
 model Notification {

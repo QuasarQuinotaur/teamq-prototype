@@ -27,6 +27,12 @@ import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
+import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
+import {
+    allEmployeeIdsFromWorkflow,
+    enrichWorkflowForList,
+    type WorkflowListRow,
+} from "@/components/service-requests/workflowTypes.ts";
 
 type Widget = {
     id: string;
@@ -36,14 +42,7 @@ type Widget = {
 };
 
 
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-    employees: { id: number }[];
-};
+type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -118,8 +117,9 @@ export default function Dashboard() {
             .then(([me, data, content]) => {
                 const meRow = me as { id: number; firstName?: string | null } | undefined;
                 setUserFirstName(meRow?.firstName?.trim() || null);
-                const rows = Array.isArray(data) ? data : [];
-                setRequests(rows.filter(r => r.employees?.some(e => e.id === me.id)));
+                const raw = Array.isArray(data) ? (data as WorkflowPayload[]) : [];
+                const rows = raw.map(enrichWorkflowForList);
+                setRequests(rows.filter((r) => allEmployeeIdsFromWorkflow(r.stages).has(me.id)));
                 setContentItems(
                     Array.isArray(content)
                         ? content.map(c => ({

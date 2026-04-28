@@ -7,7 +7,6 @@ import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
 import {
   ServiceRequestCard,
-  type ServiceRequestAssignee,
   type ServiceRequestLinkedDocument,
 } from "@/components/service-requests/ServiceRequests.tsx";
 import SearchBar from "@/components/paging/toolbar/SearchBar.tsx";
@@ -21,61 +20,20 @@ import FilterServiceRequestFields, {
   type ServiceRequestFieldsFilter,
   type ServiceRequestPresetKey,
 } from "@/components/service-requests/FilterServiceRequestFields.tsx";
+import {
+  type WorkflowPayload,
+  type WorkflowListRow,
+  allEmployeeIdsFromWorkflow,
+  displayWorkflowTitle,
+  enrichWorkflowForList,
+  mergeStageStatus,
+} from "@/components/service-requests/workflowTypes.ts";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import { Separator } from "@/elements/separator.tsx";
 import type { Employee } from "db";
 
-type EmployeePayload = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  profileImageUrl?: string;
-};
-
-type ServiceRequestPayload = {
-  id: number;
-  title: string | null;
-  description: string | null;
-  dateDue: string | null;
-  dateCreated?: string;
-  priority: string | null;
-  status?: string;
-  owner: EmployeePayload;
-  employees: EmployeePayload[];
-  contents?: ServiceRequestLinkedDocument[];
-};
-
-function assigneesFromRequest(req: ServiceRequestPayload): ServiceRequestAssignee[] {
-  const map = new Map<number, ServiceRequestAssignee>();
-  const add = (e: EmployeePayload) => {
-    map.set(e.id, {
-      id: String(e.id),
-      name: `${e.firstName} ${e.lastName}`.trim(),
-      imageSrc: e.profileImageUrl,
-    });
-  };
-  add(req.owner);
-  for (const e of req.employees) add(e);
-  return [...map.values()];
-}
-
-function assignedByFromOwner(owner: EmployeePayload) {
-  return {
-    name: `${owner.firstName} ${owner.lastName}`.trim(),
-    imageSrc: owner.profileImageUrl,
-  };
-}
-
-function isAssignedEmployee(req: ServiceRequestPayload, userId: number): boolean {
-  return req.employees.some((e) => e.id === userId);
-}
-
-function displayTitle(req: ServiceRequestPayload): string {
-  return (
-    req.title?.trim() ||
-    req.description?.trim() ||
-    `Service request #${req.id}`
-  );
+function isAssignedToWorkflow(row: WorkflowListRow, userId: number): boolean {
+  return allEmployeeIdsFromWorkflow(row.stages).has(userId);
 }
 
 function isDoneStatus(status: string | undefined): boolean {
@@ -98,12 +56,12 @@ function presetFromSearchParams(sp: URLSearchParams): ServiceRequestPresetKey {
 }
 
 function matchesServiceRequestFilter(
-  req: ServiceRequestPayload,
+  req: WorkflowListRow,
   f: ServiceRequestFieldsFilter,
-  meId: number
+  meId: number,
 ): boolean {
-  if (f.assignment === "mine" && !isAssignedEmployee(req, meId)) return false;
-  if (f.assignment === "others" && isAssignedEmployee(req, meId)) return false;
+  if (f.assignment === "mine" && !isAssignedToWorkflow(req, meId)) return false;
+  if (f.assignment === "others" && isAssignedToWorkflow(req, meId)) return false;
 
   if (f.preset !== "all") {
     const today = startOfDay(new Date());
@@ -149,10 +107,7 @@ function prioritySortKey(p: string | null | undefined): string {
   return String(i >= 0 ? i : 99).padStart(2, "0");
 }
 
-function sortKeyForRequest(
-  req: ServiceRequestPayload,
-  sortBy: string
-): string {
+function sortKeyForRequest(req: WorkflowListRow, sortBy: string): string {
   switch (sortBy) {
     case "id":
       return String(req.id).padStart(12, "0");
@@ -168,20 +123,17 @@ function sortKeyForRequest(
       return `${req.owner.firstName} ${req.owner.lastName}`.toLowerCase();
     case "title":
     default:
-      return displayTitle(req).toLowerCase();
+      return displayWorkflowTitle(req).toLowerCase();
   }
 }
 
-function sortRequests(
-  list: ServiceRequestPayload[],
-  sortFields: SortFields
-): ServiceRequestPayload[] {
+function sortRequests(list: WorkflowListRow[], sortFields: SortFields): WorkflowListRow[] {
   const cmp =
     sortFields.sortMethod === "descending"
       ? (a: string, b: string) => -a.localeCompare(b)
       : (a: string, b: string) => a.localeCompare(b);
   return [...list].sort((a, b) =>
-    cmp(sortKeyForRequest(a, sortFields.sortBy), sortKeyForRequest(b, sortFields.sortBy))
+    cmp(sortKeyForRequest(a, sortFields.sortBy), sortKeyForRequest(b, sortFields.sortBy)),
   );
 }
 
@@ -200,7 +152,7 @@ function filenameForLinkedDoc(d: ServiceRequestLinkedDocument): string {
 
 export default function ServiceRequestsPage() {
   const [searchParams] = useSearchParams();
-  const [requests, setRequests] = useState<ServiceRequestPayload[] | null>(null);
+  const [requests, setRequests] = useState<WorkflowListRow[] | null>(null);
   const [meId, setMeId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fullscreenDoc, setFullscreenDoc] = useState<ViewerState | null>(null);
@@ -225,13 +177,14 @@ export default function ServiceRequestsPage() {
       }),
       fetch(`${base}/servicereqs/assigned/0`, { credentials: "include" }).then((res) => {
         if (!res.ok) throw new Error("Failed to load service requests");
-        return res.json() as Promise<ServiceRequestPayload[]>;
+        return res.json() as Promise<WorkflowPayload[]>;
       }),
     ])
       .then(([me, data]) => {
         if (!cancelled) {
           setMeId(me.id);
-          setRequests(data);
+          const rows = Array.isArray(data) ? data.map(enrichWorkflowForList) : [];
+          setRequests(rows);
         }
       })
       .catch((err: unknown) => {
@@ -245,14 +198,19 @@ export default function ServiceRequestsPage() {
     };
   }, []);
 
-  const handleStatusUpdated = useCallback((id: number, status: string) => {
-    setRequests((prev) =>
-      prev == null ? prev : prev.map((r) => (r.id === id ? { ...r, status } : r))
-    );
-  }, []);
+  const handleStageStatusUpdated = useCallback(
+    (workflowId: number, stageId: number, status: string) => {
+      setRequests((prev) =>
+        prev == null
+          ? prev
+          : prev.map((r) => mergeStageStatus(r, workflowId, stageId, status)),
+      );
+    },
+    [],
+  );
 
-  const handleDeleted = useCallback((id: number) => {
-    setRequests((prev) => (prev == null ? prev : prev.filter((r) => r.id !== id)));
+  const handleDeleted = useCallback((workflowId: number) => {
+    setRequests((prev) => (prev == null ? prev : prev.filter((r) => r.id !== workflowId)));
   }, []);
 
   const loadViewerFromLinkedDoc = useCallback(
@@ -304,8 +262,7 @@ export default function ServiceRequestsPage() {
         },
         {
           name: "contents",
-          getFn: (r) =>
-            (r.contents ?? []).map((c) => c.title).join(" "),
+          getFn: (r) => r.contents.map((c) => c.title).join(" "),
         },
         { name: "id", getFn: (r) => String(r.id) },
         { name: "status", getFn: (r) => r.status?.trim() ?? "" },
@@ -323,19 +280,19 @@ export default function ServiceRequestsPage() {
         ? requests
         : fuse.search(searchPhrase).map((x) => x.item);
     const filtered = searched.filter((r) =>
-      matchesServiceRequestFilter(r, fieldsFilter, meId)
+      matchesServiceRequestFilter(r, fieldsFilter, meId),
     );
     return sortRequests(filtered, sortFields);
   }, [requests, meId, searchPhrase, fuse, fieldsFilter, sortFields]);
 
   const { yourTasks, allTasks } = useMemo(() => {
     if (meId == null) {
-      return { yourTasks: [] as ServiceRequestPayload[], allTasks: [] as ServiceRequestPayload[] };
+      return { yourTasks: [] as WorkflowListRow[], allTasks: [] as WorkflowListRow[] };
     }
-    const yours: ServiceRequestPayload[] = [];
-    const rest: ServiceRequestPayload[] = [];
+    const yours: WorkflowListRow[] = [];
+    const rest: WorkflowListRow[] = [];
     for (const req of queryResults) {
-      if (isAssignedEmployee(req, meId)) yours.push(req);
+      if (isAssignedToWorkflow(req, meId)) yours.push(req);
       else rest.push(req);
     }
     return { yourTasks: yours, allTasks: rest };
@@ -425,16 +382,13 @@ export default function ServiceRequestsPage() {
                   {yourTasks.map((req) => (
                     <li key={req.id}>
                       <ServiceRequestCard
-                        id={String(req.id)}
-                        title={displayTitle(req)}
-                        description={req.description}
-                        dateDue={req.dateDue}
-                        assignedBy={assignedByFromOwner(req.owner)}
-                        assignees={assigneesFromRequest(req)}
-                        status={req.status ?? "to-do"}
-                        linkedDocuments={req.contents ?? []}
+                        workflow={req}
+                        currentUserId={meId!}
+                        title={displayWorkflowTitle(req)}
+                        summaryDescription={req.description}
+                        summaryDue={req.dateDue}
                         onLinkedDocumentOpen={handleLinkedDocumentOpen}
-                        onStatusUpdated={handleStatusUpdated}
+                        onStageStatusUpdated={handleStageStatusUpdated}
                         onDeleted={handleDeleted}
                       />
                     </li>
@@ -458,16 +412,13 @@ export default function ServiceRequestsPage() {
                   {allTasks.map((req) => (
                     <li key={req.id}>
                       <ServiceRequestCard
-                        id={String(req.id)}
-                        title={displayTitle(req)}
-                        description={req.description}
-                        dateDue={req.dateDue}
-                        assignedBy={assignedByFromOwner(req.owner)}
-                        assignees={assigneesFromRequest(req)}
-                        status={req.status ?? "to-do"}
-                        linkedDocuments={req.contents ?? []}
+                        workflow={req}
+                        currentUserId={meId!}
+                        title={displayWorkflowTitle(req)}
+                        summaryDescription={req.description}
+                        summaryDue={req.dateDue}
                         onLinkedDocumentOpen={handleLinkedDocumentOpen}
-                        onStatusUpdated={handleStatusUpdated}
+                        onStageStatusUpdated={handleStageStatusUpdated}
                         onDeleted={handleDeleted}
                       />
                     </li>
