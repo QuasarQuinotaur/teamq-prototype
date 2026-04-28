@@ -76,20 +76,6 @@ model Content {
   @@index([isCheckedOut, checkedOutOn])
 }
 
-// model ServiceRequest {
-//   id          Int        @id @default(autoincrement())
-//   dateCreated DateTime   @default(now())
-//   dateDue     DateTime?
-//   description String?
-//   ownerId     Int
-//   priority    String?
-//   status      String     @default("to-do")
-//   title       String?
-//   owner       Employee   @relation("OwnedRequests", fields: [ownerId], references: [id])
-//   contents    Content[]  @relation("ContentRequests")
-//   employees   Employee[] @relation("EmployeeRequests")
-// }
-
 model ServiceRequestWorkflow {
   id          Int      @id @default(autoincrement())
   dateCreated DateTime @default(now())
