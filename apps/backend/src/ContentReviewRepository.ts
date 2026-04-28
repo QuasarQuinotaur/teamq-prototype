@@ -20,7 +20,7 @@ class ContentReviewRepository {
         return prisma.contentReview.findMany({
             orderBy: { date: "asc" },
             include: {
-                Content: true,
+                content: true,
                 employee: true,
             },
         });

@@ -833,7 +833,10 @@ export default function ContentEntryPage({
                     }}
                 />
                 <ContentReviewsOption
-                    contentId={item.id}
+                    content={item}
+                    contentReviewsUpdated={() => {
+                        void fetchContentById(item.id) // only this content got changed
+                    }}
                 />
                 <ContentDetailsOption
                     content={item}

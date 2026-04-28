@@ -11,7 +11,6 @@ const { auth } = pkg;
 import cors from 'cors';
 import { EmployeeRepository } from "./EmployeeRepository.ts";
 import contentRoutes from "./routes/content.ts";
-import contentReviewRoutes from "./routes/contentReview.ts";
 import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";
 import photoRoutes from "./routes/photos.ts";
@@ -23,6 +22,8 @@ import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
 import rolesRouter from "./routes/roles.ts";
 import reviewRouter from "./routes/contentReview.ts"
+// require('./Service/ContentReviewServiceJob.ts')();
+import "./Service/ContentReviewServiceJob.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -60,7 +61,6 @@ app.use("/tmp", express.static("tmp"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
-app.use("/api/content/reviews", contentReviewRoutes);
 app.use("/api/employee", employeeRouter);
 app.use("/api/roles", rolesRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
@@ -79,9 +79,13 @@ export async function getEmployeeFromRequest(req: express.Request) {
     return employeeRepo.getByAuth0Id(sub);
 }
 
-// Start server
-app.listen(port, () => {
+// Start server — generous timeouts so long routes (e.g. AI document summary) are not cut off.
+const server = app.listen(port, () => {
     console.log(`Server running`);
 });
+const LONG_REQUEST_MS = 600_000; // 10 minutes
+server.requestTimeout = LONG_REQUEST_MS;
+server.headersTimeout = LONG_REQUEST_MS + 10_000;
+server.setTimeout(LONG_REQUEST_MS);
 
 export default app;

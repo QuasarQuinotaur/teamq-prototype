@@ -20,8 +20,8 @@ model Employee {
   contentsOwned     Content[]           @relation("ownedContents") // relationship list
   contentsFavorited Content[]           @relation("Favorites")// implicit many to many (dont need to make table yippee)
 
-  createdRequests   ServiceRequest[]    @relation("OwnedRequests")
-  assignedRequests  ServiceRequest[]    @relation("EmployeeRequests")
+  createdWorkflows  ServiceRequestWorkflow[]    @relation("OwnedWorkflows")
+  assignedStages    ServiceRequestStage[]       @relation("StageAssignees")
 
   notifications     Notification[]      @relation("NotificationEmployees")
   contentChecked    Content[]           @relation("CheckedOutContent")
@@ -44,12 +44,12 @@ model Content {
   dateUpdated                 DateTime            @updatedAt
   reviews                     ContentReview[]
   expirationDate              DateTime
-  employeesFavorited          Employee[]       @relation("Favorites") // one content can have many favorites from dif people
+  employeesFavorited          Employee[]            @relation("Favorites") // one content can have many favorites from dif people
   
   ownerId                     Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
-  owner                       Employee            @relation("ownedContents", fields: [ownerId], references: [id])
-  serviceRequests             ServiceRequest[]    @relation("ContentRequests")
-  notifications               Notification[]      @relation("NotificationContents")
+  owner                       Employee              @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequestStages        ServiceRequestStage[] @relation("StageContents")
+  notifications               Notification[]        @relation("NotificationContents")
 
   isCheckedOut                Boolean             @default(false)
   checkedOutOn                DateTime?
@@ -57,7 +57,7 @@ model Content {
   checkedOutBy                Employee?           @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
   
   tags                        ContentTag[]
-  aiSummary                   String
+  aiSummary                   String?             @db.Text
   hasBeenNotifiedExpiringSoon Boolean             @default(false)
   hasBeenNotifiedOfExpiration Boolean             @default(false)
 
@@ -76,18 +76,47 @@ model Content {
   @@index([isCheckedOut, checkedOutOn])
 }
 
-model ServiceRequest {
-  id          Int        @id @default(autoincrement())
-  dateCreated DateTime   @default(now())
+// model ServiceRequest {
+//   id          Int        @id @default(autoincrement())
+//   dateCreated DateTime   @default(now())
+//   dateDue     DateTime?
+//   description String?
+//   ownerId     Int
+//   priority    String?
+//   status      String     @default("to-do")
+//   title       String?
+//   owner       Employee   @relation("OwnedRequests", fields: [ownerId], references: [id])
+//   contents    Content[]  @relation("ContentRequests")
+//   employees   Employee[] @relation("EmployeeRequests")
+// }
+
+model ServiceRequestWorkflow {
+  id          Int      @id @default(autoincrement())
+  dateCreated DateTime @default(now())
+  title       String?
+  ownerId     Int
+  owner       Employee @relation("OwnedWorkflows", fields: [ownerId], references: [id])
+  stages      ServiceRequestStage[]
+
+  @@index([ownerId])
+}
+
+model ServiceRequestStage {
+  id          Int                     @id @default(autoincrement())
+  workflowId  Int
+  stageOrder  Int
+  dateCreated DateTime                @default(now())
   dateDue     DateTime?
   description String?
-  ownerId     Int
   priority    String?
-  status      String     @default("to-do")
+  status      String                  @default("to-do")
   title       String?
-  owner       Employee   @relation("OwnedRequests", fields: [ownerId], references: [id])
-  contents    Content[]  @relation("ContentRequests")
-  employees   Employee[] @relation("EmployeeRequests")
+  workflow    ServiceRequestWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  contents    Content[]               @relation("StageContents")
+  employees   Employee[]              @relation("StageAssignees")
+
+  @@unique([workflowId, stageOrder])
+  @@index([workflowId])
 }
 
 model Notification {

@@ -1,7 +1,7 @@
 import Form, {type FormState} from "@/components/forms/Form.tsx";
-import type {Employee, ContentReview} from "db";
+import type {ContentReview} from "db";
 import ReviewFormFields, { type ReviewDateStrings, type ReviewFields } from "./ReviewFormFields";
-import { formatDashCase, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useState } from "react";
 
 
@@ -21,13 +21,18 @@ function getDefaultReviewFields(defaultItem: object = null): ReviewFields {
 }
 
 function hasRequiredReviewFields(fields: ReviewFields): boolean {
-    return fields.date !== null
+    if (!fields.date) {
+        return false
+    }
+    return true
 }
 
 export type ReviewFormProps = {
+    contentId: number;
     onSubmitted?: () => void;
 } & FormState
 export default function ReviewForm({
+                                    contentId,
                                     onSubmitted,
                                     ...state
 }: ReviewFormProps) {
@@ -51,31 +56,37 @@ export default function ReviewForm({
     // Create or update review on backend from fields
     async function doSubmit(fields: ReviewFields) {
         console.log("SUBMIT:", fields)
-        // const isUpdate = state.baseItem != null;
-        // const url = isUpdate
-        //     ? `${import.meta.env.VITE_BACKEND_URL}/api/roles/${state.baseItem.id}`
-        //     : `${import.meta.env.VITE_BACKEND_URL}/api/roles`;
-        // const name = fields.name
-        // const role = {
-        //     key: !isUpdate && formatDashCase(name),
-        //     name: name,
-        //     permissionLevel: fields.permissionLevel
-        // }
-        // const response = await fetch(url, {
-        //     method: isUpdate ? "PUT" : "POST",
-        //     credentials: "include",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify(role),
-        // })
-        // const result = await response.json()
-        // console.log("REPSONSE:", response, "|", result)
-        // if (response.ok && result && result.success) {
-        //     if (onSubmitted) {
-        //         onSubmitted()
-        //     }
-        // } else {
-        //     throw new Error(result ? result.error : `Failed to ${isUpdate ? "update" : "create"} role`)
-        // }
+        const isUpdate = state.baseItem != null;
+        const url = isUpdate
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/reviews/${state.baseItem.id}`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/reviews`;
+        const review = {
+            contentId: contentId,
+            date: fields.date,
+
+            // required, leaving blank for now
+            stepName: "",
+
+            // Stuff that could be added in the future
+            // stepName: null,
+            // employeeId: null,
+            // note: null,
+        }
+        const response = await fetch(url, {
+            method: isUpdate ? "PUT" : "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(review),
+        })
+        const result = await response.json()
+        console.log("REPSONSE:", response, "|", result)
+        if (response.ok && result && result.success) {
+            if (onSubmitted) {
+                onSubmitted()
+            }
+        } else {
+            throw new Error(result ? result.error : `Failed to ${isUpdate ? "update" : "create"} review`)
+        }
     }
 
     return (

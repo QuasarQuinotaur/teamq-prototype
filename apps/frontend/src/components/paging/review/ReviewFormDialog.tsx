@@ -1,7 +1,5 @@
 import * as React from "react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/dialog/Dialog.tsx";
-import {DropdownMenuItem} from "@/components/DropdownMenu.tsx";
-import {PlusIcon} from "@phosphor-icons/react";
 import ReviewForm, {type ReviewFormProps} from "@/components/forms/ReviewForm";
 import {useState} from "react";
 

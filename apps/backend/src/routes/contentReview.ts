@@ -19,6 +19,7 @@ router.get("/", requiresAuth(), async (req, res) => {
     try {
         res.json(await contentReviewRepository.getAll());
     } catch (err) {
+        console.log("HI:", err)
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
 });
@@ -54,6 +55,7 @@ router.post("/", requiresAuth(), async (req, res) => {
 
         res.json({ success: true, review });
     } catch (err) {
+        console.log("ERR:", err)
         res.status(500).json({ error: "Failed to create review" });
     }
 });
