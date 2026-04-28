@@ -58,6 +58,7 @@ export default function FormAddButton({
                             ? "px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             : undefined
                     }
+                    id="tutorial-2"
                 >
                     {specialFormText ?? <PlusIcon />}
                 </Button>

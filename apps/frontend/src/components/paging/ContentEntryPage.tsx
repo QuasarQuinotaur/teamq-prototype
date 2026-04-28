@@ -63,6 +63,8 @@ type ContentEntryPageProps = {
     onlyMyCheckouts?: boolean;
     /** Documents opened recently. */
     onlyRecents?: boolean;
+    /** Separate table for the tutorial */
+    isTutorial?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -163,7 +165,8 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
-                                             onlyRecents
+                                             onlyRecents,
+                                             isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -182,7 +185,7 @@ export default function ContentEntryPage({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
-    
+
     const onContentOpened = useCallback((entry: CardEntry) => {
         console.log("CONTENT OPENED NOW", entry)
         // Mark as viewed for recent documents
@@ -577,6 +580,7 @@ export default function ContentEntryPage({
                     item.jobPositions.includes(employee.jobPosition) ||
                     getEmployeeIsAdmin(employee);
                 if (!canModify) continue;
+                //TODO pull from tutorial repository when isTutorial flag is true
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
                     credentials: "include",
@@ -946,7 +950,7 @@ export default function ContentEntryPage({
         return entries.filter((entry) =>
             favoritedList && favoritedList.some((f) => f.id === entry.item.id),
         );
-    }, [entries, favoritedList]);
+    }, [queryEntries, favoritedList]);
 
     const { view, setView } = useMainContext();
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };

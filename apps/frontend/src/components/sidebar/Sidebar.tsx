@@ -142,6 +142,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const allDocumentsItem = {
       title: "Content",
       url: "/documents/all",
+      id: "tutorial-1",
       icon: (<FilesIcon/>),
       isActive: true,
       items: [
