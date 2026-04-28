@@ -6,13 +6,15 @@ import { useState } from "react";
 
 
 const DEFAULT_REVIEW_FIELDS: ReviewFields = {
-    date: undefined
+    date: undefined,
+    stepName: "",
 }
 
 function itemAsReview(item: object): ReviewFields {
     const r = item as ContentReview;
     return {
-        date: new Date(r.date)
+        date: new Date(r.date),
+        stepName: r.stepName
     };
 }
 
@@ -24,7 +26,7 @@ function hasRequiredReviewFields(fields: ReviewFields): boolean {
     if (!fields.date) {
         return false
     }
-    return true
+    return !!fields.stepName.trim()
 }
 
 export type ReviewFormProps = {
@@ -63,12 +65,9 @@ export default function ReviewForm({
         const review = {
             contentId: contentId,
             date: fields.date,
-
-            // required, leaving blank for now
-            stepName: "",
+            stepName: fields.stepName,
 
             // Stuff that could be added in the future
-            // stepName: null,
             // employeeId: null,
             // note: null,
         }

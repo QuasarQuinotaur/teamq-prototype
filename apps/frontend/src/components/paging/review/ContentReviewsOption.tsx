@@ -23,7 +23,7 @@ export default function ContentReviewsOption(props: ContentReviewOptionProps) {
             </DialogTrigger>
             <DialogContent
                 className={
-                    "max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:w-[20%] sm:max-w-[calc(100%-1.5rem)] sm:min-w-[25%] sm:p-6 sm:pr-10 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
+                    "max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:w-[25%] sm:max-w-[calc(100%-1.5rem)] sm:min-w-[30%] sm:p-6 sm:pr-10 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
                 }
             >
                 <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
