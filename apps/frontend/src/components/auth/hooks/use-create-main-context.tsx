@@ -21,48 +21,44 @@ export type ViewType = "List" | "Grid"
 /**
  * Creates a MainContext to use for shared per-visit state across logged-in website.
  */
-export default function useCreateMainContext(): MainContext {
+export default function useCreateMainContext(isAuthorized: boolean): MainContext {
     const [view, setView] = useState<ViewType>(getStoredView);
     const [favoritesOpen, setFavoritesOpen] = useState(false);
     const [tagsEnabled, setTagsEnabled] = useState(true);
 
     // Putting this here makes it so we only have to fetch roles once, and store them for each component
-    const useJobInfoMap = useCallback(() => {
-        const [jobInfoMap, setJobInfoMap] = useState<Record<string, Role>>({})
-        const [rolesLoading, setRolesLoading] = useState(true)
-        const [updateRoles, setUpdateRoles] = useState(true)
-        const refetchRoles = useCallback(() => {
-            setUpdateRoles(true)
-        }, [setUpdateRoles])
-        useEffect(() => {
-            const fetchRoles = async () => {
-                try {
-                    if (updateRoles) {
-                        setUpdateRoles(false)
-                        setRolesLoading(true)
-                        const rolesResponse = await fetch(
-                            `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
-                            {credentials: "include"}
-                        );
-                        const rolesData = await rolesResponse.json()
-                        if (!rolesData.success) throw new Error("Failed to find tags.")
-                        const roles: Role[] = rolesData.roles
-                        const roleMap = roles.reduce((map, role) => {
-                            map[role.key] = role
-                            return map
-                        }, {})
-                        setJobInfoMap(roleMap)
-                        setRolesLoading(false)
-                    }
-                } catch (error) {
-                    console.error(error)
+    const [jobInfoMap, setJobInfoMap] = useState<Record<string, Role>>({})
+    const [rolesLoading, setRolesLoading] = useState(true)
+    const [updateRoles, setUpdateRoles] = useState(true)
+    const refetchRoles = useCallback(() => {
+        setUpdateRoles(true)
+    }, [setUpdateRoles])
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                if (updateRoles && isAuthorized) {
+                    setUpdateRoles(false)
+                    setRolesLoading(true)
+                    const rolesResponse = await fetch(
+                        `${import.meta.env.VITE_BACKEND_URL}/api/roles`,
+                        {credentials: "include"}
+                    );
+                    const rolesData = await rolesResponse.json()
+                    if (!rolesData.success) throw new Error("Failed to find tags.")
+                    const roles: Role[] = rolesData.roles
+                    const roleMap = roles.reduce((map, role) => {
+                        map[role.key] = role
+                        return map
+                    }, {})
+                    setJobInfoMap(roleMap)
+                    setRolesLoading(false)
                 }
+            } catch (error) {
+                console.error(error)
             }
-            void fetchRoles();
-        }, [updateRoles])
-        return { jobInfoMap, rolesLoading, refetchRoles }
-    }, [])
-    const { jobInfoMap, rolesLoading, refetchRoles } = useJobInfoMap();
+        }
+        void fetchRoles();
+    }, [updateRoles, isAuthorized])
 
     return {
         view,
