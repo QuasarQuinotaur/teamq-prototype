@@ -165,7 +165,7 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
-                                             onlyRecents
+                                             onlyRecents,
                                              isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
