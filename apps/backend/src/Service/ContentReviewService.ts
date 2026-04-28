@@ -224,6 +224,20 @@ class ContentReviewService {
 
     }
 
+    async getAll() {
+        return prisma.contentReview.findMany({
+            orderBy: { date: "asc" },
+            include: { Content: true, employee: true },
+        });
+    }
+
+    async getByContentId(contentId: number) {
+        return prisma.contentReview.findMany({
+            where: { contentId },
+            orderBy: { date: "asc" },
+            include: { Employee: true },
+        });
+    }
 }
 
 export { ContentReviewService };

@@ -18,7 +18,7 @@ export default function ContentReviewsOption(props: ContentReviewOptionProps) {
                     }}
                 >
                     <CalendarBlankIcon/>
-                    Review dates
+                    Reviews
                 </DropdownMenuItem>
             </DialogTrigger>
             <DialogContent
@@ -28,7 +28,7 @@ export default function ContentReviewsOption(props: ContentReviewOptionProps) {
             >
                 <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
                     <DialogTitle className="text-base font-semibold sm:text-lg">
-                        Review Dates
+                        Upcoming Reviews
                     </DialogTitle>
                 </DialogHeader>
                 <ContentReviews {...props}/>

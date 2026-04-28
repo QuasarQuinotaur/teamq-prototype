@@ -11,6 +11,7 @@ const { auth } = pkg;
 import cors from 'cors';
 import { EmployeeRepository } from "./EmployeeRepository.ts";
 import contentRoutes from "./routes/content.ts";
+import contentReviewRoutes from "./routes/contentReview.ts";
 import serviceRequestsRouter from "./routes/serviceRequests.ts";
 import authRouter from "./routes/auth.ts";
 import photoRoutes from "./routes/photos.ts";
@@ -59,6 +60,7 @@ app.use("/tmp", express.static("tmp"));
 
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
+app.use("/api/content/reviews", contentReviewRoutes);
 app.use("/api/employee", employeeRouter);
 app.use("/api/roles", rolesRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);

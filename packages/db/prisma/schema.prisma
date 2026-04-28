@@ -57,6 +57,7 @@ model Content {
   checkedOutBy                Employee?           @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
   
   tags                        ContentTag[]
+  aiSummary                   String
   hasBeenNotifiedExpiringSoon Boolean             @default(false)
   hasBeenNotifiedOfExpiration Boolean             @default(false)
 
