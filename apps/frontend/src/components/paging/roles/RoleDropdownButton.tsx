@@ -1,6 +1,6 @@
 
 import { Button } from "@/elements/buttons/button";
-import { AddressBookIcon, PencilIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, LockKeyIcon, PencilIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import useJobInfoMap from '@/hooks/useJobInfoMap';
 import {
     DropdownMenu,
@@ -18,6 +18,7 @@ import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog";
 import useGetPermissionLevel from "@/hooks/useGetPermissionLevel";
 import axios from "axios"
 import type { Employee } from "db";
+import { cn } from "@/lib/utils";
 
 
 export default function RoleDropdownButton() { 
@@ -46,7 +47,7 @@ export default function RoleDropdownButton() {
 
     const jobRoleList = useMemo(() => {
         return Object.values(jobInfoMap)
-            .filter(role => employeePermissionLevel >= role.permissionLevel)
+            // .filter(role => employeePermissionLevel >= role.permissionLevel)
             .sort((a, b) => b.permissionLevel - a.permissionLevel)
     }, [jobInfoMap, employeePermissionLevel])
     
@@ -126,37 +127,52 @@ export default function RoleDropdownButton() {
                             >
                                 <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
                                     <DialogTitle className="text-base font-semibold sm:text-lg">
-                                        Modify Roles
+                                        Role Manager
                                     </DialogTitle>
                                 </DialogHeader>
                                 <ScrollArea className={"min-h-0 max-h-120"}>
                                     <TableBody className={"flex flex-col gap-1 pr-3"}>
-                                        {jobRoleList.map(role => (
-                                            <TableRow className={"w-full justify-between text-base p-1 pl-2 flex flex-nowrap items-center  hover:bg-background"}>
-                                                {role.name}
-                                                <div className={"justify-self-end flex gap-1"}>
-                                                    <RoleFormDialog
-                                                        header={"Edit Role"}
-                                                        onSubmitted={onRolesModified}
-                                                        baseItem={role}
-                                                        permissionLevel={employeePermissionLevel}
+                                        {jobRoleList.map(role => {
+                                            const isAboveRole = employeePermissionLevel > role.permissionLevel
+                                            const isAtLeastRole = employeePermissionLevel >= role.permissionLevel
+                                            const isHigherRole = !isAtLeastRole
+                                            return (
+                                                <TableRow className={"w-full justify-between text-base p-1 pl-2 flex flex-nowrap items-center  hover:bg-background"}>
+                                                    <div
+                                                        className={cn(
+                                                            "flex items-center gap-1",
+                                                            isHigherRole && "pb-1"
+                                                        )}
                                                     >
-                                                        <Button variant={"outline"}>
-                                                            <PencilIcon/>
-                                                        </Button>
-                                                    </RoleFormDialog>
-                                                    {role.permissionLevel < employeePermissionLevel && (
-                                                        <DeleteConfirmDialog
-                                                            onDelete={() => void deleteByRoleId(role.id)}
-                                                        >
-                                                            <Button variant={"outline"}>
-                                                                <TrashIcon color={"var(--destructive)"}/>
-                                                            </Button>
-                                                        </DeleteConfirmDialog>
-                                                    )}
-                                                </div>
-                                            </TableRow>
-                                        ))}
+                                                        {isHigherRole && <LockKeyIcon weight="fill"/>}
+                                                        {role.name}
+                                                    </div>
+                                                    <div className={"justify-self-end flex gap-1"}>
+                                                        {isAtLeastRole && (
+                                                            <RoleFormDialog
+                                                                header={"Edit Role"}
+                                                                onSubmitted={onRolesModified}
+                                                                baseItem={role}
+                                                                permissionLevel={employeePermissionLevel}
+                                                            >
+                                                                <Button variant={"outline"}>
+                                                                    <PencilIcon/>
+                                                                </Button>
+                                                            </RoleFormDialog>
+                                                        )}
+                                                        {isAboveRole && (
+                                                            <DeleteConfirmDialog
+                                                                onDelete={() => void deleteByRoleId(role.id)}
+                                                            >
+                                                                <Button variant={"outline"}>
+                                                                    <TrashIcon color={"var(--destructive)"}/>
+                                                                </Button>
+                                                            </DeleteConfirmDialog>
+                                                        )}
+                                                    </div>
+                                                </TableRow>
+                                            )
+                                        })}
                                     </TableBody>
                                 </ScrollArea>
                             </DialogContent>
