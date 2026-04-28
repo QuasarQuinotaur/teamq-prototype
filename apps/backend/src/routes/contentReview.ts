@@ -3,6 +3,7 @@ import pkg from "express-openid-connect";
 import { ContentReviewService } from "../Service/ContentReviewService.ts";
 import { NotificationRepository } from "../NotificationRepository.ts";
 import { ContentReviewRepository } from "../ContentReviewRepository.ts";
+import {prisma} from "db";
 
 const { requiresAuth } = pkg;
 
@@ -17,9 +18,16 @@ const service = new ContentReviewService(contentReviewRepository, new Notificati
 
 router.get("/", requiresAuth(), async (req, res) => {
     try {
-        res.json(await contentReviewRepository.getAll());
+        const reviews = await prisma.contentReview.findMany({
+            include: {
+                content: true,
+                employee: true,
+            },
+        });
+
+        res.json(reviews);
     } catch (err) {
-        console.error("🔥 REVIEW ERROR:", err);
+        console.error("REVIEWS ERROR:", err);
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
 });

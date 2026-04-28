@@ -30,13 +30,13 @@ export default function ContentCurrencyWidget() {
         fetchDocs();
     }, []);
 
-    // 🧠 helper
+    // helper
     const now = new Date();
     const getDaysSince = (date: string) =>
         (now.getTime() - new Date(date).getTime()) /
         (1000 * 60 * 60 * 24);
 
-    // 🧠 buckets
+    // buckets
     let current = 0;
     let review = 0;
     let outdated = 0;
@@ -53,7 +53,7 @@ export default function ContentCurrencyWidget() {
     const pct = (n: number) =>
         total ? Math.round((n / total) * 100) : 0;
 
-    // 🧩 skeleton
+    // skeleton
     if (loading) {
         return (
             <div className="p-4 space-y-4">
