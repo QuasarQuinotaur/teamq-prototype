@@ -2,12 +2,14 @@ import { Router } from "express";
 import pkg from "express-openid-connect";
 import { ContentReviewService } from "../Service/ContentReviewService.ts";
 import { NotificationRepository } from "../NotificationRepository.ts";
+import { ContentReviewRepository } from "../ContentReviewRepository.ts";
 
 const { requiresAuth } = pkg;
 
 const router = Router();
 
-const service = new ContentReviewService(new NotificationRepository());
+const contentReviewRepository = new ContentReviewRepository();
+const service = new ContentReviewService(contentReviewRepository, new NotificationRepository());
 
 // =======================
 // GET
@@ -15,7 +17,7 @@ const service = new ContentReviewService(new NotificationRepository());
 
 router.get("/", requiresAuth(), async (req, res) => {
     try {
-        res.json(await service.getAll());
+        res.json(await contentReviewRepository.getAll());
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
@@ -28,7 +30,7 @@ router.get("/content/:contentId", requiresAuth(), async (req, res) => {
     }
 
     try {
-        res.json(await service.getByContentId(id));
+        res.json(await contentReviewRepository.getByContentId(id));
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch reviews" });
     }

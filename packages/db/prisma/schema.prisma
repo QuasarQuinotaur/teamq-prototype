@@ -155,8 +155,10 @@ model ContentReview {
   stepName String //  "Watch video", "Complete quiz"
   note     String?
 
-  createdAt   DateTime  @default(now())
-  completedAt DateTime?
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  dueSoonNotified Boolean   @default(false)
+  expiredNotified Boolean   @default(false)
 
   content  Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
