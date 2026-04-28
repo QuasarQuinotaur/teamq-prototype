@@ -17,6 +17,7 @@ router.get("/", requiresAuth(), async (req, res) => {
     try {
         res.json(await service.getAll());
     } catch (err) {
+        console.error("🔥 REVIEW ERROR:", err);
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
 });
