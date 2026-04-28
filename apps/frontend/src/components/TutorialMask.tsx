@@ -16,6 +16,7 @@ export default function TutorialMask({disabled}) {
         "tutorial-5",
         "document-add-form-source",
         "document-add-form-job-positions",
+        // "tutorial-7",
         "employee-form-dob-picker",
         "tutorial-9"
     ]
@@ -73,10 +74,17 @@ export default function TutorialMask({disabled}) {
             highlightedButton.classList.remove("bg-transparent")
             highlightedButton.parentElement.appendChild(maskClone)
             highlightedButton.setAttribute("href", "#")
-            if (tutorialStage === 3) {
+
+            if (tutorialStage === 3 || tutorialStage === 6) {
                 highlightedButton.addEventListener("change", advanceTutorial)
             } else if (tutorialStage === 4) {
-                highlightedButton.addEventListener("oninput", advanceTutorial)
+                highlightedButton.addEventListener("focusin", advanceTutorial)
+            } else if (tutorialStage === 7) {
+                highlightedButton.parentElement.addEventListener("focusout", advanceTutorial)
+                highlightedButton.parentElement.classList.add("z-101", "bg-background", "relative")
+                highlightedButton.parentElement.classList.remove("bg-transparent")
+            } else if (tutorialStage === 8) {
+                highlightedButton.addEventListener("focusout", advanceTutorial)
             } else {
                 highlightedButton.addEventListener("click", advanceTutorial)
             }

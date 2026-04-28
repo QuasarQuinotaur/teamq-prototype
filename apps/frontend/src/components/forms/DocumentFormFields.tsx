@@ -197,7 +197,6 @@ export default function DocumentFormFields({
                                         )}
                                     </div>
                                     <Item
-                                        id="tutorial-5"
                                         variant={"outline"}
                                         role={"group"}
                                         aria-label={"Document source type"}
@@ -226,6 +225,7 @@ export default function DocumentFormFields({
                                             <FileIcon className={"size-4"} />
                                         </Button>
                                         <Button
+                                            id="tutorial-5"
                                             type={"button"}
                                             variant={
                                                 fields.sourceType === "link"
