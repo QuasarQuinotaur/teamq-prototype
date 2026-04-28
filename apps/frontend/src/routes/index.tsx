@@ -26,6 +26,7 @@ import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
 import About from "@/pages/About.tsx"
+import Credits from "@/pages/Credits.tsx"
 
 
 export const router = createBrowserRouter([
@@ -119,6 +120,10 @@ export const router = createBrowserRouter([
                             {
                                 path: "about",
                                 element: <About />,
+                            },
+                            {
+                                path: "credits",
+                                element: <Credits />,
                             },
                             {
                                 element: <RoleGuard onlyAdmins />,

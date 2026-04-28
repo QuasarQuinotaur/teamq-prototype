@@ -25,6 +25,7 @@
     "@fontsource/vt323": "^5.2.7",
     "@fontsource/yantramanav": "^5.2.7",
     "@iamjariwala/react-doc-viewer": "^1.8.0",
+    "@icons-pack/react-simple-icons": "^13.13.0",
     "@phosphor-icons/react": "^2.1.10",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
