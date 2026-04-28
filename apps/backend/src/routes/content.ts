@@ -537,7 +537,7 @@ router.get("/:id", requiresAuth(), async (req, res) => {
     }
     try {
         const employee = await getEmployeeFromRequest(req);
-        const content = await contentRepo.getById(id, employee?.id);
+        const content = await contentRepo.getById(id, employee?.id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;
@@ -894,6 +894,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                dateUpdated: new Date(Date.now()),
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
             include: {
@@ -1168,7 +1169,6 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         });
     }
 });
-
 
 //TUT ++++++==========================================
 router.get("/tutorial", requiresAuth(), async (req, res) => {

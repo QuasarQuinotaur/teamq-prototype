@@ -1,32 +1,65 @@
 import { prisma, Employee } from "db";
 import { NotificationRepository } from "../NotificationRepository.ts";
+import { ContentReviewRepository } from "../ContentReviewRepository";
+
 
 const REVIEW_ASSIGNED = "Content Review Assigned";
 const REVIEW_DUE_SOON = "Content Review Due Soon";
 const REVIEW_EXPIRED = "Content Review Expired";
 
-class ContentReviewService {
-    constructor(private notificationRepo: NotificationRepository) {}
 
+class ContentReviewService {
+    constructor(
+        private reviewRepo: ContentReviewRepository,
+        private notificationRepo: NotificationRepository
+    ) {}
     // -------------------------
     // helper: find audience
     // -------------------------
-    private async getRecipients(contentId: number, employeeId?: number) {
-        if (employeeId) {
+    private async getRecipients(contentId: number, employeeId: number | null) {
+        // specifically assigned, ONLY them
+        if (employeeId !== null) {
             return [employeeId];
         }
 
-        const employees = await prisma.employee.findMany({
+        //  general review
+        const content = await prisma.content.findUnique({
+            where: { id: contentId },
+            select: {
+                ownerId: true,
+                jobPositions: true,
+                employeesFavorited: {
+                    select: { id: true },
+                },
+            },
+        });
+
+        if (!content) return [];
+
+        // owner
+        const ownerIds = [content.ownerId];
+
+        // favorited
+        const favoritedIds = content.employeesFavorited.map(e => e.id);
+
+        // visible users (job position match)
+        const visibleEmployees = await prisma.employee.findMany({
             where: {
-                OR: [
-                    { contentsFavorited: { some: { id: contentId } } },
-                    { contentsOwned: { some: { id: contentId } } },
-                ],
+                jobPosition: { in: content.jobPositions },
             },
             select: { id: true },
         });
 
-        return employees.map(e => e.id);
+        const visibleIds = visibleEmployees.map(e => e.id);
+
+        // combine + dedupe
+        const allIds = new Set([
+            ...ownerIds,
+            ...favoritedIds,
+            ...visibleIds,
+        ]);
+
+        return Array.from(allIds);
     }
 
     // -------------------------
@@ -39,24 +72,18 @@ class ContentReviewService {
         employeeId?: number;
         note?: string;
     }) {
-        const review = await prisma.contentReview.create({
-            data: {
-                contentId: data.contentId,
-                stepName: data.stepName,
-                date: data.date,
-                employeeId: data.employeeId,
-                note: data.note,
-                status: "pending",
-            },
-        });
+        const review = await this.reviewRepo.create(data);
 
-        const recipients = await this.getRecipients(data.contentId, data.employeeId);
+        const recipients = await this.getRecipients(
+            review.contentId,
+            review.employeeId ?? null
+        );
 
         await this.notificationRepo.createMany({
             type: REVIEW_ASSIGNED,
-            customMsg: `New review step assigned: "${data.stepName}"`,
+            customMsg: `New review step assigned: "${review.stepName}"`,
             employeeIds: recipients,
-            contentIds: [data.contentId],
+            contentIds: [review.contentId],
         });
 
         return review;
@@ -74,55 +101,28 @@ class ContentReviewService {
             status?: "pending" | "done" | "skipped";
         }
     ) {
+        // get existing (for recipients + message context)
         const existing = await prisma.contentReview.findUnique({
             where: { id },
         });
 
         if (!existing) throw new Error("Review not found");
 
-        const updated = await prisma.contentReview.update({
-            where: { id },
-            data: {
-                ...data,
-                ...(data.status === "done"
-                    ? { completedAt: new Date() }
-                    : {}),
-            },
-        });
-
-        // -------------------------
-        // STATUS-BASED NOTIFICATIONS
-        // -------------------------
+        // use repo for update
+        const updated = await this.reviewRepo.update(id, data);
 
         const recipients = await this.getRecipients(
-            existing.contentId,
-            existing.employeeId ?? undefined
+            updated.contentId,
+            updated.employeeId
         );
 
-        const now = new Date();
-        const dueDate = existing.date;
-
-        // EXPIRED
-        if (dueDate < now && updated.status !== "done") {
-            await this.notificationRepo.createMany({
-                type: REVIEW_EXPIRED,
-                customMsg: `Review "${existing.stepName}" has expired`,
-                employeeIds: recipients,
-                contentIds: [existing.contentId],
-            });
-        }
-
-        // DUE SOON
-        const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-        if (diffHours <= 24 && diffHours > 0 && updated.status === "pending") {
-            await this.notificationRepo.createMany({
-                type: REVIEW_DUE_SOON,
-                customMsg: `Review "${existing.stepName}" is due soon`,
-                employeeIds: recipients,
-                contentIds: [existing.contentId],
-            });
-        }
+        //send notification
+        await this.notificationRepo.createMany({
+            type: "Content Review Updated",
+            customMsg: `Review "${updated.stepName}" was updated`,
+            employeeIds: recipients,
+            contentIds: [updated.contentId],
+        });
 
         return updated;
     }
@@ -131,28 +131,99 @@ class ContentReviewService {
     // DELETE
     // -------------------------
     async deleteReview(id: number) {
-        return prisma.contentReview.delete({
+        const existing = await prisma.contentReview.findUnique({
             where: { id },
         });
+
+        if (!existing) throw new Error("Review not found");
+
+        const deleted = await this.reviewRepo.delete(id);
+
+        const recipients = await this.getRecipients(
+            existing.contentId,
+            existing.employeeId
+        );
+
+        await this.notificationRepo.createMany({
+            type: "Content Review Deleted",
+            customMsg: `Review "${existing.stepName}" was deleted`,
+            employeeIds: recipients,
+            contentIds: [existing.contentId],
+        });
+
+        return deleted;
     }
 
     // -------------------------
-    // GET helpers
+    // BACKGROUND JOB: CHECK REVIEWS
     // -------------------------
-    async getAll() {
-        return prisma.contentReview.findMany({
-            orderBy: { date: "asc" },
-            include: { content: true, employee: true },
+    async processReviewNotifications() {
+        const now = new Date();
+
+        const reviews = await prisma.contentReview.findMany({
+            where: {
+                status: "pending",
+            },
         });
+
+        for (const review of reviews) {
+            const dueDate = review.date;
+
+            const recipients = await this.getRecipients(
+                review.contentId,
+                review.employeeId
+            );
+
+            const diffHours =
+                (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+            // -------------------------
+            // EXPIRED (send once)
+            // -------------------------
+            if (
+                dueDate < now &&
+                !review.expiredNotified
+            ) {
+                await this.notificationRepo.createMany({
+                    type: REVIEW_EXPIRED,
+                    customMsg: `Review "${review.stepName}" has expired`,
+                    employeeIds: recipients,
+                    contentIds: [review.contentId],
+                });
+
+                await prisma.contentReview.update({
+                    where: { id: review.id },
+                    data: { expiredNotified: true },
+                });
+
+                continue; // skip due soon if already expired
+            }
+
+            // -------------------------
+            // DUE SOON (send once)
+            // -------------------------
+            if (
+                diffHours <= 24 &&
+                diffHours > 0 &&
+                !review.dueSoonNotified
+            ) {
+                await this.notificationRepo.createMany({
+                    type: REVIEW_DUE_SOON,
+                    customMsg: `Review "${review.stepName}" is due soon`,
+                    employeeIds: recipients,
+                    contentIds: [review.contentId],
+                });
+
+                await prisma.contentReview.update({
+                    where: { id: review.id },
+                    data: { dueSoonNotified: true },
+                });
+            }
+        }
+
+
     }
 
-    async getByContentId(contentId: number) {
-        return prisma.contentReview.findMany({
-            where: { contentId },
-            orderBy: { date: "asc" },
-            include: { employee: true },
-        });
-    }
 }
 
 export { ContentReviewService };
