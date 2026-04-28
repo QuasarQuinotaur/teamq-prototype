@@ -197,6 +197,7 @@ export default function DocumentFormFields({
                                         )}
                                     </div>
                                     <Item
+                                        id="tutorial-5"
                                         variant={"outline"}
                                         role={"group"}
                                         aria-label={"Document source type"}

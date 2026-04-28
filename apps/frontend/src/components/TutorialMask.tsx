@@ -11,7 +11,13 @@ export default function TutorialMask({disabled}) {
     const ids = [
         "tutorial-1",
         "tutorial-2",
-        "document-add-form-name"
+        "document-add-form-name",
+        "document-add-form-content-type",
+        "tutorial-5",
+        "document-add-form-source",
+        "document-add-form-job-positions",
+        "employee-form-dob-picker",
+        "tutorial-9"
     ]
 
 
@@ -67,7 +73,13 @@ export default function TutorialMask({disabled}) {
             highlightedButton.classList.remove("bg-transparent")
             highlightedButton.parentElement.appendChild(maskClone)
             highlightedButton.setAttribute("href", "#")
-            highlightedButton.addEventListener("click", advanceTutorial)
+            if (tutorialStage === 3) {
+                highlightedButton.addEventListener("change", advanceTutorial)
+            } else if (tutorialStage === 4) {
+                highlightedButton.addEventListener("oninput", advanceTutorial)
+            } else {
+                highlightedButton.addEventListener("click", advanceTutorial)
+            }
 
             if (tutorialStage === 1) {
                 const buttonClone = highlightedButton.cloneNode(true)
@@ -79,6 +91,7 @@ export default function TutorialMask({disabled}) {
             if (tutorialStage === 3) {
                 mask.classList.remove("z-100")
                 mask.classList.add("z-40")
+                mask.setAttribute("id", "tutorial-mask-back")
             } else {
                 // mask.setAttribute("hidden", "true")
                 mask.replaceWith()
