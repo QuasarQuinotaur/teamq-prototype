@@ -25,7 +25,7 @@ import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
-import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationAndReviewCalendarWidget.tsx";
 import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
 import ContentCurrencyWidget from "@/components/widgets/ContentCurrencyWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
@@ -70,8 +70,8 @@ export default function Dashboard() {
         { type: "requestsCalendar", label: "Requests (Calendar) " },
         { type: "requestsList", label: "Requests (List) " },
         { type: "progressPieChart", label: "Progress (Chart) " },
-        { type: "expirationLine", label: "Document Expirations (Chart) " },
-        { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
+        { type: "expirationLine", label: "Content Expirations (Chart) " },
+        { type: "expirationCalendar", label: "Content Expirations & Reviews (Calendar) " },
         { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
         { type: "gif", label: "GIF" },

@@ -196,7 +196,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
     return (
         <>
             <CardTitle className="pl-0 pt-5">
-                Content Expiration Calendar
+                Content Expirations & Reviews Calendar
             </CardTitle>
 
             <div id="calendar-filters-content" className="hidden">
