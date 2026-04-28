@@ -235,7 +235,7 @@ class ContentReviewService {
         return prisma.contentReview.findMany({
             where: { contentId },
             orderBy: { date: "asc" },
-            include: { employee: true },
+            include: { Employee: true },
         });
     }
 }

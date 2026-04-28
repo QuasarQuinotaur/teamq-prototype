@@ -19,7 +19,7 @@ router.get("/", requiresAuth(), async (req, res) => {
     try {
         res.json(await contentReviewRepository.getAll());
     } catch (err) {
-        console.log("HI:", err)
+        console.error("🔥 REVIEW ERROR:", err);
         res.status(500).json({ error: "Failed to fetch reviews" });
     }
 });

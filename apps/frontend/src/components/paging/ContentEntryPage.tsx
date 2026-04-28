@@ -64,6 +64,8 @@ type ContentEntryPageProps = {
     onlyMyCheckouts?: boolean;
     /** Documents opened recently. */
     onlyRecents?: boolean;
+    /** Separate table for the tutorial */
+    isTutorial?: boolean;
 }
 
 /** Fixed grid of placeholders while the first content request is in flight. */
@@ -140,7 +142,11 @@ function getContentEntryFromRow(
     const tags: Tag[] =
         content.tags
             ?.map((ct) => ct.tag)
-            .filter((t) => (employee ? t.ownerId === employee.id : false)) ?? [];
+            .filter((t) =>
+                employee
+                    ? t.isGlobal || t.ownerId === employee.id
+                    : false,
+            ) ?? [];
     const ownerRecord = employeeMap.get(content.ownerId);
     return {
         item: content,
@@ -160,7 +166,8 @@ export default function ContentEntryPage({
                                              onlyFavorites,
                                              onlyMine,
                                              onlyMyCheckouts,
-                                             onlyRecents
+                                             onlyRecents,
+                                             isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -179,7 +186,7 @@ export default function ContentEntryPage({
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
-    
+
     const onContentOpened = useCallback((entry: CardEntry) => {
         console.log("CONTENT OPENED NOW", entry)
         // Mark as viewed for recent documents
@@ -340,6 +347,7 @@ export default function ContentEntryPage({
         () =>
             leftPaneDoc
                 ? {
+                      contentId: leftPaneDoc.contentId,
                       url: leftPaneDoc.url,
                       filename: leftPaneDoc.filename,
                       title: leftPaneDoc.title,
@@ -351,6 +359,7 @@ export default function ContentEntryPage({
         () =>
             rightPaneDoc
                 ? {
+                      contentId: rightPaneDoc.contentId,
                       url: rightPaneDoc.url,
                       filename: rightPaneDoc.filename,
                       title: rightPaneDoc.title,
@@ -572,6 +581,7 @@ export default function ContentEntryPage({
                     item.jobPositions.includes(employee.jobPosition) ||
                     getEmployeeIsAdmin(employee);
                 if (!canModify) continue;
+                //TODO pull from tutorial repository when isTutorial flag is true
                 const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
                     method: "POST",
                     credentials: "include",
@@ -822,8 +832,10 @@ export default function ContentEntryPage({
                 </DropdownMenuCheckboxItem>
                 <TagsOption
                     contentId={item.id}
+                    filePath={item.filePath}
                     tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
                     tagList={tagList}
+                    isAdmin={employee?.jobPosition === "admin"}
                     contentTagsUpdated={() => {
                         void fetchContentById(item.id) // only this content got changed
                     }}
@@ -1057,6 +1069,7 @@ export default function ContentEntryPage({
         const canEnterSplit = isDocumentLikeFilename(fullscreenDoc.filename);
         return (
             <DocumentViewer
+                contentId={fullscreenDoc.contentId}
                 url={fullscreenDoc.url}
                 filename={fullscreenDoc.filename}
                 title={fullscreenDoc.title}

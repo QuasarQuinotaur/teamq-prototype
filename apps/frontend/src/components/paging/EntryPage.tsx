@@ -21,7 +21,8 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import type { CreateColumnsOptions } from "@/components/cards/list-view-table/columns.tsx";
 import { cn } from "@/lib/utils.ts";
-import { Input } from "@/elements/input.tsx"
+import { Input } from "@/elements/input.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
 
 // Props used for specifying entries. These are passed to card grid + list for info about active entries
 export type EntryProps = {
@@ -94,23 +95,44 @@ export default function EntryPage<T extends object>({
         marqueeBlocked,
     } = entryProps;
 
-    const favoritesHeadingClass =
-        "px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase";
-
     const [favoritesOpen, setFavoritesOpen] = useState(true);
 
-    const favoritesHeading = (
-        <button
-            type="button"
-            onClick={() => setFavoritesOpen((o) => !o)}
-            className="flex items-center gap-1 px-10 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground transition-colors"
-        >
-            Favorites
-            <ChevronDown
-                className="size-3.5 transition-transform duration-200"
-                style={{ transform: favoritesOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
-            />
-        </button>
+    const favoritesHeading = useMemo(
+        () => (
+            <div className="flex items-center gap-1.5 px-10">
+                <button
+                    type="button"
+                    onClick={() => setFavoritesOpen((o) => !o)}
+                    className="flex items-center gap-1 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground"
+                >
+                    Favorites
+                    <ChevronDown
+                        className="size-3.5 transition-transform duration-200"
+                        style={{ transform: favoritesOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+                    />
+                </button>
+                <HelpHint>
+                    Starred documents appear in this section first on page one. Click the
+                    label to expand or collapse the block.
+                </HelpHint>
+            </div>
+        ),
+        [favoritesOpen],
+    );
+
+    const allDocumentsHeading = useMemo(
+        () => (
+            <div className="flex items-center gap-1.5 px-10 text-left">
+                <h2 className="border-b-0 pb-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    All documents
+                </h2>
+                <HelpHint>
+                    The rest of the documents in this view (after favorites). Results follow
+                    your search, filters, and sort; in list view, pagination applies here.
+                </HelpHint>
+            </div>
+        ),
+        [],
     );
 
     const showFavoritesWithEntries =
@@ -265,7 +287,7 @@ export default function EntryPage<T extends object>({
                                 )}
                             </section>
                             <section className="flex flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>All documents</h2>
+                                {allDocumentsHeading}
                                 {resultCountLine}
                                 <ThumbnailBatchProvider
                                     batchKey={gridBatchKey}
@@ -296,7 +318,7 @@ export default function EntryPage<T extends object>({
                                 </section>
                             )}
                             <section className="flex min-h-0 flex-1 flex-col gap-2">
-                                <h2 className={favoritesHeadingClass}>All documents</h2>
+                                {allDocumentsHeading}
                                 {resultCountLine}
                                 {createCardList(pageEntries)}
                             </section>
