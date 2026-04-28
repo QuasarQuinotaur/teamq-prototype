@@ -14,9 +14,9 @@ import {
     rectSortingStrategy,
 } from "@dnd-kit/sortable";
 
-import StatsWidget from "@/components/widgets/StatsWidget";
-import CalendarWidget from "@/components/widgets/CalendarWidget";
-import RequestsWidget from "@/components/widgets/RequestsWidget";
+import StatsWidget from "@/components/widgets/RequestsStatsCardWidget.tsx";
+import CalendarWidget from "@/components/widgets/RequestsCalendarWidget.tsx";
+import RequestsWidget from "@/components/widgets/RequestsListWidget.tsx";
 
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -55,19 +55,19 @@ export default function Dashboard() {
             } catch {}
         }
         return [
-            { id: "1", type: "chart", size: 1 },
-            { id: "2", type: "calendar", size: 2 },
-            { id: "3", type: "requests", size: 3 },
+            { id: "1", type: "progressStatsCard", size: 1 },
+            { id: "2", type: "requestsCalendar", size: 2 },
+            { id: "3", type: "requestsList", size: 3 },
         ];
     });
 
     const widgetOptions = [
-        { type: "stats", label: "Stats" },
-        { type: "calendar", label: "Calendar" },
-        { type: "requests", label: "Requests" },
-        { type: "chart", label: "Chart" },
-        { type: "expirationLine", label: "Document expirations (chart)" },
-        { type: "expirationCalendar", label: "Document expirations (calendar)" },
+        { type: "progressStatsCard", label: "Requests (Stats)" },
+        { type: "requestsCalendar", label: "Requests (Calendar)" },
+        { type: "requestsList", label: "Requests (List)" },
+        { type: "progressPieChart", label: "Progress (Chart)" },
+        { type: "expirationLine", label: "Document Expirations (chart)" },
+        { type: "expirationCalendar", label: "Document Expirations & Reviews(calendar)" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -237,10 +237,10 @@ export default function Dashboard() {
         const id = crypto.randomUUID();
 
         const defaultSizes: Record<string, 1 | 2 | 3> = {
-            stats: 1,
-            chart: 1,
-            calendar: 2,
-            requests: 2,
+            progressStatsCard: 1,
+            progressPieChart: 1,
+            requestsCalendar: 2,
+            requestsList: 2,
             expirationLine: 3,
             expirationCalendar: 3,
             gif: 1,
@@ -401,7 +401,7 @@ export default function Dashboard() {
                                                             type={w.type}
                                                             data={{
                                                                 loading: false,
-                                                                requests: [],
+                                                                requestsList: [],
                                                                 counts: { todo: 3, overdue: 1, dueWeek: 2, done: 4 },
                                                                 yourRequestsList: [],
                                                                 overdueList: [],
@@ -454,7 +454,7 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Full width, 2 rows tall)
                                                 </button>
-                                            ) : (w.type === "stats" || w.type === "chart") ? (
+                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -612,15 +612,15 @@ function SortableItem({
 
 
 function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
-    if (type === "calendar") {
+    if (type === "requestsCalendar") {
         return <CalendarWidget requests={data.requests} loading={data.loading} />;
     }
 
     let inner: React.ReactNode;
     switch (type) {
-        case "stats":    inner = <StatsWidget counts={data.counts} />; break;
-        case "requests": inner = <RequestsWidget {...data} />; break;
-        case "chart":    inner = <PieChartWidget counts={data.counts} />; break;
+        case "progressStatsCard":    inner = <StatsWidget counts={data.counts} />; break;
+        case "requestsList": inner = <RequestsWidget {...data} />; break;
+        case "progressPieChart":    inner = <PieChartWidget counts={data.counts} />; break;
         case "expirationLine": inner = (
             <DocumentExpirationLineWidget
                 items={data.contentForExpiration ?? []}
