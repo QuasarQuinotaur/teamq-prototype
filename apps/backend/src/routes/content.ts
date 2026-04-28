@@ -537,7 +537,7 @@ router.get("/:id", requiresAuth(), async (req, res) => {
     }
     try {
         const employee = await getEmployeeFromRequest(req);
-        const content = await contentRepo.getById(id, employee?.id, employee?.id);
+        const content = await contentRepo.getById(id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;

@@ -34,7 +34,7 @@ class ContentReviewRepository {
             where: { contentId },
             orderBy: { date: "asc" },
             include: {
-                Employee: true,
+                employee: true,
             },
         });
     }
