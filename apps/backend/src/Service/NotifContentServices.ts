@@ -5,6 +5,7 @@ import { NotificationRepository } from "../NotificationRepository.ts";
 import { ContentRepository} from "../ContentRepository.ts";
 import {Employee, prisma} from "db";
 import { deleteFile } from "../lib/supabase";
+import { getEmployeeIsAdmin } from "../util.ts";
 
 class ContentService {
     constructor(
@@ -27,7 +28,7 @@ class ContentService {
 
         // authorization (move from route)
         const isOwner = content.ownerId === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         if (!isOwner && !isAdmin) {
             throw new Error("Not authorized to delete this content");

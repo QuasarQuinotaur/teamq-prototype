@@ -1,6 +1,5 @@
 // Displays information about employee (name, role, etc.)
 
-import { Badge } from "@/elements/badge.tsx"
 import { Button } from "@/elements/buttons/button.tsx"
 import { MoreHorizontalIcon } from "lucide-react"
 import {
@@ -13,8 +12,9 @@ import {
 import { cn } from "@/lib/utils.ts"
 import { stringToAccentBgClass } from "@/lib/card-accent.ts"
 import type { Employee } from "db";
-import { JOB_POSITION_TYPE_MAP } from "@/components/input/constants.tsx";
 import BadgeList from "@/elements/badge-list.tsx";
+import useJobNameMap from "@/hooks/useJobNameMap"
+import { formatSpacedUpperCase } from '../../lib/utils';
 
 function initialsFromTitle(title: string): string {
   const parts = title.trim().split(/\s+/).filter(Boolean)
@@ -34,10 +34,11 @@ export default function EmployeeCard({
     "h-32 w-32 rounded-full border-4 border-white shadow-md"
 
   const employee = entry.item as Employee;
-  const badges: string[] = [
-    JOB_POSITION_TYPE_MAP[employee.jobPosition as keyof typeof JOB_POSITION_TYPE_MAP] ??
-      employee.jobPosition,
-  ];
+  const { jobNameMap, rolesLoading } = useJobNameMap()
+  const badges: string[] = !rolesLoading ? [
+    jobNameMap[employee.jobPosition as keyof typeof jobNameMap] ??
+      formatSpacedUpperCase(employee.jobPosition),
+  ] : [];
 
   return (
     <CardContainer className="relative mx-auto w-fit min-w-[250px] pb-6">

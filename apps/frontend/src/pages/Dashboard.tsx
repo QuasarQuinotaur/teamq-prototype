@@ -26,6 +26,13 @@ import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
+import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
+import {
+    allEmployeeIdsFromWorkflow,
+    enrichWorkflowForList,
+    type WorkflowListRow,
+} from "@/components/service-requests/workflowTypes.ts";
 
 type Widget = {
     id: string;
@@ -35,14 +42,7 @@ type Widget = {
 };
 
 
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-    employees: { id: number }[];
-};
+type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -117,8 +117,9 @@ export default function Dashboard() {
             .then(([me, data, content]) => {
                 const meRow = me as { id: number; firstName?: string | null } | undefined;
                 setUserFirstName(meRow?.firstName?.trim() || null);
-                const rows = Array.isArray(data) ? data : [];
-                setRequests(rows.filter(r => r.employees?.some(e => e.id === me.id)));
+                const raw = Array.isArray(data) ? (data as WorkflowPayload[]) : [];
+                const rows = raw.map(enrichWorkflowForList);
+                setRequests(rows.filter((r) => allEmployeeIdsFromWorkflow(r.stages).has(me.id)));
                 setContentItems(
                     Array.isArray(content)
                         ? content.map(c => ({
@@ -264,13 +265,15 @@ export default function Dashboard() {
         <>
             <div className="grid grid-cols-3 items-center px-6 py-4">
                 <div />
-                <h1 className="text-2xl font-heading text-center">
-                    {loading
-                        ? "Hello"
-                        : userFirstName
-                          ? `Hello, ${userFirstName}`
-                          : "Hello, there"}
-                </h1>
+                <div className="flex items-center justify-center gap-2 min-w-0">
+                    <h1 className="text-2xl font-heading text-center truncate">
+                        {loading
+                            ? "Hello"
+                            : userFirstName
+                              ? `Hello, ${userFirstName}`
+                              : "Hello, there"}
+                    </h1>
+                </div>
                 <div className="flex justify-end">
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -351,8 +354,16 @@ export default function Dashboard() {
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-card rounded-lg max-h-[85vh] w-[min(1100px,90vw)] overflow-y-auto p-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold">Add Widget</h2>
+                        <div className="flex justify-between items-center gap-3 mb-4">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h2 className="m-0 border-b-0 pb-0 text-lg font-semibold leading-none">
+                                    Add Widget
+                                </h2>
+                                <HelpHint contentClassName="max-w-sm">
+                                    Expand a widget type to preview it, then choose a size. Some types offer small,
+                                    medium, or large widths; charts and stats default to a compact tile.
+                                </HelpHint>
+                            </div>
                             <button
                                 onClick={() => {
                                     setShowAddModal(false);

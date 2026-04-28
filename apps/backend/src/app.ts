@@ -60,6 +60,7 @@ app.use("/tmp", express.static("tmp"));
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
 app.use("/api/employee", employeeRouter);
+app.use("/api/roles", rolesRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
 app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);
@@ -76,9 +77,13 @@ export async function getEmployeeFromRequest(req: express.Request) {
     return employeeRepo.getByAuth0Id(sub);
 }
 
-// Start server
-app.listen(port, () => {
+// Start server — generous timeouts so long routes (e.g. AI document summary) are not cut off.
+const server = app.listen(port, () => {
     console.log(`Server running`);
 });
+const LONG_REQUEST_MS = 600_000; // 10 minutes
+server.requestTimeout = LONG_REQUEST_MS;
+server.headersTimeout = LONG_REQUEST_MS + 10_000;
+server.setTimeout(LONG_REQUEST_MS);
 
 export default app;

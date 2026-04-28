@@ -8,15 +8,10 @@ import {
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils.ts";
 import { parseISO, isValid, startOfDay } from "date-fns";
+import type { WorkflowListRow } from "@/components/service-requests/workflowTypes.ts";
 
 // --- TYPES ---
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-};
+type ServiceRequestRow = WorkflowListRow;
 
 // --- HELPERS ---
 function parseDue(iso: string | null): Date | null {

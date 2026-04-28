@@ -10,15 +10,10 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/elements/buttons/button.tsx";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils.ts";
+import type { WorkflowListRow } from "@/components/service-requests/workflowTypes.ts";
 
 // --- TYPES ---
-type ServiceRequestRow = {
-    id: number;
-    title: string | null;
-    description: string | null;
-    dateDue: string | null;
-    status: string;
-};
+type ServiceRequestRow = WorkflowListRow;
 
 // --- HELPERS ---
 function parseDue(date: string | null): Date | null {

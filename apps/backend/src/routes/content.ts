@@ -6,7 +6,22 @@ import { getEmployeeFromRequest } from "../app.ts";
 import {
     uploadBuffer,
     getSignedUrl,
+    downloadBuffer,
 } from "../lib/supabase.ts";
+import {
+    MAX_SUMMARY_BYTES,
+    suggestTagIdsFromContent,
+    summarizeContentBuffer,
+    SummaryBadRequestError,
+    SummaryTooLargeError,
+    SummaryUnsupportedError,
+} from "../lib/documentSummary.ts";
+import {
+    APIError,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+} from "@anthropic-ai/sdk";
 import pkg from "express-openid-connect";
 import { prisma, type Prisma } from "db";
 const { requiresAuth } = pkg;
@@ -14,7 +29,13 @@ import multer from "multer";
 import type express from "express";
 
 import { ContentRepository } from "../ContentRepository.ts";
-import { contentService } from "../services.ts";
+import {
+    notifyDocumentEditedByOther,
+    notifyOwnerOnDocumentAccess,
+    notifyOwnershipTransferred,
+} from "../contentNotificationTriggers.ts";
+import { contentService, notificationRepo } from "../services.ts";
+import { getEmployeeIsAdmin } from "../util.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -185,6 +206,8 @@ type ContentListOrder =
 type ParsedListQuery = {
     where: Prisma.ContentWhereInput;
     order: ContentListOrder;
+    rawSortBy: string;
+    desc: boolean;
 };
 
 /**
@@ -256,7 +279,8 @@ function parseContentListQuery(
     const where: Prisma.ContentWhereInput =
         ands.length > 0 ? { AND: ands } : {};
 
-    const sortBy = parseQueryStringList(query, "sortBy")[0] ?? "title";
+    const rawSortBy = parseQueryStringList(query, "sortBy")[0]
+    const sortBy = rawSortBy ?? "title";
     const sortMethod =
         parseQueryStringList(query, "sortMethod")[0] ?? "ascending";
     const desc = sortMethod === "descending";
@@ -281,6 +305,42 @@ function parseContentListQuery(
         };
     }
 
+    return { where, order, rawSortBy, desc };
+}
+
+
+type ParsedRecentListQuery = {
+    where: Prisma.RecentContentViewWhereInput;
+    order?: ContentListOrder | boolean;
+};
+
+/**
+ * If `query` is empty, legacy clients get the full list ordered by id (e.g. admin check-in, dev).
+ * Otherwise, optional filter/sort come from the query string.
+ */
+function parseRecentListQuery(
+    query: express.Request["query"],
+    employee: { id: number } | null,
+): ParsedRecentListQuery | { legacyNoQuery: true } {
+    const contentQuery = parseContentListQuery(query, employee)
+    if ("legacyNoQuery" in contentQuery) {
+        return contentQuery
+    }
+
+    const where: Prisma.RecentContentViewWhereInput = {
+        Content: contentQuery.where
+    }
+
+    let order: ContentListOrder | boolean = null
+    const contentOrder = contentQuery.order
+    const contentSortBy = contentQuery.rawSortBy
+    const contentDescending = contentQuery.desc
+    if (contentSortBy && contentSortBy.trim() && contentSortBy !== "lastViewedAt") {
+        // No ordering if lastViewedAt or unspecified
+        order = contentOrder
+    } else {
+        order = contentDescending
+    }
     return { where, order };
 }
 
@@ -304,6 +364,122 @@ function sortContentsByJobPosition(
         return mult * a.title.localeCompare(b.title);
     });
 }
+
+type RecentListRow = Awaited<
+    ReturnType<typeof contentRepo.getRecentViews>
+>[number];
+
+function sortRecentsByJobPosition(
+    rows: RecentListRow[],
+    ascending: boolean
+): RecentListRow[] {
+    const mult = ascending ? 1 : -1;
+    return [...rows].sort((a, b) => {
+        const ca = a.Content
+        const cb = b.Content
+        const sa = [...ca.jobPositions].sort().join(",");
+        const sb = [...cb.jobPositions].sort().join(",");
+        const c = sa.localeCompare(sb);
+        if (c !== 0) return c * mult;
+        return mult * ca.title.localeCompare(cb.title);
+    });
+}
+
+
+//===============================
+//Post (Content marked as viewed)
+//===============================
+router.post("/:contentId/view", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        if (Number.isNaN(contentId)) {
+            res.status(400).json({ error: "Invalid content id" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        await contentRepo.recordView(employee.id, contentId);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to record view",
+        });
+    }
+});
+
+
+//===================================
+//GET (recently viewed documents)====
+//===================================
+router.get("/recent", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const limit = Number(req.query.limit);
+        const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
+
+        let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
+
+        const parsed = parseRecentListQuery(req.query, employee);
+        if ("legacyNoQuery" in parsed) {1
+            recent = await contentRepo.getRecentViews(employee.id, take);
+        } else {
+            if (parsed.order === null) {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+            } else if (typeof parsed.order === "boolean") {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, {
+                    lastViewedAt: parsed.order ? "asc" : "desc"
+                });
+            } else if (parsed.order.kind === "prisma") {
+                let orderBy:
+                    | Prisma.RecentContentViewOrderByWithRelationInput
+                    | Prisma.RecentContentViewOrderByWithRelationInput[] = null
+                const contentOrderBy = parsed.order.orderBy
+                if (Array.isArray(contentOrderBy)) {
+                    orderBy = contentOrderBy.map((order) => {
+                        return {Content: order}
+                    })
+                } else {
+                    orderBy = {Content: contentOrderBy}
+                }
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
+            } else {
+                const unsorted = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+                recent = sortRecentsByJobPosition(unsorted, parsed.order.ascending)
+            }
+        }
+
+        res.json({
+            success: true,
+            recent: recent.map((row) => ({
+                lastViewedAt: row.lastViewedAt,
+                content: row.Content,
+            })),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to load recent documents",
+        });
+    }
+});
 
 // ===================================
 // GET ===============================
@@ -357,8 +533,23 @@ router.get("/", requiresAuth(), async (req, res) => {
     }
 });
 
+// Returns the top N most downloaded content items, sorted by downloadCount descending.
+// Use the ?limit= query param to control how many results come back (default 5).
+router.get("/stats/top", requiresAuth(), async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    try {
+        const top = await prisma.content.findMany({
+            orderBy: { downloadCount: "desc" },
+            take: limit,
+            select: { id: true, title: true, viewCount: true, downloadCount: true }
+        });
+        res.json({ top });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
 
-router.get("/:id", requiresAuth(), async (req, res) => { // get content
+router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -371,13 +562,24 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
             res.status(404).json({ error: "Not found" });
             return;
         }
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
+        await prisma.content.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } },
+        });
         res.json({ content: content });
     } catch (err) {
         res.status(500).json({ error: err });
     }
 });
 
-router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
+router.get("/:id/download", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
@@ -390,11 +592,22 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "Not found" });
             return;
         }
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
         const filePath = content.filePath;
         if (!filePath?.trim()) {
             res.status(404).json({ error: "No file or link" });
             return;
         }
+        await prisma.content.update({
+            where: { id },
+            data: { downloadCount: { increment: 1 } }
+        });
         if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
             res.json({ url: filePath });
             return;
@@ -403,6 +616,336 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
         res.json({ url: signedUrl });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
+    }
+});
+
+function mapSummaryErrorToMessage(err: unknown): string {
+    if (err instanceof SummaryUnsupportedError) {
+        return err.message;
+    }
+    if (err instanceof SummaryTooLargeError) {
+        return err.message;
+    }
+    if (err instanceof SummaryBadRequestError) {
+        return err.message;
+    }
+    if (err instanceof AuthenticationError) {
+        return "Summarization service is not configured (invalid Anthropic API key).";
+    }
+    if (err instanceof RateLimitError) {
+        return "Summarization rate limited. Try again in a moment.";
+    }
+    if (err instanceof BadRequestError) {
+        return (
+            err.message ||
+            "The summarization service rejected this request (e.g. model or document format)."
+        );
+    }
+    if (err instanceof APIError && err.status != null) {
+        if (err.status >= 500) {
+            return "Summarization failed. Try again later.";
+        }
+        return err.message || "Summarization request failed.";
+    }
+    const message = err instanceof Error ? err.message : "Summarization failed";
+    if (
+        message.includes("ANTHROPIC_API_KEY") ||
+        message.includes("not configured")
+    ) {
+        return "Summarization service is not configured.";
+    }
+    return message || "Summarization failed. Try again later.";
+}
+
+function tagVisibleWhere(employeeId: number): Prisma.TagWhereInput {
+    return {
+        OR: [{ ownerId: employeeId }, { isGlobal: true }],
+    };
+}
+
+// Returns viewCount and downloadCount for a specific content item.
+// Frontend can use either or both fields — just ignore what you don't need.
+router.get("/:id/stats", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await prisma.content.findUnique({
+            where: { id },
+            select: { viewCount: true, downloadCount: true },
+        });
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        res.json({
+            viewCount: content.viewCount,
+            downloadCount: content.downloadCount,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
+
+router.post("/:id/suggest-tags", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    console.log("[tagSuggest] POST /api/content/:id/suggest-tags start", {
+        contentId: id,
+    });
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
+
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+            res.status(400).json({
+                error: "AI tag suggestions are only available for uploaded files in the app, not external links.",
+            });
+            return;
+        }
+
+        if (
+            content.fileSize != null &&
+            content.fileSize > MAX_SUMMARY_BYTES
+        ) {
+            res.status(413).json({
+                error: `Document exceeds the ${MAX_SUMMARY_BYTES / (1024 * 1024)} MB limit for AI tag suggestions.`,
+            });
+            return;
+        }
+
+        const candidateTags = await prisma.tag.findMany({
+            where: tagVisibleWhere(employee.id),
+            orderBy: [{ tagName: "asc" }],
+            select: { id: true, tagName: true },
+        });
+
+        if (candidateTags.length === 0) {
+            res.status(400).json({
+                error: "No tags are available to assign. Create a tag first.",
+            });
+            return;
+        }
+
+        const contentWithTags = await contentRepo.getTags(id);
+        const existingTagIds = new Set(
+            (contentWithTags?.tags ?? []).map((ct) => ct.tagId),
+        );
+
+        const buffer = await downloadBuffer(filePath);
+        const filename =
+            path.basename(filePath.split("?")[0] || "") || `content-${id}`;
+
+        let suggested: number[];
+        try {
+            suggested = await suggestTagIdsFromContent({
+                buffer,
+                filename,
+                title: content.title,
+                candidateTags,
+            });
+        } catch (suggestErr) {
+            const msg = mapSummaryErrorToMessage(suggestErr);
+            console.error("[tagSuggest] suggestTagIdsFromContent failed", suggestErr);
+            res.status(500).json({ error: msg });
+            return;
+        }
+
+        const tagIds = suggested.filter((tagId) => !existingTagIds.has(tagId));
+
+        console.log("[tagSuggest] POST /api/content/:id/suggest-tags ok", {
+            contentId: id,
+            offered: tagIds.length,
+        });
+        res.json({ success: true, tagIds });
+    } catch (err) {
+        console.error("POST /content/:id/suggest-tags", err);
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to suggest tags",
+        });
+    }
+});
+
+router.post("/:id/summary", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    const summaryReqStart = Date.now();
+    console.log("[summary] POST /api/content/:id/summary start", { contentId: id });
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        void notifyOwnerOnDocumentAccess(content).catch((err) =>
+            console.error("notifyOwnerOnDocumentAccess", err),
+        );
+
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+            res.status(400).json({
+                error: "AI summary is only available for uploaded files in the app, not external links.",
+            });
+            return;
+        }
+
+        if (
+            content.fileSize != null &&
+            content.fileSize > MAX_SUMMARY_BYTES
+        ) {
+            res.status(413).json({
+                error: `Document exceeds the ${MAX_SUMMARY_BYTES / (1024 * 1024)} MB limit for summarization.`,
+            });
+            return;
+        }
+
+        const beginSummarySse = (): (() => void) => {
+            // SSE + comment pings: keeps the socket busy during long Claude calls (Safari ~60s idle drops).
+            res.status(200);
+            res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+            res.setHeader("Cache-Control", "no-cache, no-transform");
+            res.setHeader("Connection", "keep-alive");
+            res.setHeader("X-Accel-Buffering", "no");
+            res.flushHeaders();
+
+            const pingMs = 12_000;
+            const ping = setInterval(() => {
+                try {
+                    res.write(": ping\n\n");
+                } catch {
+                    clearInterval(ping);
+                }
+            }, pingMs);
+            const stopPing = () => {
+                clearInterval(ping);
+            };
+            req.on("close", stopPing);
+            return stopPing;
+        };
+
+        const cached = content.aiSummary?.trim();
+
+        const sendSummaryDone = (
+            markdown: string,
+            cacheHit: boolean,
+        ): void => {
+            console.log("[summary] POST /api/content/:id/summary ok", {
+                contentId: id,
+                totalMs: Date.now() - summaryReqStart,
+                markdownChars: markdown.length,
+                cacheHit,
+            });
+            res.write(
+                `event: done\ndata: ${JSON.stringify({ markdown })}\n\n`,
+            );
+            res.end();
+        };
+
+        if (cached) {
+            console.log("[summary] cache hit", { contentId: id });
+            const stopPing = beginSummarySse();
+            stopPing();
+            req.removeListener("close", stopPing);
+            sendSummaryDone(cached, true);
+            return;
+        }
+
+        console.log("[summary] downloading from storage", {
+            contentId: id,
+            filePathSuffix: filePath.slice(-48),
+        });
+        const buffer = await downloadBuffer(filePath);
+        const filename =
+            path.basename(filePath.split("?")[0] || "") || `content-${id}`;
+        console.log("[summary] storage download done", {
+            contentId: id,
+            bytes: buffer.length,
+            filename,
+        });
+
+        const stopPing = beginSummarySse();
+
+        try {
+            const markdown = await summarizeContentBuffer({
+                buffer,
+                filename,
+                title: content.title,
+            });
+            await prisma.content.update({
+                where: { id },
+                data: { aiSummary: markdown },
+            });
+            stopPing();
+            req.removeListener("close", stopPing);
+            sendSummaryDone(markdown, false);
+        } catch (summarizeErr) {
+            stopPing();
+            req.removeListener("close", stopPing);
+            const msg = mapSummaryErrorToMessage(summarizeErr);
+            console.error("[summary] summarize failed", summarizeErr);
+            try {
+                res.write(
+                    `event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`,
+                );
+            } catch {
+                /* client disconnected */
+            }
+            res.end();
+        }
+    } catch (err) {
+        if (res.headersSent) {
+            console.error(
+                "[summary] error after SSE headers sent (unexpected)",
+                err,
+            );
+            try {
+                if (!res.writableEnded) {
+                    res.end();
+                }
+            } catch {
+                /* ignore */
+            }
+            return;
+        }
+        console.error("POST /content/:id/summary (pre-stream)", err);
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to prepare summarization",
+        });
     }
 });
 
@@ -504,7 +1047,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
 
     //allow if owner or admin
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
+    const isAdmin = await getEmployeeIsAdmin(employee);
     const isTutorialOwner =
         content.isTutorial && content.ownerId === employee.id;
 
@@ -544,7 +1087,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
     }
 
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
+    const isAdmin = await getEmployeeIsAdmin(employee);
     const isTutorialOwner =
         content.isTutorial && content.ownerId === employee.id;
 
@@ -570,6 +1113,10 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
             checkedOutBy: { include: { userPhoto: true } },
         },
     });
+
+    void notifyOwnerOnDocumentAccess(content).catch((err) =>
+        console.error("notifyOwnerOnDocumentAccess", err),
+    );
 
     const checkedOutBy = updated.checkedOutBy
         ? await employeeWithProfileUrl(updated.checkedOutBy)
@@ -605,7 +1152,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         const isTutorialOwner =
             content.isTutorial && content.ownerId === employee.id;
@@ -632,6 +1179,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
         }
 
         const isOwner = content.ownerId === employee.id;
+        const previousOwnerId = content.ownerId;
         const parsedNewOwnerId = newOwnerID ? Number(newOwnerID) : undefined;
 
         if (parsedNewOwnerId && parsedNewOwnerId !== content.ownerId) {
@@ -692,6 +1240,9 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 isCheckedOut: false,
                 checkedOutById: null,
                 checkedOutOn: null,
+                hasBeenNotifiedExpiringSoon: false,
+                hasBeenNotifiedOfExpiration: false,
+                aiSummary: null,
                 dateUpdated: new Date(Date.now()),
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
             },
@@ -699,6 +1250,33 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 owner: true,
             },
         });
+
+        try {
+            if (employee.id !== previousOwnerId) {
+                await notifyDocumentEditedByOther(
+                    id,
+                    name.trim(),
+                    previousOwnerId,
+                    employee,
+                    notificationRepo,
+                );
+            }
+            if (
+                parsedNewOwnerId &&
+                parsedNewOwnerId !== previousOwnerId &&
+                content.owner
+            ) {
+                await notifyOwnershipTransferred(
+                    id,
+                    name.trim(),
+                    parsedNewOwnerId,
+                    content.owner,
+                    notificationRepo,
+                );
+            }
+        } catch (notifyErr) {
+            console.error("content update notifications", notifyErr);
+        }
 
         res.json({
             success: true,
@@ -785,7 +1363,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
 //         }
 //
 //         const isOwner = content.ownerId === employee.id;
-//         const isAdmin = employee.jobPosition === "admin";
+//         const isAdmin = await getEmployeeIsAdmin(employee);
 //         if (!isOwner && !isAdmin) {
 //             res.status(403).json({ error: "Not authorized to delete this content" });
 //             return;
@@ -837,7 +1415,7 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id,
+                OR: [{ ownerId: employee.id }, { isGlobal: true }],
             },
         });
 
@@ -901,7 +1479,7 @@ router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
         const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
-                ownerId: employee.id,
+                OR: [{ ownerId: employee.id }, { isGlobal: true }],
             },
         });
 
@@ -965,6 +1543,36 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         res.status(500).json({
             error: err instanceof Error ? err.message : "Failed to load tags",
         });
+    }
+});
+
+
+//TUT ++++++==========================================
+router.get("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        const contents = await contentRepo.getTutorialContent(employee.id);
+        res.json(contents);
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
+
+router.delete("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        await contentRepo.deleteTutorialContent(employee.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err });
     }
 });
 

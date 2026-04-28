@@ -18,10 +18,17 @@ import { LockKeyIcon, LockKeyOpenIcon, PencilIcon, TrashIcon } from "@phosphor-i
 import type { FormState } from "@/components/forms/Form.tsx";
 import { FormOfType, type FormType, type FormOfTypeProps } from "@/components/forms/FormOfType.tsx";
 import DeleteConfirmDialog from "@/components/dialog/DeleteConfirmDialog.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
 
 const DEFAULT_UPDATE_FORM_HEADERS: { [P in FormType]: string } = {
     Document: "Update Document",
     Employee: "Update Employee",
+};
+
+const UPDATE_FORM_HELP: { [P in FormType]: React.ReactNode } = {
+    Document:
+        "Edit this document’s metadata and file. For checked-out documents, you must hold the checkout lock to save changes.",
+    Employee: "Update this employee’s profile. Save applies changes to the directory.",
 };
 
 /** Document lock: checkout/check in from the menu; Edit/Delete only while you hold the lock (`heldByMe`). */
@@ -143,9 +150,14 @@ export default function ModifyDropdown({
                                 }
                             >
                                 <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
-                                    <DialogTitle className="text-base font-semibold sm:text-lg">
-                                        {DEFAULT_UPDATE_FORM_HEADERS[formType]}
-                                    </DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        <DialogTitle className="m-0 border-b-0 pb-0 text-base font-semibold leading-none sm:text-lg sm:leading-none">
+                                            {DEFAULT_UPDATE_FORM_HEADERS[formType]}
+                                        </DialogTitle>
+                                        <HelpHint contentClassName="max-w-sm">
+                                            {UPDATE_FORM_HELP[formType]}
+                                        </HelpHint>
+                                    </div>
                                 </DialogHeader>
                                 <FormOfType formType={formType} {...formState} />
                             </DialogContent>

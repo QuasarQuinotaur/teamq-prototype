@@ -4,8 +4,6 @@ import {Input} from "@/elements/input.tsx";
 import DateSelectInput from "@/components/input/DateSelectInput.tsx";
 import type {FormFieldsProps} from "@/components/forms/Form.tsx";
 import JobPositionInput from "@/components/input/JobPositionInput.tsx";
-import {Separator} from "@/elements/separator.tsx";
-import {cn} from "@/lib/utils.ts";
 
 export type EmployeeFields = {
     firstName: string;

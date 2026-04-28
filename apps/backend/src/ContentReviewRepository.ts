@@ -13,8 +13,6 @@ class ContentReviewRepository {
         }
     }
 
-
-
     // GET
     async getAll() {
         return prisma.contentReview.findMany({

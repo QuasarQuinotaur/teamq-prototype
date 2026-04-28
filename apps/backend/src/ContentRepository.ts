@@ -1,4 +1,5 @@
 import { prisma, type Prisma } from "db";
+import { RecentContentViewOrderByWithRelationInput, RecentContentViewWhereInput } from "../../../packages/db/generated/prisma/models";
 
 const contentCatalogInclude = {
     owner: true,
@@ -59,7 +60,7 @@ class ContentRepository {
         });
     }
 
-    async getById(id: number, userId: number) {
+    async getById(id: number, userId?: number) {
         return prisma.content.findFirst({
             where: {
                 id,
@@ -139,6 +140,46 @@ class ContentRepository {
     async delete(id: number) {
         return prisma.content.delete({
             where: { id }
+        });
+    }
+    async recordView(employeeId: number, contentId: number) {
+        return prisma.recentContentView.upsert({
+            where: {
+                employeeId_contentId: {
+                    employeeId,
+                    contentId,
+                },
+            },
+            update: {
+                lastViewedAt: new Date(),
+            },
+            create: {
+                employeeId,
+                contentId,
+                lastViewedAt: new Date(),
+            },
+        });
+    }
+
+    async getRecentViews(
+        employeeId: number, take = 10,
+        where?: RecentContentViewWhereInput,
+        orderBy?:
+            | Prisma.RecentContentViewOrderByWithRelationInput
+            | Prisma.RecentContentViewOrderByWithRelationInput[]
+    ) {
+        return prisma.recentContentView.findMany({
+            where: where ? { employeeId, ...where } : { employeeId },
+            orderBy: orderBy ?? { lastViewedAt: "desc" },
+            take,
+            include: {
+                Content: {
+                    include: {
+                        owner: true,
+                        checkedOutBy: { include: { userPhoto: true } },
+                    },
+                },
+            },
         });
     }
     async getTags(contentId: number) {
