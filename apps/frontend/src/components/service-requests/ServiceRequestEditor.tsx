@@ -31,6 +31,13 @@ import {
 } from "@/components/service-requests/LinkContentsCombobox.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
 import { sortedStages } from "@/components/service-requests/workflowTypes.ts";
+import {
+  WORKFLOW_CREATION_PRESETS,
+  WORKFLOW_CREATION_TEMPLATE_AGENT_PIPELINE,
+  getWorkflowCreationPreset,
+  type WorkflowCreationPreset,
+  type WorkflowCreationPresetKey,
+} from "@/components/service-requests/workflowCreationPresets.ts";
 import type { Employee } from "db";
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -115,6 +122,14 @@ function newStageDraft(key?: string): StageDraft {
   };
 }
 
+function draftStagesFromPreset(preset: WorkflowCreationPreset): StageDraft[] {
+  return preset.stages.map((seed) => ({
+    ...newStageDraft(),
+    title: seed.title,
+    description: seed.description,
+  }));
+}
+
 export type ServiceRequestEditorProps = {
   mode: "create" | "edit";
   /** Workflow id when `mode` is `"edit"` */
@@ -146,10 +161,15 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [duePopoverKey, setDuePopoverKey] = React.useState<string | null>(null);
+  const [creationTemplateKey, setCreationTemplateKey] = React.useState<
+    "" | WorkflowCreationPresetKey
+  >("");
 
   const updateStage = React.useCallback((key: string, patch: Partial<StageDraft>) => {
     setStages((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
   }, []);
+
+  const creationTemplateFromUrl = searchParams.get("template") ?? "";
 
   React.useEffect(() => {
     let cancelled = false;
@@ -224,8 +244,16 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
           });
         } else {
           setContents(docOpts);
-          setStages([newStageDraft()]);
-          setWorkflowTitle("");
+          const preset = getWorkflowCreationPreset(creationTemplateFromUrl);
+          if (preset) {
+            setStages(draftStagesFromPreset(preset));
+            setWorkflowTitle(preset.defaultWorkflowTitle ?? "");
+            setCreationTemplateKey(preset.key);
+          } else {
+            setStages([newStageDraft()]);
+            setWorkflowTitle("");
+            setCreationTemplateKey("");
+          }
           setBaseline(null);
         }
       })
@@ -237,7 +265,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
     return () => {
       cancelled = true;
     };
-  }, [mode, requestId]);
+  }, [mode, requestId, creationTemplateFromUrl]);
 
   const dueFromUrl = searchParams.get("due");
   React.useEffect(() => {
@@ -420,38 +448,50 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
             />
           </div>
 
+          {mode === "create" ? (
+            <div className="flex max-w-md flex-col gap-2">
+              <Label htmlFor="sr-creation-template">Template</Label>
+              <Select
+                value={creationTemplateKey === "" ? "blank" : creationTemplateKey}
+                onValueChange={(v) => {
+                  if (v === "blank") {
+                    setCreationTemplateKey("");
+                    setStages([newStageDraft()]);
+                    return;
+                  }
+                  const key = v as WorkflowCreationPresetKey;
+                  const preset = WORKFLOW_CREATION_PRESETS[key];
+                  if (!preset) return;
+                  setCreationTemplateKey(key);
+                  setStages(draftStagesFromPreset(preset));
+                  setWorkflowTitle(preset.defaultWorkflowTitle ?? "");
+                }}
+                disabled={disabled}
+              >
+                <SelectTrigger id="sr-creation-template">
+                  <SelectValue placeholder="Choose template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="blank">Blank (single stage)</SelectItem>
+                  <SelectItem value={WORKFLOW_CREATION_TEMPLATE_AGENT_PIPELINE}>
+                    {WORKFLOW_CREATION_PRESETS.agentUnderwriterApprover.label}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-10">
-            {stages.map((stage, index) => (
+            {stages.map((stage) => (
               <section
                 key={stage.key}
                 className="flex flex-col gap-6 rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Stage {index + 1}
-                    {mode === "create" && stages.length > 1 ? (
-                      <span className="ml-2 text-sm font-normal text-muted-foreground">
-                        (order {index + 1})
-                      </span>
-                    ) : null}
-                  </h2>
-                  {mode === "create" && stages.length > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 text-muted-foreground hover:text-destructive"
-                      aria-label={`Remove stage ${index + 1}`}
-                      onClick={() => removeStage(stage.key)}
-                    >
-                      <Trash2Icon className="size-4" />
-                    </Button>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-                  <div className="min-w-0 flex-1 flex-col gap-2">
-                    <Label htmlFor={`sr-stage-title-${stage.key}`}>Stage title</Label>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-8">
+                  <div className="min-w-0 flex-1">
+                    <Label htmlFor={`sr-stage-title-${stage.key}`} className="sr-only">
+                      Stage title
+                    </Label>
                     <Textarea
                       id={`sr-stage-title-${stage.key}`}
                       value={stage.title}
@@ -459,18 +499,34 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
                       placeholder="Untitled stage"
                       disabled={disabled}
                       rows={2}
-                      className="min-h-[52px] resize-y"
+                      className="min-h-[52px] w-full resize-y border-0 bg-transparent p-0 text-lg font-semibold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0"
                     />
                   </div>
-                  <div className="flex w-full shrink-0 flex-col gap-2 sm:max-w-xs">
+                  <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:max-w-sm">
                     <Label htmlFor={`sr-assignees-${stage.key}`}>Assign to</Label>
-                    <AssignEmployeesCombobox
-                      employees={employees}
-                      value={stage.assigneeIds}
-                      onValueChange={(ids) => updateStage(stage.key, { assigneeIds: ids })}
-                      disabled={disabled}
-                      placeholder="Select employees…"
-                    />
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <AssignEmployeesCombobox
+                          employees={employees}
+                          value={stage.assigneeIds}
+                          onValueChange={(ids) => updateStage(stage.key, { assigneeIds: ids })}
+                          disabled={disabled}
+                          placeholder="Select employees…"
+                        />
+                      </div>
+                      {mode === "create" && stages.length > 1 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="shrink-0 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove this stage"
+                          onClick={() => removeStage(stage.key)}
+                        >
+                          <Trash2Icon className="size-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
