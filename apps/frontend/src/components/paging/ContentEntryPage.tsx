@@ -950,7 +950,7 @@ export default function ContentEntryPage({
         return entries.filter((entry) =>
             favoritedList && favoritedList.some((f) => f.id === entry.item.id),
         );
-    }, [queryEntries, favoritedList]);
+    }, [entries, favoritedList]);
 
     const { view, setView } = useMainContext();
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };
