@@ -25,6 +25,7 @@ import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
+import About from "@/pages/About.tsx"
 
 
 export const router = createBrowserRouter([
@@ -116,7 +117,11 @@ export const router = createBrowserRouter([
                                 element: <NotificationDetail />
                             },
                             {
-                                element: <RoleGuard allowedRole="admin" />,
+                                path: "about",
+                                element: <About />,
+                            },
+                            {
+                                element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
                                         path: "/documents/employees",

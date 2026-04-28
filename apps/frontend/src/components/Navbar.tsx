@@ -81,6 +81,10 @@ function Navbar() {
         return `${employee.firstName[0]}${employee.lastName[0]}`.toUpperCase();
     };
 
+    const handleLogout = () => {
+        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/logout`
+    }
+
     return (
         /* Changed bg-white to bg-hanover-blue and text-black to text-white */
         <nav className='grid grid-cols-3 items-center px-8 min-w-full text-white shadow-md bg-hanover-blue h-navbar-height'>
@@ -131,8 +135,8 @@ function Navbar() {
                         <DropdownMenuItem onClick={()=> navigate("/documents/settings")}>Settings</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                            className="text-destructive" 
-                            onClick={() => window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/logout`}
+                            variant={"destructive"}
+                            onClick={handleLogout}
                         >
                             Sign out
                         </DropdownMenuItem>

@@ -35,6 +35,7 @@ import {
     notifyOwnershipTransferred,
 } from "../contentNotificationTriggers.ts";
 import { contentService, notificationRepo } from "../services.ts";
+import { getEmployeeIsAdmin } from "../util.ts";
 const contentRepo = new ContentRepository();
 
 const router = Router();
@@ -205,6 +206,8 @@ type ContentListOrder =
 type ParsedListQuery = {
     where: Prisma.ContentWhereInput;
     order: ContentListOrder;
+    rawSortBy: string;
+    desc: boolean;
 };
 
 /**
@@ -276,7 +279,8 @@ function parseContentListQuery(
     const where: Prisma.ContentWhereInput =
         ands.length > 0 ? { AND: ands } : {};
 
-    const sortBy = parseQueryStringList(query, "sortBy")[0] ?? "title";
+    const rawSortBy = parseQueryStringList(query, "sortBy")[0]
+    const sortBy = rawSortBy ?? "title";
     const sortMethod =
         parseQueryStringList(query, "sortMethod")[0] ?? "ascending";
     const desc = sortMethod === "descending";
@@ -301,6 +305,42 @@ function parseContentListQuery(
         };
     }
 
+    return { where, order, rawSortBy, desc };
+}
+
+
+type ParsedRecentListQuery = {
+    where: Prisma.RecentContentViewWhereInput;
+    order?: ContentListOrder | boolean;
+};
+
+/**
+ * If `query` is empty, legacy clients get the full list ordered by id (e.g. admin check-in, dev).
+ * Otherwise, optional filter/sort come from the query string.
+ */
+function parseRecentListQuery(
+    query: express.Request["query"],
+    employee: { id: number } | null,
+): ParsedRecentListQuery | { legacyNoQuery: true } {
+    const contentQuery = parseContentListQuery(query, employee)
+    if ("legacyNoQuery" in contentQuery) {
+        return contentQuery
+    }
+    
+    const where: Prisma.RecentContentViewWhereInput = {
+        Content: contentQuery.where
+    }
+
+    let order: ContentListOrder | boolean = null
+    const contentOrder = contentQuery.order
+    const contentSortBy = contentQuery.rawSortBy
+    const contentDescending = contentQuery.desc
+    if (contentSortBy && contentSortBy.trim() && contentSortBy !== "lastViewedAt") {
+        // No ordering if lastViewedAt or unspecified
+        order = contentOrder
+    } else {
+        order = contentDescending
+    }
     return { where, order };
 }
 
@@ -324,6 +364,122 @@ function sortContentsByJobPosition(
         return mult * a.title.localeCompare(b.title);
     });
 }
+
+type RecentListRow = Awaited<
+    ReturnType<typeof contentRepo.getRecentViews>
+>[number];
+
+function sortRecentsByJobPosition(
+    rows: RecentListRow[],
+    ascending: boolean
+): RecentListRow[] {
+    const mult = ascending ? 1 : -1;
+    return [...rows].sort((a, b) => {
+        const ca = a.Content
+        const cb = b.Content
+        const sa = [...ca.jobPositions].sort().join(",");
+        const sb = [...cb.jobPositions].sort().join(",");
+        const c = sa.localeCompare(sb);
+        if (c !== 0) return c * mult;
+        return mult * ca.title.localeCompare(cb.title);
+    });
+}
+
+
+//===============================
+//Post (Content marked as viewed)
+//===============================
+router.post("/:contentId/view", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const contentId = Number(req.params.contentId);
+        if (Number.isNaN(contentId)) {
+            res.status(400).json({ error: "Invalid content id" });
+            return;
+        }
+
+        const content = await contentRepo.getById(contentId);
+        if (!content) {
+            res.status(404).json({ error: "Content not found" });
+            return;
+        }
+
+        await contentRepo.recordView(employee.id, contentId);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to record view",
+        });
+    }
+});
+
+
+//===================================
+//GET (recently viewed documents)====
+//===================================
+router.get("/recent", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const limit = Number(req.query.limit);
+        const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
+
+        let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
+
+        const parsed = parseRecentListQuery(req.query, employee);
+        if ("legacyNoQuery" in parsed) {1
+            recent = await contentRepo.getRecentViews(employee.id, take);
+        } else {
+            if (parsed.order === null) {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+            } else if (typeof parsed.order === "boolean") {
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, {
+                    lastViewedAt: parsed.order ? "asc" : "desc"
+                });
+            } else if (parsed.order.kind === "prisma") {
+                let orderBy:
+                    | Prisma.RecentContentViewOrderByWithRelationInput
+                    | Prisma.RecentContentViewOrderByWithRelationInput[] = null
+                const contentOrderBy = parsed.order.orderBy
+                if (Array.isArray(contentOrderBy)) {
+                    orderBy = contentOrderBy.map((order) => {
+                        return {Content: order}
+                    })
+                } else {
+                    orderBy = {Content: contentOrderBy}
+                }
+                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
+            } else {
+                const unsorted = await contentRepo.getRecentViews(employee.id, take, parsed.where);
+                recent = sortRecentsByJobPosition(unsorted, parsed.order.ascending)
+            }
+        }
+
+        res.json({
+            success: true,
+            recent: recent.map((row) => ({
+                lastViewedAt: row.lastViewedAt,
+                content: row.Content,
+            })),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Failed to load recent documents",
+        });
+    }
+});
 
 // ===================================
 // GET ===============================
@@ -377,20 +533,35 @@ router.get("/", requiresAuth(), async (req, res) => {
     }
 });
 
+// Returns the top N most downloaded content items, sorted by downloadCount descending.
+// Use the ?limit= query param to control how many results come back (default 5).
+router.get("/stats/top", requiresAuth(), async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    try {
+        const top = await prisma.content.findMany({
+            orderBy: { downloadCount: "desc" },
+            take: limit,
+            select: { id: true, title: true, viewCount: true, downloadCount: true }
+        });
+        res.json({ top });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
 
-router.get("/:id", requiresAuth(), async (req, res) => { // get content
+router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
     try {
-        const content = await contentRepo.getById(id);
+        const employee = await getEmployeeFromRequest(req);
+        const content = await contentRepo.getById(id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;
         }
-        const employee = await getEmployeeFromRequest(req);
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
             return;
@@ -398,25 +569,29 @@ router.get("/:id", requiresAuth(), async (req, res) => { // get content
         void notifyOwnerOnDocumentAccess(content).catch((err) =>
             console.error("notifyOwnerOnDocumentAccess", err),
         );
+        await prisma.content.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } },
+        });
         res.json({ content: content });
     } catch (err) {
         res.status(500).json({ error: err });
     }
 });
 
-router.get("/:id/download", requiresAuth(), async (req, res) => { // get download url for content
+router.get("/:id/download", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
     try {
-        const content = await contentRepo.getById(id);
+        const employee = await getEmployeeFromRequest(req);
+        const content = await contentRepo.getById(id, employee?.id);
         if (!content) {
             res.status(404).json({ error: "Not found" });
             return;
         }
-        const employee = await getEmployeeFromRequest(req);
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
             return;
@@ -429,6 +604,10 @@ router.get("/:id/download", requiresAuth(), async (req, res) => { // get downloa
             res.status(404).json({ error: "No file or link" });
             return;
         }
+        await prisma.content.update({
+            where: { id },
+            data: { downloadCount: { increment: 1 } }
+        });
         if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
             res.json({ url: filePath });
             return;
@@ -484,6 +663,32 @@ function tagVisibleWhere(employeeId: number): Prisma.TagWhereInput {
     };
 }
 
+// Returns viewCount and downloadCount for a specific content item.
+// Frontend can use either or both fields — just ignore what you don't need.
+router.get("/:id/stats", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const content = await prisma.content.findUnique({
+            where: { id },
+            select: { viewCount: true, downloadCount: true },
+        });
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        res.json({
+            viewCount: content.viewCount,
+            downloadCount: content.downloadCount,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
+
 router.post("/:id/suggest-tags", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
@@ -494,14 +699,14 @@ router.post("/:id/suggest-tags", requiresAuth(), async (req, res) => {
         contentId: id,
     });
     try {
-        const content = await contentRepo.getById(id);
-        if (!content) {
-            res.status(404).json({ error: "Not found" });
-            return;
-        }
         const employee = await getEmployeeFromRequest(req);
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
             return;
         }
         void notifyOwnerOnDocumentAccess(content).catch((err) =>
@@ -592,14 +797,14 @@ router.post("/:id/summary", requiresAuth(), async (req, res) => {
     const summaryReqStart = Date.now();
     console.log("[summary] POST /api/content/:id/summary start", { contentId: id });
     try {
-        const content = await contentRepo.getById(id);
-        if (!content) {
-            res.status(404).json({ error: "Not found" });
-            return;
-        }
         const employee = await getEmployeeFromRequest(req);
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
             return;
         }
         void notifyOwnerOnDocumentAccess(content).catch((err) =>
@@ -834,7 +1039,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
         return res.status(404).json({ error: "No linked employee account found" });
     }
 
-    const content = await contentRepo.getById(id);
+    const content = await contentRepo.getById(id, employee.id);
 
     if (!content) {
         return res.status(404).json({ error: "Not found" });
@@ -842,9 +1047,11 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
 
     //allow if owner or admin
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
+    const isAdmin = await getEmployeeIsAdmin(employee);
+    const isTutorialOwner =
+        content.isTutorial && content.ownerId === employee.id;
 
-    if (!isJobPosition && !isAdmin) {
+    if (!isTutorialOwner && !isJobPosition && !isAdmin) {
         return res.status(403).json({ error: "Not authorized to check in this content" });
     }
 
@@ -873,15 +1080,18 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         return;
     }
 
-    const content = await contentRepo.getById(id);
+    const content = await contentRepo.getById(id, employee.id);
     if (!content) {
         res.status(404).json({ error: "Not found" });
         return;
     }
 
     const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-    const isAdmin = employee.jobPosition === "admin";
-    if (!isJobPosition && !isAdmin) {
+    const isAdmin = await getEmployeeIsAdmin(employee);
+    const isTutorialOwner =
+        content.isTutorial && content.ownerId === employee.id;
+
+    if (!isTutorialOwner && !isJobPosition && !isAdmin) {
         res.status(403).json({ error: "Not authorized to check out this content" });
         return;
     }
@@ -935,16 +1145,19 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             return;
         }
 
-        const content = await contentRepo.getById(id);
+        const content = await contentRepo.getById(id, employee.id);
 
         if (!content) {
             return res.status(404).json({ error: "Content not found" });
         }
 
         const isJobPosition = content.jobPositions.includes(employee.jobPosition);
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
-        if (!isJobPosition && !isAdmin) {
+        const isTutorialOwner =
+            content.isTutorial && content.ownerId === employee.id;
+
+        if (!isTutorialOwner && !isJobPosition && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to check in this content" });
         }
 
@@ -1149,7 +1362,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
 //         }
 //
 //         const isOwner = content.ownerId === employee.id;
-//         const isAdmin = employee.jobPosition === "admin";
+//         const isAdmin = await getEmployeeIsAdmin(employee);
 //         if (!isOwner && !isAdmin) {
 //             res.status(403).json({ error: "Not authorized to delete this content" });
 //             return;
@@ -1210,10 +1423,14 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const content = await contentRepo.getById(contentId);
+        const content = await contentRepo.getById(contentId, employee.id);
         if (!content) {
             res.status(404).json({ error: "Content not found" });
             return;
+        }
+
+        if (content.isTutorial && content.ownerId !== employee.id) {
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         const contentTag = await contentRepo.addTag(contentId, tagId);
@@ -1270,7 +1487,7 @@ router.delete("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const content = await contentRepo.getById(contentId);
+        const content = await contentRepo.getById(contentId, employee.id);
         if (!content) {
             res.status(404).json({ error: "Content not found" });
             return;
@@ -1325,6 +1542,36 @@ router.get("/:contentId/tags", requiresAuth(), async (req, res) => {
         res.status(500).json({
             error: err instanceof Error ? err.message : "Failed to load tags",
         });
+    }
+});
+
+
+//TUT ++++++==========================================
+router.get("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        const contents = await contentRepo.getTutorialContent(employee.id);
+        res.json(contents);
+    } catch (err) {
+        res.status(500).json({ error: err });
+    }
+});
+
+router.delete("/tutorial", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            return res.status(404).json({ error: "No employee" });
+        }
+
+        await contentRepo.deleteTutorialContent(employee.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err });
     }
 });
 

@@ -10,7 +10,7 @@ import {Separator} from "@/elements/separator.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import ContentTypeMultiInput from "@/components/input/ContentTypeMultiInput.tsx";
 import SelectMapInput from "@/components/input/SelectMapInput.tsx";
-import {JOB_POSITION_TYPE_MAP, SORT_METHOD_TYPE_MAP, type SortMethod} from "@/components/input/constants.tsx";
+import {SORT_METHOD_TYPE_MAP, type SortMethod} from "@/components/input/constants.tsx";
 import {useEffect, useState} from "react";
 
 export type SortFields = {

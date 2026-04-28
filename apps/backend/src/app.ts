@@ -20,6 +20,7 @@ import linkPreviewRouter from "./routes/linkPreview.ts";
 import tagsRouter from "./routes/tags.ts";
 import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
+import rolesRouter from "./routes/roles.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -58,6 +59,7 @@ app.use("/tmp", express.static("tmp"));
 // HERE ARE THE ROUTES YOU HAVE TO ADD
 app.use("/api/content", contentRoutes);
 app.use("/api/employee", employeeRouter);
+app.use("/api/roles", rolesRouter);
 app.use('/api/servicereqs', serviceRequestsRouter);
 app.use('/api/photos', photoRoutes);
 app.use('/api', authRouter);

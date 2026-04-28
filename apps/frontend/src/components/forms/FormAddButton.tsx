@@ -39,6 +39,12 @@ export default function FormAddButton({
         }
     }
 
+    const specialFormText = (
+        formType === "Document" ? "+ New Document" :
+        formType === "Employee" ? "+ New Employee" :
+        null
+    )
+
     return (
         <Dialog
             open={formOpen}
@@ -46,14 +52,14 @@ export default function FormAddButton({
         >
             <DialogTrigger asChild>
                 <Button
-                    variant={formType === "Document" ? "default" : "outline"}
+                    variant={specialFormText ? "default" : "outline"}
                     className={
-                        formType === "Document"
+                        specialFormText
                             ? "px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             : undefined
                     }
                 >
-                    {formType === "Document" ? "+ New Document" : <PlusIcon />}
+                    {specialFormText ?? <PlusIcon />}
                 </Button>
             </DialogTrigger>
             <DialogContent className={"sm:max-w-lg"}>

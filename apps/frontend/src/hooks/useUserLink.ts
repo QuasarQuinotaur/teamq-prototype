@@ -17,21 +17,13 @@ export const useUserLink = () => {
         console.log("User verified:", response.data);
         setIsLoading(false);
       } catch (error: any) {
-        if (error.response) {
-          const status = error.response.status;
-
-          if (status === 401) {
-            window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/login`;
-            return; // Don't set loading to false, we are leaving the paging
-          }
-
-          if (status === 404) {
-            setNotRegistered(true);
-            setIsLoading(false);
-            return;
-          }
+        if (error.response?.status === 404) {
+          setNotRegistered(true);
+          setIsLoading(false);
+          return;
         }
-        setIsLoading(false);
+        // Redirect to login for 401, network errors, or any other failure
+        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/login`;
       }
     };
 

@@ -371,4 +371,37 @@ router.get("/tags/:tagId/content", requiresAuth(), async (req, res) => {
     }
 });
 
+// TUT ============================
+router.get("/tutorial/tags/:tagId/content", requiresAuth(), async (req, res) => {
+    const employee = await getEmployeeFromRequest(req);
+
+    if (!employee) {
+        return res.status(404).json({error: "No linked employee account found"});
+    }
+
+    const tagId = Number(req.params.tagId);
+
+    if (Number.isNaN(tagId)) {
+        return res.status(400).json({error: "Invalid tag id"});
+    }
+
+    const tag = await prisma.tag.findFirst({
+        where: {
+            id: tagId,
+            ownerId: employee.id,
+        },
+    });
+
+    if (!tag) {
+        return res.status(404).json({error: "Tag not found"});
+    }
+
+    const content = await contentRepo.getTutorialByTag(tagId, employee.id);
+
+    res.json({
+        success: true,
+        content,
+    });
+});
+
 export default router;

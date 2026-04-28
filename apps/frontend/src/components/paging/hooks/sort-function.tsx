@@ -12,6 +12,10 @@ export const DEFAULT_SORT_FIELDS: SortFields = {
     sortBy: "title",
     sortMethod: "ascending"
 }
+export const DEFAULT_SORT_FIELDS_RECENT: SortFields = {
+    sortBy: "lastViewedAt",
+    sortMethod: "ascending"
+}
 
 type SortFunctionProps<T> = {
     getMapper: (sortBy: T) => (entry: CardEntry) => string | undefined;
