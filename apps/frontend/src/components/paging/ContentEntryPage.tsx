@@ -626,6 +626,7 @@ export default function ContentEntryPage({
     }, [searchPhrase, fieldsFilter, defaultFieldsFilter]);
 
     const showFavoritesSection =
+        !onlyRecents &&
         !onlyFavorites &&
         !onlyMine &&
         !onlyMyCheckouts &&
