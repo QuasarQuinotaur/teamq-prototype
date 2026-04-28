@@ -26,6 +26,7 @@ import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
 import {
@@ -52,7 +53,9 @@ export default function Dashboard() {
         if (saved) {
             try {
                 return JSON.parse(saved);
-            } catch {}
+            } catch (e) {
+                console.error("Failed to parse widgets", e);
+                }
         }
         return [
             { id: "1", type: "progressStatsCard", size: 1 },
@@ -68,6 +71,7 @@ export default function Dashboard() {
         { type: "progressPieChart", label: "Progress (Chart) " },
         { type: "expirationLine", label: "Document Expirations (Chart) " },
         { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
+        { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
         { type: "gif", label: "GIF" },
     ];
 
@@ -454,7 +458,7 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
-                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart") ? (
+                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart" || w.type === "topDocumentActivity") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -575,7 +579,7 @@ function SortableItem({
             ref={(el) => { setNodeRef(el); registerNode(id, el); }}
             style={style}
             {...attributes}
-            className={`group ${widthClass} flex-none relative ${minHeightClass} rounded-lg border bg-card mb-2 overflow-hidden ${
+            className={`group ${widthClass} flex-none relative ${minHeightClass} mb-2 ${
                 isActive ? "opacity-0" : ""
             }`}
         >
@@ -631,9 +635,14 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
                 loading={data.loading}
             />
         ); break;
+        case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
     }
 
-    return <div className="h-full p-4">{inner}</div>;
+    return (
+        <div className="h-full p-4 bg-white rounded-2xl shadow-sm">
+            {inner}
+        </div>
+    );
 }
