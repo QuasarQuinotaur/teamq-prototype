@@ -124,6 +124,10 @@ export const router = createBrowserRouter([
                                 element: <About />,
                             },
                             {
+                                path: "credits",
+                                element: <Credits />,
+                            },
+                            {
                                 element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
