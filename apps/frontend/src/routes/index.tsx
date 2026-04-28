@@ -124,10 +124,6 @@ export const router = createBrowserRouter([
                                 element: <About />,
                             },
                             {
-                                path: "credits",
-                                element: <Credits />,
-                            },
-                            {
                                 element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
@@ -147,16 +143,6 @@ export const router = createBrowserRouter([
                                         element: <Announcements />,
                                     },
                                 ],
-                            },
-                        ]
-                    },
-                    {
-                        path: "tutorial/:hidden",
-                        element: <Tutorial />,
-                        children: [
-                            {
-                                path: "all",
-                                element: <TutorialContent />,
                             },
                         ]
                     },
