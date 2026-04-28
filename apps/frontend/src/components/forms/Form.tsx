@@ -48,7 +48,7 @@ function FormActions({
                     {cancelText ?? "Cancel"}
                 </Button>}
                 {!hideReset && <Button type={"reset"} variant={"outline"}>Reset</Button>}
-                <Button type={"submit"} disabled={isSubmitting} className={"ml-auto"}>
+                <Button id="tutorial-9" type={"submit"} disabled={isSubmitting} className={"ml-auto"}>
                     {submitText ? (typeof(submitText) == "string" ? submitText : submitText(isSubmitting)) :
                         isSubmitting ? "Saving..." : "Save"}
                 </Button>

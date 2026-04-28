@@ -21,6 +21,7 @@ import tagsRouter from "./routes/tags.ts";
 import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
 import rolesRouter from "./routes/roles.ts";
+import contentReviewRouter from "./routes/contentReview.ts";
 
 const employeeRepo = new EmployeeRepository();
 
@@ -68,6 +69,7 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api", tagsRouter);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRouter);
+app.use("/api/content-reviews", contentReviewRouter);
 
 
 export async function getEmployeeFromRequest(req: express.Request) {

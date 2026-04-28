@@ -142,7 +142,7 @@ class ContentReviewService {
     async getAll() {
         return prisma.contentReview.findMany({
             orderBy: { date: "asc" },
-            include: { content: true, employee: true },
+            include: { Content: true, Employee: true },
         });
     }
 
@@ -150,7 +150,7 @@ class ContentReviewService {
         return prisma.contentReview.findMany({
             where: { contentId },
             orderBy: { date: "asc" },
-            include: { employee: true },
+            include: { Employee: true },
         });
     }
 }
