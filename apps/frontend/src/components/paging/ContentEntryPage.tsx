@@ -38,6 +38,7 @@ import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
+import ContentReviewsOption from "./review/ContentReviewsOption";
 
 type ViewerState = {
     contentId: number;
@@ -830,6 +831,9 @@ export default function ContentEntryPage({
                         fetchContentRef.current() // maybe other content had their tags changed
                         void fetchTagList() // update list
                     }}
+                />
+                <ContentReviewsOption
+                    contentId={item.id}
                 />
                 <ContentDetailsOption
                     content={item}
