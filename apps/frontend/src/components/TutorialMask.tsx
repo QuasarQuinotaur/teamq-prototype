@@ -101,7 +101,7 @@ export default function TutorialMask({disabled}) {
                 <div className="flex-return">
                     <h1>Welcome to IBank</h1>
                 </div>
-                <div className="flex-return justify-center">
+                <div id="tutorial-text" className="flex-return justify-center bg-foreground rounded-4xl">
                     <p>
                         Before you start working with IBank,
                         please consider taking the tutorial to learn about content management within IBank. <br/>
