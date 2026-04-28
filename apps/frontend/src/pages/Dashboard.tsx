@@ -62,12 +62,12 @@ export default function Dashboard() {
     });
 
     const widgetOptions = [
-        { type: "progressStatsCard", label: "Requests (Stats)" },
-        { type: "requestsCalendar", label: "Requests (Calendar)" },
-        { type: "requestsList", label: "Requests (List)" },
-        { type: "progressPieChart", label: "Progress (Chart)" },
-        { type: "expirationLine", label: "Document Expirations (chart)" },
-        { type: "expirationCalendar", label: "Document Expirations & Reviews(calendar)" },
+        { type: "progressStatsCard", label: "Requests (Stats) " },
+        { type: "requestsCalendar", label: "Requests (Calendar) " },
+        { type: "requestsList", label: "Requests (List) " },
+        { type: "progressPieChart", label: "Progress (Chart) " },
+        { type: "expirationLine", label: "Document Expirations (Chart) " },
+        { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
         { type: "gif", label: "GIF" },
     ];
 
@@ -401,7 +401,7 @@ export default function Dashboard() {
                                                             type={w.type}
                                                             data={{
                                                                 loading: false,
-                                                                requestsList: [],
+                                                                requests: [],
                                                                 counts: { todo: 3, overdue: 1, dueWeek: 2, done: 4 },
                                                                 yourRequestsList: [],
                                                                 overdueList: [],
@@ -441,7 +441,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Full row)
+                                                    Add {w.label} (Large
                                                 </button>
                                             ) : w.type === "expirationCalendar" ? (
                                                 <button
@@ -452,7 +452,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Full width, 2 rows tall)
+                                                    Add {w.label} (Large)
                                                 </button>
                                             ) : (w.type === "progressStatsCard" || w.type === "progressPieChart") ? (
                                                 <button
@@ -612,9 +612,6 @@ function SortableItem({
 
 
 function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
-    if (type === "requestsCalendar") {
-        return <CalendarWidget requests={data.requests} loading={data.loading} />;
-    }
 
     let inner: React.ReactNode;
     switch (type) {
@@ -627,6 +624,7 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
                 loading={data.loading}
             />
         ); break;
+        case "requestsCalendar": inner = <CalendarWidget requests={data.requests} loading={data.loading} />; break;
         case "expirationCalendar": inner = (
             <DocumentExpirationCalendarWidget
                 items={data.contentForExpiration ?? []}
