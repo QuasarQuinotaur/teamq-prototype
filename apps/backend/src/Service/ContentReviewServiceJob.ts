@@ -21,15 +21,18 @@ const service = new ContentReviewService(new ContentReviewRepository(), new Noti
 // // start loop
 // setTimeout(runJob, 5000);
 
-cron.schedule("0 */30 * * * *", () => {
-    async function runJob() {
+
+cron.schedule(
+    "* */30 * * * *",
+    async () => {
         try {
             console.log("Running review notification job...");
             await service.processReviewNotifications();
         } catch (err) {
             console.error("Review notification job failed:", err);
         }
+    },
+    {
+        timezone: "America/New_York",
     }
-}, {
-    timezone: "America/New_York"
-});
+);

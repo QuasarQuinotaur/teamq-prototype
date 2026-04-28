@@ -20,8 +20,10 @@ import linkPreviewRouter from "./routes/linkPreview.ts";
 import tagsRouter from "./routes/tags.ts";
 import notificationRoutes from "./routes/notification.ts";
 import settingsRouter from "./routes/settings.ts";
+import rolesRouter from "./routes/roles.ts";
 import reviewRouter from "./routes/contentReview.ts"
-require('./Service/ContentReviewServiceJob.ts')();
+// require('./Service/ContentReviewServiceJob.ts')();
+import "./Service/ContentReviewServiceJob.ts";
 
 const employeeRepo = new EmployeeRepository();
 
