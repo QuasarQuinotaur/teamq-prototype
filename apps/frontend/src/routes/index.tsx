@@ -150,6 +150,16 @@ export const router = createBrowserRouter([
                             },
                         ]
                     },
+                    {
+                        path: "tutorial/:hidden",
+                        element: <Tutorial />,
+                        children: [
+                            {
+                                path: "all",
+                                element: <TutorialContent />,
+                            },
+                        ]
+                    },
                 ]
             },
         ]
