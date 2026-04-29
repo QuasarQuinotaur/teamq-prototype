@@ -4,6 +4,7 @@ import { applyTheme, THEME_IDS, type ThemeId, applyTextSize, applyIconSize, type
 import { Button } from "@/elements/buttons/button.tsx";
 import type { UserSettings } from "db";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import { HelpHint } from "@/elements/help-hint.tsx";
 
 type SettingsState = {
   theme: ThemeId;
@@ -96,7 +97,14 @@ export default function Settings() {
     <div className="bg-muted/50 flex min-h-0 flex-1 flex-col overflow-auto rounded-xl p-10 gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Settings</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">Settings</h1>
+            <HelpHint contentClassName="max-w-sm">
+              Personal preferences for your account: theme, text and icon size, tags on
+              cards, and the default documents view (grid or list). Save Changes stores
+              them on the server and applies them in this browser.
+            </HelpHint>
+          </div>
           <p className="text-muted-foreground text-sm mt-0.5">
             Manage your personal preferences.
           </p>

@@ -225,6 +225,7 @@ export default function DocumentFormFields({
                                             <FileIcon className={"size-4"} />
                                         </Button>
                                         <Button
+                                            id="tutorial-5"
                                             type={"button"}
                                             variant={
                                                 fields.sourceType === "link"

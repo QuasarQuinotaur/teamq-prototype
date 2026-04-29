@@ -51,13 +51,19 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  beforeOverlay,
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Rendered inside the portal before the overlay (e.g. full-viewport background). */
+  beforeOverlay?: React.ReactNode
+  overlayClassName?: string
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      {beforeOverlay}
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

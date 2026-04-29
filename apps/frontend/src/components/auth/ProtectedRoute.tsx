@@ -7,7 +7,7 @@ export function ProtectedRoute() {
   const { isLoading, notRegistered } = useUserLink();
 
   // Only render the actual paging content once loading is finished
-  const mainContext = useCreateMainContext()
+  const mainContext = useCreateMainContext(!isLoading && !notRegistered)
 
   if (isLoading) {
     // Show a blank screen or a spinner instead of the paging content

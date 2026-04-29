@@ -4,14 +4,17 @@ import type { IDocument } from "@iamjariwala/react-doc-viewer";
 import "@iamjariwala/react-doc-viewer/dist/index.css";
 import { Button } from "@/elements/buttons/button.tsx";
 import { ArrowLeftIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import { DocumentAiSummaryMenu } from "@/components/DocumentAiSummaryMenu.tsx";
 
 export type DocumentPanePayload = {
+    contentId: number;
     url: string;
     filename: string;
     title: string;
 };
 
 type DocumentViewerProps = {
+    contentId: number;
     url: string;
     filename: string;
     title: string;
@@ -162,7 +165,12 @@ const DocumentCanvas = React.memo(function DocumentCanvas({ url, filename }: { u
 export { DocumentCanvas };
 
 function paneDocEqual(a: DocumentPanePayload, b: DocumentPanePayload): boolean {
-    return a.url === b.url && a.filename === b.filename && a.title === b.title;
+    return (
+        a.contentId === b.contentId &&
+        a.url === b.url &&
+        a.filename === b.filename &&
+        a.title === b.title
+    );
 }
 
 /** Memoized so only the pane whose `doc` changes re-renders its DocViewer subtree. */
@@ -173,6 +181,8 @@ export const PaneDocumentViewer = React.memo(function PaneDocumentViewer({
     doc: DocumentPanePayload;
     onBackToGrid: () => void;
 }) {
+    const [summaryToolbarSlot, setSummaryToolbarSlot] = React.useState<HTMLDivElement | null>(null);
+
     return (
         <div className="flex h-full min-h-0 flex-col bg-background">
             <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
@@ -181,15 +191,21 @@ export const PaneDocumentViewer = React.memo(function PaneDocumentViewer({
                     Back
                 </Button>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{doc.title}</span>
+                <div ref={setSummaryToolbarSlot} className="flex shrink-0 items-center" />
             </div>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <DocumentCanvas url={doc.url} filename={doc.filename} />
+                <DocumentAiSummaryMenu
+                    contentId={doc.contentId}
+                    toolbarSlot={summaryToolbarSlot}
+                />
             </div>
         </div>
     );
 }, (prev, next) => paneDocEqual(prev.doc, next.doc));
 
 export default function DocumentViewer({
+    contentId,
     url,
     filename,
     title,
@@ -197,6 +213,8 @@ export default function DocumentViewer({
     canEnterSplit = false,
     onEnterSplit,
 }: DocumentViewerProps) {
+    const [summaryToolbarSlot, setSummaryToolbarSlot] = React.useState<HTMLDivElement | null>(null);
+
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="flex shrink-0 items-center gap-3 border-b bg-background px-4 py-3">
@@ -205,15 +223,25 @@ export default function DocumentViewer({
                     Back
                 </Button>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
-                {canEnterSplit && onEnterSplit ? (
-                    <Button variant="outline" size="sm" type="button" onClick={onEnterSplit} className="shrink-0 gap-1.5">
-                        <SidebarSimpleIcon className="size-4" />
-                        Split view
-                    </Button>
-                ) : null}
+                <div className="flex shrink-0 items-center gap-2">
+                    <div ref={setSummaryToolbarSlot} className="flex shrink-0 items-center" />
+                    {canEnterSplit && onEnterSplit ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={onEnterSplit}
+                            className="shrink-0 gap-1.5 shadow-sm"
+                        >
+                            <SidebarSimpleIcon className="size-4" />
+                            Split view
+                        </Button>
+                    ) : null}
+                </div>
             </div>
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <DocumentCanvas url={url} filename={filename} />
+                <DocumentAiSummaryMenu contentId={contentId} toolbarSlot={summaryToolbarSlot} />
             </div>
         </div>
     );

@@ -1,148 +1,196 @@
 import { prisma } from "db";
+import type { Prisma } from "db";
+
+const workflowCatalogInclude = {
+    owner: { include: { userPhoto: true } },
+    stages: {
+        orderBy: { stageOrder: "asc" as const },
+        include: {
+            employees: { include: { userPhoto: true } },
+            contents: true,
+        },
+    },
+} satisfies Prisma.ServiceRequestWorkflowInclude;
+
+export type WorkflowCatalogEntry = Prisma.ServiceRequestWorkflowGetPayload<{
+    include: typeof workflowCatalogInclude;
+}>;
+
+const stageDetailInclude = {
+    workflow: {
+        include: {
+            owner: { include: { userPhoto: true } },
+            stages: {
+                orderBy: { stageOrder: "asc" as const },
+                include: {
+                    employees: { include: { userPhoto: true } },
+                    contents: true,
+                },
+            },
+        },
+    },
+    employees: { include: { userPhoto: true } },
+    contents: true,
+} satisfies Prisma.ServiceRequestStageInclude;
+
+/** Deduped stage assignees as sent by the client; creator is not auto-added. */
+function uniqueStageEmployeeIds(employeeIds: number[] | undefined): number[] {
+    return Array.from(new Set(employeeIds ?? []));
+}
 
 class ServiceRequestRepository {
     async getAll() {
-        return prisma.serviceRequest.findMany({ orderBy: { id: "asc" } });
+        return prisma.serviceRequestWorkflow.findMany({ orderBy: { id: "asc" } });
     }
 
-    async getAllWithDetails() {
-        return prisma.serviceRequest.findMany({
+    async getAllWithDetails(): Promise<WorkflowCatalogEntry[]> {
+        return prisma.serviceRequestWorkflow.findMany({
             orderBy: { id: "asc" },
-            include: {
-                owner: { include: { userPhoto: true } },
-                employees: { include: { userPhoto: true } },
-                contents: true
-            }
+            include: workflowCatalogInclude,
         });
     }
 
-    async getById(id: number) {
-        return prisma.serviceRequest.findUnique({
+    async getWorkflowById(id: number): Promise<WorkflowCatalogEntry | null> {
+        return prisma.serviceRequestWorkflow.findUnique({
             where: { id },
-            include: {
-                owner: { include: { userPhoto: true } },
-                employees: { include: { userPhoto: true } },
-                contents: true
-            }
+            include: workflowCatalogInclude,
         });
     }
 
-    async getByCreator(ownerId: number) {
-        return prisma.serviceRequest.findMany({
+    async getStageById(id: number) {
+        return prisma.serviceRequestStage.findUnique({
+            where: { id },
+            include: stageDetailInclude,
+        });
+    }
+
+    async getByCreator(ownerId: number): Promise<WorkflowCatalogEntry[]> {
+        return prisma.serviceRequestWorkflow.findMany({
             where: { ownerId },
             orderBy: { id: "asc" },
-            include: {
-                owner: { include: { userPhoto: true } },
-                employees: { include: { userPhoto: true } },
-                contents: true
-            }
+            include: workflowCatalogInclude,
         });
     }
 
-    async getByRequestee(employeeId: number) {
-        return prisma.serviceRequest.findMany({
+    async getByEmployeeAssigned(employeeId: number): Promise<WorkflowCatalogEntry[]> {
+        return prisma.serviceRequestWorkflow.findMany({
             where: {
-                employees: {
+                stages: {
                     some: {
-                        id: employeeId
-                    }
-                }
+                        employees: { some: { id: employeeId } },
+                    },
+                },
             },
             orderBy: { id: "asc" },
-            include: {
-                owner: { include: { userPhoto: true } },
-                employees: { include: { userPhoto: true } },
-                contents: true
-            }
+            include: workflowCatalogInclude,
         });
     }
 
-    async create(data: {
+    async createWorkflowWithStages(data: {
         ownerId: number;
-        title?: string;
-        description?: string;
-        dateDue?: Date | null;
-        priority?: string | null;
-        employeeIds?: number[];
-        contentIds?: number[];
+        title?: string | null;
+        stages: Array<{
+            title?: string | null;
+            description?: string | null;
+            dateDue?: Date | null;
+            priority?: string | null;
+            employeeIds?: number[];
+            contentIds?: number[];
+        }>;
     }) {
-        const assigneeIds = Array.from(
-            new Set([...(data.employeeIds ?? []), data.ownerId])
-        );
-        return prisma.serviceRequest.create({
+        if (!data.stages.length) {
+            throw new Error("At least one stage is required");
+        }
+
+        return prisma.serviceRequestWorkflow.create({
             data: {
-                title: data.title,
-                description: data.description,
-                ...(data.dateDue !== undefined ? { dateDue: data.dateDue } : {}),
-                ...(data.priority !== undefined ? { priority: data.priority } : {}),
-                owner: {
-                    connect: { id: data.ownerId }
+                title: data.title ?? undefined,
+                owner: { connect: { id: data.ownerId } },
+                stages: {
+                    create: data.stages.map((s, index) => ({
+                        stageOrder: index + 1,
+                        title: s.title ?? undefined,
+                        description: s.description ?? undefined,
+                        ...(s.dateDue !== undefined ? { dateDue: s.dateDue } : {}),
+                        priority: s.priority ?? undefined,
+                        employees: {
+                            connect: uniqueStageEmployeeIds(s.employeeIds).map((id) => ({
+                                id,
+                            })),
+                        },
+                        contents: s.contentIds?.length
+                            ? {
+                                  connect: s.contentIds.map((id) => ({ id: Number(id) })),
+                              }
+                            : undefined,
+                    })),
                 },
-                employees: {
-                    connect: assigneeIds.map((id) => ({ id })),
-                },
-                contents: data.contentIds
-                    ? {
-                        connect: data.contentIds.map(id => ({ id }))
-                    }
-                    : undefined,
-            }
+            },
+            include: workflowCatalogInclude,
         });
     }
-    // async create(data: {
-    //     type: string;
-    //     ownerId: number;
-    //     requesteeID: number;
-    // }) {
-    //     return prisma.serviceRequest.create({ data });
-    // }
 
-    async update(id: number, data: {
-        title?: string;
-        description?: string;
-        dateDue?: Date | null;
-        priority?: string | null;
-        status?: string;
-        ownerId?: number;
-        employeeIds?: number[];
-        contentIds?: number[];
-    }) {
-        return prisma.serviceRequest.update({
+    async updateWorkflow(
+        id: number,
+        data: {
+            title?: string | null;
+            ownerId?: number;
+        },
+    ) {
+        return prisma.serviceRequestWorkflow.update({
             where: { id },
             data: {
-                title: data.title,
-                description: data.description,
+                ...(data.title !== undefined ? { title: data.title } : {}),
+                ...(data.ownerId !== undefined
+                    ? { owner: { connect: { id: data.ownerId } } }
+                    : {}),
+            },
+            include: workflowCatalogInclude,
+        });
+    }
+
+    async updateStage(
+        id: number,
+        data: {
+            title?: string | null;
+            description?: string | null;
+            dateDue?: Date | null | undefined;
+            priority?: string | null;
+            status?: string;
+            employeeIds?: number[];
+            contentIds?: number[];
+        },
+    ) {
+        return prisma.serviceRequestStage.update({
+            where: { id },
+            data: {
+                ...(data.title !== undefined ? { title: data.title } : {}),
+                ...(data.description !== undefined ? { description: data.description } : {}),
                 ...(data.dateDue !== undefined ? { dateDue: data.dateDue } : {}),
                 ...(data.priority !== undefined ? { priority: data.priority } : {}),
                 ...(data.status !== undefined ? { status: data.status } : {}),
-                owner: data.ownerId
-                    ? { connect: { id: data.ownerId } }
-                    : undefined,
-                employees: data.employeeIds //overrides all employees assigned???
+                ...(data.employeeIds !== undefined
                     ? {
-                        set: data.employeeIds.map(id => ({ id }))
-                    }
-                    : undefined,
-                contents: data.contentIds
+                          employees: {
+                              set: data.employeeIds.map((eid) => ({ id: eid })),
+                          },
+                      }
+                    : {}),
+                ...(data.contentIds !== undefined
                     ? {
-                        set: data.contentIds.map(id => ({ id }))
-                    }
-                    : undefined,
-            }
+                          contents: {
+                              set: data.contentIds.map((cid) => ({ id: cid })),
+                          },
+                      }
+                    : {}),
+            },
+            include: stageDetailInclude,
         });
     }
 
-    // async update(id: number, data: {
-    //     type?: string;
-    //     creatorID?: number;
-    //     requesteeID?: number;
-    // }) {
-    //     return prisma.serviceRequest.update({ where: { id }, data });
-    // }
-
-    async delete(id: number) {
-        return prisma.serviceRequest.delete({ where: { id } });
+    async deleteWorkflow(id: number) {
+        return prisma.serviceRequestWorkflow.delete({ where: { id } });
     }
 }
 
-export { ServiceRequestRepository };
+export { ServiceRequestRepository, uniqueStageEmployeeIds };

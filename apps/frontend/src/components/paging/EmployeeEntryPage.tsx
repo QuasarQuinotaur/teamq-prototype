@@ -18,6 +18,7 @@ import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
 import useEmployeeSortFunction from "@/components/paging/hooks/employee-sort-function.tsx";
 import FilterDocumentFields from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import {EMPLOYEE_SORT_BY_MAP} from "@/components/input/constants.tsx";
+import RoleDropdownButton from "./roles/RoleDropdownButton";
 
 
 export default function EmployeeEntryPage() {
@@ -133,7 +134,10 @@ export default function EmployeeEntryPage() {
                     />
                 )),
             }}
-            extraToolbarElements={[formAddButton]}
+            extraToolbarElements={[
+                formAddButton,
+                <RoleDropdownButton/>
+            ]}
             queryProps={queryProps}
         />
     )

@@ -13,7 +13,7 @@ import {
     CardTitle
 } from "@/components/cards/Card.tsx";
 import type {Content} from "db";
-import {CONTENT_TYPE_MAP, JOB_POSITION_TYPE_MAP} from "@/components/input/constants.tsx";
+import {CONTENT_TYPE_MAP} from "@/components/input/constants.tsx";
 import BadgeList, {type BadgeInfo} from "@/elements/badge-list.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/elements/tooltip.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/elements/avatar.tsx";
@@ -24,6 +24,7 @@ import ContentCardThumbnail, {
 } from "@/components/cards/ContentCardThumbnail.tsx";
 import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
+import useJobNameMap from "@/hooks/useJobNameMap";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -130,6 +131,7 @@ export default function ContentCard({
                                         selectMode,
                                         selected,
                                         onSelectToggle,
+                                        onOpen
 }: ContentCardProps) {
     const { loadAllowed } = useThumbnailBatch();
     const { tagsEnabled } = useMainContext();
@@ -172,6 +174,9 @@ export default function ContentCard({
             onSelectToggle();
             return;
         }
+        if (onOpen) {
+            onOpen(entry);
+        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
@@ -205,11 +210,12 @@ export default function ContentCard({
     const checkoutInitials = who
         ? `${who.firstName?.[0] ?? ""}${who.lastName?.[0] ?? ""}`.trim() || "?"
         : "?";
-    const jobPositionLabels = showJobPositionBadge
+    const { jobNameMap, rolesLoading } = useJobNameMap()
+    const jobPositionLabels = showJobPositionBadge && !rolesLoading
         ? content.jobPositions.map(
               (pos) =>
-                  JOB_POSITION_TYPE_MAP[
-                      pos as keyof typeof JOB_POSITION_TYPE_MAP
+                  jobNameMap[
+                      pos as keyof typeof jobNameMap
                   ] ?? pos,
           )
         : [];

@@ -8,6 +8,8 @@ const { requiresAuth } = pkg;
 import multer from "multer";
 
 import { NotificationRepository } from "../NotificationRepository.ts";
+import { getEmployeeIsAdmin } from "../util.ts";
+import { Employee } from "db";
 const notificationRepo = new NotificationRepository();
 
 const router = Router();
@@ -94,7 +96,7 @@ router.get("/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to view this notification" });
         }
@@ -121,7 +123,7 @@ router.post("/upload", requiresAuth(), async (req, res) => {
         }
 
         // only admins
-        if (employee.jobPosition.toLowerCase() !== "admin") {
+        if (!getEmployeeIsAdmin(employee)) {
             return res.status(403).json({
                 error: "Must be an admin to send a custom notification"
             });
@@ -186,7 +188,7 @@ router.put("/update/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -222,7 +224,7 @@ router.put("/read/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -255,7 +257,7 @@ router.put("/unread/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to update this notification" });
         }
@@ -295,7 +297,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         }
 
         const isOwner = notification.employeeNotifiedID === employee.id;
-        const isAdmin = employee.jobPosition === "admin";
+        const isAdmin = await getEmployeeIsAdmin(employee);
 
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ error: "Not authorized to delete this notification" });

@@ -34,6 +34,7 @@ export type NavMainItem = {
   title: string
   url: string
   icon: React.ReactNode
+  id?: string
   isActive?: boolean
   items?: NavSubItem[]
 }
@@ -129,6 +130,7 @@ function NavMainRow({ item }: { item: NavMainItem }) {
               tooltip={item.title}
               isActive={location.pathname === item.url}
               className={sidebarNavActiveClasses}
+              id={item.id ?? null}
           >
             <NavLink to={item.url}>
               {item.icon}
