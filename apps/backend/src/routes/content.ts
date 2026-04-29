@@ -426,8 +426,6 @@ router.post("/:contentId/view", requiresAuth(), async (req, res) => {
             }),
         ]);
 
-        await contentRepo.recordView(employee.id, contentId);
-
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -671,20 +669,19 @@ router.get("/:id", requiresAuth(), async (req, res) => {
 
 router.get("/:id/download", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
-    const employee = await getEmployeeFromRequest(req);
     if (isNaN(id)) {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
     try {
         const employee = await getEmployeeFromRequest(req);
-        const content = await contentRepo.getById(id, employee?.id);
-        if (!content) {
-            res.status(404).json({ error: "Not found" });
-            return;
-        }
         if (!employee) {
             res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
             return;
         }
         void notifyOwnerOnDocumentAccess(content).catch((err) =>

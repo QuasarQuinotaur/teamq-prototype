@@ -76,7 +76,7 @@ function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
         let cancelled = false;
         setLoading(true);
         setFailed(false);
-        void fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/download`, {
+        void fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/file-url`, {
             credentials: "include",
         })
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error("download"))))
