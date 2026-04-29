@@ -39,6 +39,7 @@ import {
   type WorkflowCreationPresetKey,
 } from "@/components/service-requests/workflowCreationPresets.ts";
 import type { Employee } from "db";
+import { useAppPathPrefix } from "@/hooks/useAppPathPrefix.ts";
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -146,6 +147,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const titleRef = React.useRef<HTMLTextAreaElement>(null);
+  const pathPrefix = useAppPathPrefix();
 
   const [workflowTitle, setWorkflowTitle] = React.useState("");
   const [stages, setStages] = React.useState<StageDraft[]>(() => [newStageDraft()]);
@@ -300,7 +302,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
   }
 
   function handleCancel() {
-    navigate("/documents/service-requests");
+    navigate(`${pathPrefix}/service-requests`);
   }
 
   function addStage() {
@@ -350,7 +352,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
           );
         }
         await res.json();
-        navigate("/documents/service-requests");
+        navigate(`${pathPrefix}/service-requests`);
       } catch (err: unknown) {
         setSubmitError(err instanceof Error ? err.message : "Could not create request.");
       } finally {
@@ -400,7 +402,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
         }
       }
 
-      navigate("/documents/service-requests");
+      navigate(`${pathPrefix}/service-requests`);
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : "Could not update request.");
     } finally {

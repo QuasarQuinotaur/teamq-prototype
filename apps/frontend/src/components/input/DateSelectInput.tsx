@@ -21,12 +21,14 @@ type DateProps = {
     setDate: (date: Date | undefined) => void;
     dateString: string;
     setDateString: (dateString: string) => void;
-} & ComponentProps<typeof InputGroupInput>
+    disabled?: boolean;
+} & Omit<ComponentProps<typeof InputGroupInput>, "disabled">;
 function DateSelectInput({
                              date,
                              setDate,
                              dateString,
                              setDateString,
+                             disabled = false,
                              ...props
 }: DateProps) {
     const [dateOpen, setDateOpen] = useState(false)
@@ -35,6 +37,7 @@ function DateSelectInput({
         <InputGroup>
             <InputGroupInput
                 value={dateString}
+                disabled={disabled}
                 onChange={(e) => {
                     const date = new Date(e.target.value)
                     setDateString(e.target.value)
@@ -45,18 +48,24 @@ function DateSelectInput({
                 onKeyDown={(e) => {
                     if (e.key === "ArrowDown") {
                         e.preventDefault()
-                        setDateOpen(true)
+                        if (!disabled) setDateOpen(true)
                     }
                 }}
                 {...props}
             />
             <InputGroupAddon align="inline-end">
-                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                <Popover
+                    open={disabled ? false : dateOpen}
+                    onOpenChange={(o) => {
+                        if (!disabled) setDateOpen(o);
+                    }}
+                >
                     <PopoverTrigger asChild>
                         <InputGroupButton
                             id={"employee-form-dob-picker"}
                             variant="ghost"
                             aria-label="Select date"
+                            disabled={disabled}
                         >
                             <CalendarIcon /><span className="sr-only">Select date</span>
                         </InputGroupButton>

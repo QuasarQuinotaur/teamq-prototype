@@ -4,7 +4,7 @@
 
 import type { CardEntry } from "@/components/cards/Card.tsx";
 import * as React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/dialog/Dialog.tsx";
 import {
     DropdownMenu,
@@ -48,6 +48,10 @@ type ModifyDropdownProps = {
     documentCheckout?: DocumentCheckoutOptions;
     editError?: string;
     deleteError?: string;
+    /** Tutorial: keep Edit visible but disable all actions except Delete. */
+    tutorialDeleteOnly?: boolean;
+    /** Tooltip shown on disabled Edit in delete-only tutorial mode. */
+    tutorialEditTooltip?: string;
 } & FormOfTypeProps;
 
 export default function ModifyDropdown({
@@ -59,14 +63,21 @@ export default function ModifyDropdown({
                                            documentCheckout,
                                            editError,
                                            deleteError,
+                                           tutorialDeleteOnly = false,
+                                           tutorialEditTooltip,
                                            ...state
 }: ModifyDropdownProps) {
     const [updateFormOpen, setUpdateFormOpen] = useState(false);
+    const submitSucceededRef = useRef(false);
 
     const formState: FormState = {
         ...state,
         baseItem: entry.item,
         noFixedHeight: true,
+        onAfterSuccessfulSubmit: () => {
+            submitSucceededRef.current = true;
+            state.onAfterSuccessfulSubmit?.();
+        },
         onCancel: () => {
             if (state.onCancel) {
                 state.onCancel();
@@ -76,6 +87,12 @@ export default function ModifyDropdown({
     };
 
     function handleDialogOpenChange(open: boolean) {
+        if (!open && updateFormOpen) {
+            if (!submitSucceededRef.current) {
+                state.onDismissUpdateDialog?.();
+            }
+            submitSucceededRef.current = false;
+        }
         setUpdateFormOpen(open);
     }
 
@@ -129,42 +146,55 @@ export default function ModifyDropdown({
         <DropdownMenu>
             <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-                {checkoutGroup}
-                {showCheckoutSeparator ? <DropdownMenuSeparator /> : null}
+                {!tutorialDeleteOnly ? checkoutGroup : null}
+                {!tutorialDeleteOnly && showCheckoutSeparator ? <DropdownMenuSeparator /> : null}
                 {showEdit && (
                     <DropdownMenuGroup>
-                        <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
-                            <DialogTrigger asChild>
-                                <DropdownMenuItem
-                                    onSelect={(e) => {
-                                        e.preventDefault();
-                                    }}
-                                >
-                                    <PencilIcon />
-                                    Edit
-                                </DropdownMenuItem>
-                            </DialogTrigger>
-                            <DialogContent
-                                className={
-                                    "w-full max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:max-w-xl sm:p-6 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
+                        {tutorialDeleteOnly ? (
+                            <DropdownMenuItem
+                                disabled
+                                title={
+                                    tutorialEditTooltip ??
+                                    "Here you can edit documents and delete."
                                 }
                             >
-                                <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
-                                    <div className="flex items-center gap-2">
-                                        <DialogTitle className="m-0 border-b-0 pb-0 text-base font-semibold leading-none sm:text-lg sm:leading-none">
-                                            {DEFAULT_UPDATE_FORM_HEADERS[formType]}
-                                        </DialogTitle>
-                                        <HelpHint contentClassName="max-w-sm">
-                                            {UPDATE_FORM_HELP[formType]}
-                                        </HelpHint>
-                                    </div>
-                                </DialogHeader>
-                                <FormOfType formType={formType} {...formState} />
-                            </DialogContent>
-                        </Dialog>
+                                <PencilIcon />
+                                Edit
+                            </DropdownMenuItem>
+                        ) : (
+                            <Dialog open={updateFormOpen} onOpenChange={handleDialogOpenChange}>
+                                <DialogTrigger asChild>
+                                    <DropdownMenuItem
+                                        onSelect={(e) => {
+                                            e.preventDefault();
+                                        }}
+                                    >
+                                        <PencilIcon />
+                                        Edit
+                                    </DropdownMenuItem>
+                                </DialogTrigger>
+                                <DialogContent
+                                    className={
+                                        "w-full max-w-[calc(100%-1.5rem)] min-w-0 p-5 text-sm gap-4 sm:max-w-xl sm:p-6 sm:text-base max-h-[min(90dvh,720px)] overflow-y-auto overflow-x-hidden"
+                                    }
+                                >
+                                    <DialogHeader className="gap-1.5 pb-0 sm:gap-2 sm:pb-1">
+                                        <div className="flex items-center gap-2">
+                                            <DialogTitle className="m-0 border-b-0 pb-0 text-base font-semibold leading-none sm:text-lg sm:leading-none">
+                                                {DEFAULT_UPDATE_FORM_HEADERS[formType]}
+                                            </DialogTitle>
+                                            <HelpHint contentClassName="max-w-sm">
+                                                {UPDATE_FORM_HELP[formType]}
+                                            </HelpHint>
+                                        </div>
+                                    </DialogHeader>
+                                    <FormOfType formType={formType} {...formState} />
+                                </DialogContent>
+                            </Dialog>
+                        )}
                     </DropdownMenuGroup>
                 )}
-                {extraMenuItems && (
+                {!tutorialDeleteOnly && extraMenuItems && (
                     <DropdownMenuGroup>{extraMenuItems}</DropdownMenuGroup>
                 )}
                 {showDelete && (

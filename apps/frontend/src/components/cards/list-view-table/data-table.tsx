@@ -16,16 +16,20 @@ import {
 } from "@/components/Table.tsx"
 import { cn } from "@/lib/utils.ts"
 
+import type { CardEntry } from "@/components/cards/Card.tsx"
+
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
-    /** When set, clicking a row (outside buttons/links) invokes this handler. */
+    /** When set, list view rows open the item (e.g. document viewer) on click. */
     onRowClick?: (row: TData) => void
     /** Highlights rows when true and `isRowSelected` returns true (e.g. multi-select). */
     selectMode?: boolean
     isRowSelected?: (row: TData) => boolean
     /** Right-click row (outside interactive targets) — e.g. open document ⋯ menu. */
     onDocumentRowContextMenu?: (row: TData, e: React.MouseEvent) => void
+    /** Tutorial: row for this entry gets `data-tutorial-doc-card`. */
+    tutorialHighlightEntryId?: number | null
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -44,6 +48,7 @@ export function DataTable<TData, TValue>({
                                              selectMode,
                                              isRowSelected,
                                              onDocumentRowContextMenu,
+                                             tutorialHighlightEntryId,
                                          }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -74,9 +79,15 @@ export function DataTable<TData, TValue>({
                 </TableHeader>
                 <TableBody>
                     {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row, index) => (
+                        table.getRowModel().rows.map((row, index) => {
+                            const entry = row.original as CardEntry;
+                            const isTutorialRow =
+                                tutorialHighlightEntryId != null &&
+                                entry.item.id === tutorialHighlightEntryId;
+                            return (
                             <TableRow
                                 key={row.id}
+                                {...(isTutorialRow ? { "data-tutorial-doc-card": "" as const } : {})}
                                 data-state={row.getIsSelected() && "selected"}
                                 {...(selectMode
                                     ? (() => {
@@ -122,7 +133,8 @@ export function DataTable<TData, TValue>({
                                     </TableCell>
                                 ))}
                             </TableRow>
-                        ))
+                            );
+                        })
                     ) : (
                         <TableRow>
                             <TableCell colSpan={columns.length} className="h-24 text-center">

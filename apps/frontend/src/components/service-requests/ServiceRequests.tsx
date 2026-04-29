@@ -38,6 +38,7 @@ import {
 } from "@/elements/avatar.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { cn } from "@/lib/utils.ts";
+import type { AppPathPrefix } from "@/hooks/useAppPathPrefix.ts";
 import type { ConfettiHandle } from "../Confetti";
 import { useRef } from "react";
 import Confetti from "../Confetti";
@@ -103,6 +104,7 @@ export type ServiceRequestCardProps = {
   onStageStatusUpdated?: (workflowId: number, stageId: number, status: string) => void;
   onDeleted?: (workflowId: number) => void;
   className?: string;
+  appPathPrefix?: AppPathPrefix;
 };
 
 function initials(name: string): string {
@@ -139,12 +141,13 @@ export function ServiceRequestCard({
   onStageStatusUpdated,
   onDeleted,
   className,
+  appPathPrefix = "/documents",
 }: ServiceRequestCardProps) {
   const [open, setOpen] = React.useState(false);
   const [updatingStageId, setUpdatingStageId] = React.useState<number | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const workflowNumericId = workflow.id;
-  const editTo = `/documents/service-requests/${workflowNumericId}/edit`;
+  const editTo = `${appPathPrefix}/service-requests/${workflowNumericId}/edit`;
 
   const ordered = React.useMemo(() => sortedStages(workflow.stages), [workflow.stages]);
   const rollupDone = rollupWorkflowStatus(ordered) === "done";

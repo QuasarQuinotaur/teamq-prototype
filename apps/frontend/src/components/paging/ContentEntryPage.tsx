@@ -3,7 +3,7 @@
 // A specific type can be specified (workflow, reference, tool) to only show that type of content
 
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Content, Employee, Tag} from "db";
 import * as React from "react";
@@ -39,6 +39,7 @@ import ContentDetailsOption from "@/components/paging/details/ContentDetailsOpti
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 import ContentReviewsOption from "./review/ContentReviewsOption";
+import { useTutorial } from "@/components/tutorial/TutorialContext.tsx";
 
 type ViewerState = {
     contentId: number;
@@ -109,6 +110,8 @@ function buildContentListQueryString(opts: {
     onlyFavorites?: boolean;
     onlyMine?: boolean;
     onlyMyCheckouts?: boolean;
+    /** `/tutorial/*` lists pass this so API returns owned tutorial rows; `/documents/*` omits it. */
+    includeTutorialDocuments?: boolean;
 }): string {
     const p = new URLSearchParams();
     const {
@@ -118,6 +121,7 @@ function buildContentListQueryString(opts: {
         onlyFavorites,
         onlyMine,
         onlyMyCheckouts,
+        includeTutorialDocuments,
     } = opts;
     for (const c of fieldsFilter.contentTypes ?? []) p.append("contentTypes", c);
     for (const j of fieldsFilter.jobPositions ?? []) p.append("jobPositions", j);
@@ -131,6 +135,7 @@ function buildContentListQueryString(opts: {
     if (onlyFavorites) p.set("onlyFavorites", "1");
     if (onlyMine) p.set("onlyMine", "1");
     if (onlyMyCheckouts) p.set("onlyMyCheckouts", "1");
+    if (includeTutorialDocuments) p.set("includeTutorialDocuments", "1");
     return p.toString();
 }
 
@@ -170,6 +175,8 @@ export default function ContentEntryPage({
                                              isTutorial,
 }: ContentEntryPageProps) {
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const tutorial = useTutorial();
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     /** Fullscreen single-document view (when not in split workspace). */
@@ -410,8 +417,8 @@ export default function ContentEntryPage({
         }
     }
 
-    // Fetches individual piece of content by ID (e.g. after tag change on one row).
-    function fetchContentById(contentId: number) {
+    /** Single-row fetch — faster than waiting for full catalog when only one id matters (e.g. tutorial). */
+    const fetchContentById = useCallback((contentId: number) => {
         fetch(`${apiBase}/api/content/${contentId}`, { credentials: "include" })
             .then((res) => res.json())
             .then((data) => {
@@ -429,7 +436,7 @@ export default function ContentEntryPage({
                     );
                 });
             });
-    }
+    }, [employee, employeeMap]);
 
     const defaultSortFields: SortFields = onlyRecents ? DEFAULT_SORT_FIELDS_RECENT : DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
@@ -456,6 +463,12 @@ export default function ContentEntryPage({
     function loadContentList() {
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
+        const onTutorialDocumentsRoute = location.pathname.startsWith(
+            "/tutorial",
+        );
+        const includeTutorialDocuments =
+            onTutorialDocumentsRoute &&
+            Boolean(onlyMine || onlyMyCheckouts || onlyRecents);
         const qs = buildContentListQueryString({
             fieldsFilter,
             debouncedSearch,
@@ -463,6 +476,7 @@ export default function ContentEntryPage({
             onlyFavorites,
             onlyMine,
             onlyMyCheckouts,
+            includeTutorialDocuments,
         });
         /** TODO: Can you sort */
         const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
@@ -509,6 +523,8 @@ export default function ContentEntryPage({
         onlyFavorites,
         onlyMine,
         onlyMyCheckouts,
+        onlyRecents,
+        location.pathname,
         employee,
         employeeMap,
     ]);
@@ -527,6 +543,12 @@ export default function ContentEntryPage({
         }
         loadContentList();
         notifyContentCheckoutSync();
+        if (
+            tutorial?.routeIsTutorial &&
+            tutorial.tutorialDocId === entry.item.id
+        ) {
+            tutorial.finishTutorialAfterDelete();
+        }
     }
 
     const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
@@ -643,13 +665,179 @@ export default function ContentEntryPage({
         !onlyMyCheckouts &&
         !hasActiveFilterOrSearch;
 
-    const formOfTypeProps: FormOfTypeProps = {
-        formType: "Document",
-        onCancel: () => fetchContentRef.current(),
-        defaultItem: {
-            contentType: contentType,
-        },
-    };
+    const tutorialHighlightEntryId = useMemo(() => {
+        if (!tutorial?.routeIsTutorial || tutorial.tutorialDocId == null) {
+            return null;
+        }
+        if (
+            tutorial.phase === "my_content_see_doc"
+        ) {
+            return tutorial.tutorialDocId;
+        }
+        return null;
+    }, [tutorial]);
+
+    const myContentTutorialRefetchDoneRef = useRef(false);
+    useEffect(() => {
+        if (tutorial?.phase !== "my_content_loading") {
+            myContentTutorialRefetchDoneRef.current = false;
+        }
+    }, [tutorial?.phase]);
+
+    /** After saving in the tutorial, jump ahead by loading this row immediately (small GET vs full My content list). */
+    useEffect(() => {
+        if (!tutorial?.routeIsTutorial || !onlyMine) return;
+        if (!/\/tutorial\/my-documents\/?$/.test(location.pathname)) return;
+        if (
+            tutorial.phase !== "my_content_loading" ||
+            tutorial.tutorialDocId == null
+        )
+            return;
+        fetchContentById(tutorial.tutorialDocId);
+    }, [
+        tutorial?.routeIsTutorial,
+        tutorial?.phase,
+        tutorial?.tutorialDocId,
+        onlyMine,
+        location.pathname,
+        fetchContentById,
+    ]);
+
+    useEffect(() => {
+        if (!tutorial?.routeIsTutorial || !onlyMine) return;
+        if (!/\/tutorial\/my-documents\/?$/.test(location.pathname)) return;
+        if (
+            tutorial.phase !== "my_content_loading" ||
+            tutorial.tutorialDocId == null
+        )
+            return;
+
+        const id = tutorial.tutorialDocId;
+        if (entries.some((e) => e.item.id === id)) {
+            tutorial.notifyTutorialMyContentListReady();
+            return;
+        }
+
+        // Avoid firing extra refetches before the initial catalog request has produced any rows.
+        if (loading && entries.length === 0) return;
+
+        if (!myContentTutorialRefetchDoneRef.current) {
+            myContentTutorialRefetchDoneRef.current = true;
+            fetchContentRef.current();
+        }
+    }, [
+        tutorial,
+        onlyMine,
+        location.pathname,
+        loading,
+        entries,
+    ]);
+
+    const checkedOutTutorialRefetchDoneRef = useRef(false);
+    useEffect(() => {
+        if (tutorial?.phase !== "checked_out_loading") {
+            checkedOutTutorialRefetchDoneRef.current = false;
+        }
+    }, [tutorial?.phase]);
+
+    useEffect(() => {
+        if (!tutorial?.routeIsTutorial || !onlyMyCheckouts) return;
+        if (!/\/tutorial\/checked-out\/?$/.test(location.pathname)) return;
+        if (
+            tutorial.phase !== "checked_out_loading" ||
+            tutorial.tutorialDocId == null
+        )
+            return;
+        fetchContentById(tutorial.tutorialDocId);
+    }, [
+        tutorial?.routeIsTutorial,
+        tutorial?.phase,
+        tutorial?.tutorialDocId,
+        onlyMyCheckouts,
+        location.pathname,
+        fetchContentById,
+    ]);
+
+    useEffect(() => {
+        if (!tutorial?.routeIsTutorial || !onlyMyCheckouts) return;
+        if (!/\/tutorial\/checked-out\/?$/.test(location.pathname)) return;
+        if (
+            tutorial.phase !== "checked_out_loading" ||
+            tutorial.tutorialDocId == null
+        )
+            return;
+
+        const id = tutorial.tutorialDocId;
+        if (entries.some((e) => e.item.id === id)) {
+            tutorial.notifyTutorialCheckedOutListReady();
+            return;
+        }
+
+        if (loading && entries.length === 0) return;
+
+        if (!checkedOutTutorialRefetchDoneRef.current) {
+            checkedOutTutorialRefetchDoneRef.current = true;
+            fetchContentRef.current();
+        }
+    }, [
+        tutorial,
+        onlyMyCheckouts,
+        location.pathname,
+        loading,
+        entries,
+    ]);
+
+    const formOfTypeProps: FormOfTypeProps = useMemo(() => {
+        const onAllDocsPath =
+            /\/(documents|tutorial)\/all\/?$/.test(location.pathname);
+
+        const tutorialDocument =
+            tutorial?.routeIsTutorial &&
+            tutorial.phase === "form" &&
+            onAllDocsPath &&
+            employee
+                ? {
+                      uploadAsTutorial: true,
+                      showFieldCallouts: true,
+                      prefill: (() => {
+                          const exp = new Date();
+                          exp.setFullYear(exp.getFullYear() + 1);
+                          return {
+                              name: "Tutorial example document",
+                              contentType: "workflow",
+                              jobPositions: employee.jobPosition
+                                  ? [employee.jobPosition]
+                                  : [],
+                              expirationDate: exp,
+                              sourceType: "link" as const,
+                              link: "https://example.com",
+                              file: null,
+                          };
+                      })(),
+                  }
+                : undefined;
+
+        return {
+            formType: "Document" as const,
+            onCancel: () => fetchContentRef.current(),
+            defaultItem: {
+                contentType: contentType,
+            },
+            onTutorialDialogOpenChange: tutorial?.routeIsTutorial
+                ? tutorial.notifyAddDialogOpen
+                : undefined,
+            documentTutorial: tutorialDocument,
+            onTutorialDocumentCreated:
+                tutorial?.routeIsTutorial && tutorialDocument
+                    ? tutorial.notifyTutorialDocumentCreated
+                    : undefined,
+        };
+    }, [
+        location.pathname,
+        tutorial,
+        employee,
+        contentType,
+    ]);
     const formAddButton = <FormAddButton {...formOfTypeProps}/>;
 
     const toolbarCenterSlot = selectMode ? (
@@ -880,7 +1068,16 @@ export default function ContentEntryPage({
                         credentials: "include",
                     });
                     const ok = res.ok;
-                    if (ok) notifyContentCheckoutSync();
+                    if (ok) {
+                        notifyContentCheckoutSync();
+                        if (
+                            tutorial?.routeIsTutorial &&
+                            tutorial.phase === "my_content_checkout" &&
+                            tutorial.tutorialDocId === item.id
+                        ) {
+                            tutorial.notifyTutorialDocumentCheckedOut();
+                        }
+                    }
                     return ok;
                 },
                 onCheckin: () => {
@@ -893,6 +1090,10 @@ export default function ContentEntryPage({
                     });
                 },
             }
+            const tutorialDeleteOnly =
+                tutorial?.routeIsTutorial &&
+                tutorial.phase === "checked_out_delete" &&
+                tutorial.tutorialDocId === item.id;
 
             return (
                 <ModifyDropdown
@@ -904,6 +1105,8 @@ export default function ContentEntryPage({
                     editError={editError}
                     deleteError={deleteError}
                     documentCheckout={documentCheckout}
+                    tutorialDeleteOnly={Boolean(tutorialDeleteOnly)}
+                    tutorialEditTooltip="Here you can edit documents and delete."
                 />
             );
         }
@@ -976,6 +1179,7 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
+                tutorialHighlightEntryId={tutorialHighlightEntryId}
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
@@ -993,6 +1197,10 @@ export default function ContentEntryPage({
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
+                            tutorialSeeDocHighlight={
+                                tutorialHighlightEntryId != null &&
+                                state.entry.item.id === tutorialHighlightEntryId
+                            }
                             {...state}
                             onOpen={onContentOpened}
                         />
@@ -1011,6 +1219,7 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
+                tutorialHighlightEntryId={tutorialHighlightEntryId}
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
@@ -1028,6 +1237,10 @@ export default function ContentEntryPage({
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
+                            tutorialSeeDocHighlight={
+                                tutorialHighlightEntryId != null &&
+                                state.entry.item.id === tutorialHighlightEntryId
+                            }
                             {...state}
                             onOpen={onContentOpened}
                         />
@@ -1090,6 +1303,7 @@ export default function ContentEntryPage({
                 gridSkeletonCount={gridSkeletonCount}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
+                tutorialHighlightEntryId={tutorialHighlightEntryId}
                 selectMode={selectMode}
                 isEntrySelected={isEntrySelected}
                 onToggleEntrySelect={onToggleEntrySelect}
@@ -1109,6 +1323,10 @@ export default function ContentEntryPage({
                             showContentTypeBadge={showContentTypeBadge}
                             showJobPositionBadge={showJobPositionBadge}
                             viewerEmployeeId={employee?.id ?? null}
+                            tutorialSeeDocHighlight={
+                                tutorialHighlightEntryId != null &&
+                                state.entry.item.id === tutorialHighlightEntryId
+                            }
                             {...state}
                             onOpen={onContentOpened}
                         />

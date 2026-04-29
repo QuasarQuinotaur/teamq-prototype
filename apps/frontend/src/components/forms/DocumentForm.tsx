@@ -72,10 +72,20 @@ function hasRequiredDocumentFields(fields: ContentFields, isUpdate: boolean) {
 }
 
 
+function mergeTutorialPrefill(base: ContentFields, prefill: object | undefined): ContentFields {
+    if (!prefill) return base;
+    return { ...base, ...prefill } as ContentFields;
+}
+
+
 export default function DocumentForm(state: FormState) {
-    const initialFields =
+    const baseInitial =
         state.baseItem ? itemAsDocumentFields(state.baseItem) :
-            getDefaultDocumentFields(state.defaultItem)
+            getDefaultDocumentFields(state.defaultItem);
+    const initialFields =
+        !state.baseItem && state.documentTutorial?.prefill
+            ? mergeTutorialPrefill(baseInitial, state.documentTutorial.prefill)
+            : baseInitial;
     const initialExpirationString =
         initialFields.expirationDate ? formatDate(initialFields.expirationDate) : ""
 
@@ -139,6 +149,10 @@ export default function DocumentForm(state: FormState) {
             formData.append("link", documentFields.link.trim());
         }
 
+        if (!isUpdate && state.documentTutorial?.uploadAsTutorial) {
+            formData.append("isTutorial", "true");
+        }
+
         const res = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",
             credentials: "include",
@@ -157,10 +171,16 @@ export default function DocumentForm(state: FormState) {
                 result.error || (isUpdate ? "Update failed" : "Upload failed"),
             );
         }
+
+        if (!isUpdate) {
+            const id = result.content?.id;
+            return typeof id === "number" ? id : undefined;
+        }
     }
 
     return (
         <Form
+            key={state.documentTutorial?.uploadAsTutorial ? "doc-tutorial" : "doc-standard"}
             state={state}
             initialFields={initialFields}
             createFieldsElement={(props) => (
@@ -171,6 +191,8 @@ export default function DocumentForm(state: FormState) {
                     isUpdate={isUpdate}
                     existingFileName={existingFileName}
                     updateFileResetter={updateFileResetter}
+                    showTutorialCallouts={state.documentTutorial?.showFieldCallouts ?? false}
+                    fieldsReadOnly={state.documentTutorial?.uploadAsTutorial ?? false}
                 />
             )}
             submit={doSubmit}

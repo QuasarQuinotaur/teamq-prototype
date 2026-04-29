@@ -23,11 +23,18 @@ import { NavLink, useLocation } from "react-router-dom"
 const sidebarNavActiveClasses =
     "data-active:bg-primary data-active:text-primary-foreground data-active:[&_svg]:text-primary-foreground hover:data-active:bg-primary/80 hover:data-active:text-primary-foreground"
 
+export type NavLeafItem = {
+  title: string
+  url: string
+  id?: string
+}
+
 export type NavSubItem = {
   title: string
   url: string
+  id?: string
   /** When set, this sub-item renders as a nested collapsible group. */
-  items?: { title: string; url: string }[]
+  items?: NavLeafItem[]
 }
 
 export type NavMainItem = {
@@ -44,7 +51,7 @@ function NavSubGroup({
   subItem,
   location,
 }: {
-  subItem: NavSubItem & { items: { title: string; url: string }[] }
+  subItem: NavSubItem & { items: NavLeafItem[] }
   location: ReturnType<typeof useLocation>
 }) {
   const activeInGroup = subItem.items.some((s) => location.pathname === s.url)
@@ -78,7 +85,7 @@ function NavSubGroup({
                   isActive={location.pathname === leaf.url}
                   className={sidebarNavActiveClasses}
                 >
-                  <NavLink to={leaf.url}>
+                  <NavLink id={leaf.id} to={leaf.url}>
                     <span>{leaf.title}</span>
                   </NavLink>
                 </SidebarMenuSubButton>
@@ -152,7 +159,7 @@ function NavMainRow({ item }: { item: NavMainItem }) {
                       subItem.items ? (
                         <NavSubGroup
                           key={subItem.title}
-                          subItem={subItem as NavSubItem & { items: { title: string; url: string }[] }}
+                          subItem={subItem as NavSubItem & { items: NavLeafItem[] }}
                           location={location}
                         />
                       ) : (
@@ -162,7 +169,7 @@ function NavMainRow({ item }: { item: NavMainItem }) {
                               isActive={location.pathname === subItem.url}
                               className={sidebarNavActiveClasses}
                           >
-                            <NavLink to={subItem.url}>
+                            <NavLink id={subItem.id} to={subItem.url}>
                               <span>{subItem.title}</span>
                             </NavLink>
                           </SidebarMenuSubButton>

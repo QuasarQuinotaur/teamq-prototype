@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getEmployeeFromRequest } from "../app.ts";
-import { uploadBuffer, getSignedUrl, deleteFile } from "../lib/supabase.ts";
+import { uploadBuffer, tryGetSignedUrl, deleteFile } from "../lib/supabase.ts";
 import pkg from "express-openid-connect";
 import { prisma } from "db";
 const { requiresAuth } = pkg;
@@ -127,7 +127,13 @@ router.get("/photo", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "No profile photo found" });
             return;
         }
-        const signedUrl = await getSignedUrl(photo.path);
+        const signedUrl = await tryGetSignedUrl(photo.path);
+        if (!signedUrl) {
+            res.status(503).json({
+                error: "Storage temporarily unavailable; try again later",
+            });
+            return;
+        }
         res.json({
             success: true,
             url: signedUrl,
@@ -156,7 +162,13 @@ router.get("/photo/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "No profile photo found" });
             return;
         }
-        const signedUrl = await getSignedUrl(photo.path);
+        const signedUrl = await tryGetSignedUrl(photo.path);
+        if (!signedUrl) {
+            res.status(503).json({
+                error: "Storage temporarily unavailable; try again later",
+            });
+            return;
+        }
         res.json({
             success: true,
             url: signedUrl,

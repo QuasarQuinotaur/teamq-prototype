@@ -46,6 +46,24 @@ router.get("/me", async (req, res) => {
     res.json(employee);
 });
 
+/** Marks the guided document tutorial as presented (idempotent). */
+router.post("/me/document-tutorial-shown", async (req, res) => {
+    if (!req.oidc.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+    const email = req.oidc.user!.email as string;
+
+    try {
+        const employee = await prisma.employee.update({
+            where: { email },
+            data: { documentTutorialShown: true },
+        });
+        res.json(employee);
+    } catch (_e) {
+        res.status(404).json({ error: "Employee not registered" });
+    }
+});
+
 // POST /api/me/link
 router.post("/me/link", requiresAuth(), async (req, res) => {
     const sub = req.oidc.user!.sub as string;
