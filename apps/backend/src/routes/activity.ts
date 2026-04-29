@@ -10,6 +10,7 @@ router.get("/", requiresAuth(), async (req, res) => {
         const limit = Number(req.query.limit) || 50;
         const typeFilter = req.query.type as string | undefined;
         const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
+        const since = req.query.since ? new Date(req.query.since as string) : undefined;
 
         const events: {
             type: string;
@@ -25,7 +26,10 @@ router.get("/", requiresAuth(), async (req, res) => {
             const created = await prisma.content.findMany({
                 orderBy: { dateAdded: "desc" },
                 take: limit,
-                where: employeeId ? { ownerId: employeeId } : undefined,
+                where: {
+                    ...(employeeId ? { ownerId: employeeId } : {}),
+                    ...(since ? { dateAdded: { gte: since } } : {}),
+                },
                 select: {
                     id: true,
                     title: true,
@@ -50,7 +54,10 @@ router.get("/", requiresAuth(), async (req, res) => {
             const updated = await prisma.content.findMany({
                 orderBy: { dateUpdated: "desc" },
                 take: limit,
-                where: employeeId ? { ownerId: employeeId } : undefined,
+                where: {
+                    ...(employeeId ? { ownerId: employeeId } : {}),
+                    ...(since ? { dateUpdated: { gte: since } } : {}),
+                },
                 select: {
                     id: true,
                     title: true,
@@ -75,7 +82,10 @@ router.get("/", requiresAuth(), async (req, res) => {
             const accessed = await prisma.recentContentView.findMany({
                 orderBy: { lastViewedAt: "desc" },
                 take: limit,
-                where: employeeId ? { employeeId } : undefined,
+                where: {
+                    ...(employeeId ? { employeeId } : {}),
+                    ...(since ? { lastViewedAt: { gte: since } } : {}),
+                },
                 select: {
                     lastViewedAt: true,
                     Content: { select: { id: true, title: true } },
@@ -99,7 +109,10 @@ router.get("/", requiresAuth(), async (req, res) => {
             const deleted = await prisma.deletedContentLog.findMany({
                 orderBy: { deletedAt: "desc" },
                 take: limit,
-                where: employeeId ? { deletedById: employeeId } : undefined,
+                where: {
+                    ...(employeeId ? { deletedById: employeeId } : {}),
+                    ...(since ? { deletedAt: { gte: since } } : {}),
+                },
                 select: {
                     id: true,
                     contentId: true,
@@ -122,9 +135,7 @@ router.get("/", requiresAuth(), async (req, res) => {
 
         // Sort all events by timestamp descending and trim to limit
         events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        const trimmed = events.slice(0, limit);
-
-        res.json({ events: trimmed });
+        res.json({ events });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to fetch activity" });
     }

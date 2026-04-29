@@ -25,7 +25,9 @@ import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
-import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationCalendarWidget.tsx";
+import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationAndReviewCalendarWidget.tsx";
+import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
+import ContentCurrencyWidget from "@/components/widgets/ContentCurrencyWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import { Skeleton } from "@/elements/skeleton.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
@@ -34,6 +36,8 @@ import {
     enrichWorkflowForList,
     type WorkflowListRow,
 } from "@/components/service-requests/workflowTypes.ts";
+import UserActivityWidget from "@/components/widgets/UserActivityWidget.tsx";
+import ActivityChartWidget from "@/components/widgets/ActivityChartWidget.tsx";
 
 type Widget = {
     id: string;
@@ -47,28 +51,99 @@ type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
+function getDefaultWidgets(jobPosition: string): Widget[] {
+    const base: { type: string; size: 1 | 2 | 3 }[] =
+        jobPosition === "admin"
+            ? [
+                { type: "contentCurrency", size: 1 },
+                { type: "activityChart", size: 2 },
+                { type: "userActivity", size: 2 },
+                { type: "topDocumentActivity", size: 1 },
+                { type: "expirationCalendar", size: 3},
+            ]
+            : jobPosition === "underwriter"
+                ? [
+                    { type: "progressStatsCard", size: 1 },
+                    { type: "requestsCalendar", size: 2 },
+                    { type: "expirationCalendar", size: 3 },
+                ]
+                : jobPosition === "businessAnalyst"
+                    ? [
+                        { type: "progressPieChart", size: 1 },
+                        { type: "requestsCalendar", size: 2 },
+                        { type: "requestsCalendar", size: 3 },
+                    ]
+                    : [
+                        { type: "progressPieChart", size: 1 },
+                        { type: "requestsList", size: 2 },
+                        { type: "requestsCalendar", size: 3 },
+                    ];
+
+    return base.map((w, i) => ({
+        ...w,
+        id: `${w.type}-${i}-${Date.now()}`,
+    }));
+}
+
 export default function Dashboard() {
-    const [widgets, setWidgets] = useState<Widget[]>(() => {
-        const saved = localStorage.getItem("widgets");
+
+    const [user, setUser] = useState<any>(null);
+    const [jobPosition, setJobPosition] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`${base}/me`, {
+                    credentials: "include",
+                });
+                const data = await res.json();
+                setUser(data);
+                setJobPosition(data.jobPosition);
+            } catch (err) {
+                console.error("Failed to fetch user", err);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const [widgets, setWidgets] = useState<Widget[]>([]);
+
+    useEffect(() => {
+        if (!jobPosition || !user) return;
+
+        const storageKey = `dashboard-widgets-${user.id}`;
+        const saved = localStorage.getItem(storageKey);
+
         if (saved) {
             try {
-                return JSON.parse(saved);
-            } catch {}
+                setWidgets(JSON.parse(saved));
+            } catch {
+                setWidgets(getDefaultWidgets(jobPosition));
+            }
+        } else {
+            setWidgets(getDefaultWidgets(jobPosition));
         }
-        return [
-            { id: "1", type: "progressStatsCard", size: 1 },
-            { id: "2", type: "requestsCalendar", size: 2 },
-            { id: "3", type: "requestsList", size: 3 },
-        ];
-    });
+    }, [jobPosition, user]);
+
+    useEffect(() => {
+        if (!widgets.length || !user) return;
+
+        const storageKey = `dashboard-widgets-${user.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(widgets));
+    }, [widgets, user]);
 
     const widgetOptions = [
         { type: "progressStatsCard", label: "Requests (Stats) " },
         { type: "requestsCalendar", label: "Requests (Calendar) " },
         { type: "requestsList", label: "Requests (List) " },
         { type: "progressPieChart", label: "Progress (Chart) " },
-        { type: "expirationLine", label: "Document Expirations (Chart) " },
-        { type: "expirationCalendar", label: "Document Expirations & Reviews (Calendar) " },
+        { type: "expirationLine", label: "Content Expirations (Chart) " },
+        { type: "expirationCalendar", label: "Content Expirations & Reviews (Calendar) " },
+        { type: "contentCurrency", label: "Content Currency" },
+        { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
+        { type: "userActivity", label: "User Activity (Log)" },
+        { type: "activityChart", label: "User Activity (Chart)" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -101,9 +176,6 @@ export default function Dashboard() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [openPreview, setOpenPreview] = useState<string | null>(null);
 
-    useEffect(() => {
-        localStorage.setItem("widgets", JSON.stringify(widgets));
-    }, [widgets]);
 
     useEffect(() => {
         Promise.all([
@@ -447,7 +519,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Large
+                                                    Add {w.label} (Large)
                                                 </button>
                                             ) : w.type === "expirationCalendar" ? (
                                                 <button
@@ -460,7 +532,11 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
-                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart") ? (
+                                            ) : (w.type === "progressStatsCard"
+                                                || w.type === "progressPieChart"
+                                                || w.type === "topDocumentActivity"
+                                                || w.type === "contentCurrency"
+                                                || w.type === "userActivity") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -471,6 +547,31 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Small)
                                                 </button>
+                                            ) : w.type === "activityChart" ? (
+                                                <div className="flex gap-2">
+
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget("activityChart", 2);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Medium)
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget("activityChart", 3);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Large)
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <div className="flex gap-2">
                                                     <button
@@ -581,7 +682,7 @@ function SortableItem({
             ref={(el) => { setNodeRef(el); registerNode(id, el); }}
             style={style}
             {...attributes}
-            className={`group ${widthClass} flex-none relative ${minHeightClass} rounded-lg border bg-card mb-2 overflow-hidden ${
+            className={`group ${widthClass} flex-none relative ${minHeightClass} mb-2 ${
                 isActive ? "opacity-0" : ""
             }`}
         >
@@ -637,9 +738,17 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
                 loading={data.loading}
             />
         ); break;
+        case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
+        case "userActivity": inner = <UserActivityWidget/>; break;
+        case "activityChart": inner = <ActivityChartWidget/>; break;
+        case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
     }
 
-    return <div className="h-full p-4">{inner}</div>;
+    return (
+        <div className="h-full p-4 bg-white rounded-2xl shadow-sm">
+            {inner}
+        </div>
+    );
 }
