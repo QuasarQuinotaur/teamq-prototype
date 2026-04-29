@@ -26,6 +26,7 @@ import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
 import About from "@/pages/About.tsx"
+import Credits from "@/pages/Credits.tsx"
 import Tutorial from "@/pages/Tutorial.tsx";
 import TutorialContent from "@/pages/TutorialContent.tsx";
 
@@ -123,6 +124,10 @@ export const router = createBrowserRouter([
                                 element: <About />,
                             },
                             {
+                                path: "credits",
+                                element: <Credits />,
+                            },
+                            {
                                 element: <RoleGuard onlyAdmins />,
                                 children: [
                                     {
@@ -142,16 +147,6 @@ export const router = createBrowserRouter([
                                         element: <Announcements />,
                                     },
                                 ],
-                            },
-                        ]
-                    },
-                    {
-                        path: "tutorial/:hidden",
-                        element: <Tutorial />,
-                        children: [
-                            {
-                                path: "all",
-                                element: <TutorialContent />,
                             },
                         ]
                     },
