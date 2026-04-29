@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
-    AreaChart,
     Area,
+    CartesianGrid,
+    ComposedChart,
+    Line,
     XAxis,
     YAxis,
-    Tooltip,
-    ResponsiveContainer,
 } from "recharts";
-import { Activity } from "lucide-react";
+import { CardContent, CardHeader, CardTitle } from "@/components/cards/Card.tsx";
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    type ChartConfig,
+} from "@/components/Chart.tsx";
 
 type ActivityEvent = {
     timestamp: string;
@@ -15,8 +21,25 @@ type ActivityEvent = {
 
 type Range = "Day" | "Week" | "Month" | "Year";
 
+const chartConfig = {
+    count: {
+        label: "Events",
+        color: "#2563eb",
+    },
+} satisfies ChartConfig;
+
+const LINE = "#2563eb";
+
+function xAxisInterval(pointCount: number): number {
+    if (pointCount <= 8) return 0;
+    if (pointCount <= 16) return 2;
+    if (pointCount <= 24) return 3;
+    return Math.max(0, Math.floor(pointCount / 6));
+}
+
 export default function ActivityChartWidget() {
-    const [data, setData] = useState<any[]>([]);
+    const gradId = useId().replace(/:/g, "");
+    const [data, setData] = useState<{ label: string; count: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState<Range>("Week");
 
@@ -91,8 +114,8 @@ export default function ActivityChartWidget() {
                     labels = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`);
                 } else if (range === "Year") {
                     labels = [
-                        "Jan","Feb","Mar","Apr","May","Jun",
-                        "Jul","Aug","Sep","Oct","Nov","Dec"
+                        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                     ];
                 }
 
@@ -112,78 +135,112 @@ export default function ActivityChartWidget() {
         fetchData();
     }, [range]);
 
-    if (loading) {
-        return (
-            <div className="p-4 space-y-3">
-                <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-                <div className="h-40 bg-gray-200 rounded animate-pulse" />
-            </div>
-        );
-    }
+    const axisInterval = useMemo(() => xAxisInterval(data.length), [data.length]);
 
     return (
-        <div className="p-4">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-gray-400" />
-                    Activity Trend
-                </h2>
-
-                {/* Range buttons */}
-                <div className="flex gap-1">
-                    {["Day","Week","Month","Year"].map((r) => (
-                        <button
-                            key={r}
-                            onClick={() => setRange(r as Range)}
-                            className={`text-xs px-2 py-1 rounded-md ${
-                                range === r
-                                    ? "bg-gray-900 text-white"
-                                    : "text-gray-500 hover:bg-gray-100"
-                            }`}
-                        >
-                            {r}
-                        </button>
-                    ))}
+        <div className="flex h-full min-h-0 flex-col">
+            <CardHeader className="shrink-0 pb-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <CardTitle>Activity</CardTitle>
+                        <p className="text-sm font-normal text-muted-foreground">
+                            Content events over the selected range
+                        </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-1">
+                        {(["Day", "Week", "Month", "Year"] as const).map((r) => (
+                            <button
+                                key={r}
+                                type="button"
+                                onClick={() => setRange(r)}
+                                className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                                    range === r
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted"
+                                }`}
+                            >
+                                {r}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
-
-            {/* Chart */}
-            <div className="w-full h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart key={range} data={data}>
-                        <XAxis dataKey="label" />
-                        <YAxis allowDecimals={false} />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: "white",
-                                border: "1px solid #E5E7EB",
-                                borderRadius: "8px",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                                padding: "8px 10px",
-                            }}
-                            labelStyle={{
-                                color: "#6B7280",
-                                fontSize: "12px",
-                                marginBottom: "4px",
-                            }}
-                            itemStyle={{
-                                color: "#111827",
-                                fontWeight: 500,
-                                fontSize: "13px",
-                            }}
-                            formatter={(value: number) => [`${value} events`, ""]}
-                        />
-                        <Area
-                            type="monotone"
-                            dataKey="count"
-                            stroke="#6366F1"
-                            fill="#6366F1"
-                            fillOpacity={0.2}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </div>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 pb-2">
+                {loading ? (
+                    <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                        Loading…
+                    </div>
+                ) : (
+                    <ChartContainer
+                        config={chartConfig}
+                        className="h-[min(220px,40vh)] w-full"
+                    >
+                        <ComposedChart
+                            key={range}
+                            data={data}
+                            margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+                        >
+                            <defs>
+                                <linearGradient
+                                    id={gradId}
+                                    x1="0"
+                                    y1="0"
+                                    x2="0"
+                                    y2="1"
+                                >
+                                    <stop
+                                        offset="0%"
+                                        stopColor={LINE}
+                                        stopOpacity={0.35}
+                                    />
+                                    <stop
+                                        offset="100%"
+                                        stopColor={LINE}
+                                        stopOpacity={0.02}
+                                    />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                            <XAxis
+                                dataKey="label"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={6}
+                                tick={{ fontSize: 10 }}
+                                interval={axisInterval}
+                            />
+                            <YAxis
+                                tickLine={false}
+                                axisLine={false}
+                                allowDecimals={false}
+                                tick={{ fontSize: 11 }}
+                                width={32}
+                            />
+                            <ChartTooltip
+                                content={<ChartTooltipContent />}
+                                cursor={{
+                                    stroke: "hsl(var(--border))",
+                                    strokeWidth: 1,
+                                }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="count"
+                                stroke="none"
+                                fill={`url(#${gradId})`}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="count"
+                                stroke={LINE}
+                                strokeWidth={2}
+                                dot={false}
+                                activeDot={{ r: 4, fill: LINE }}
+                            />
+                        </ComposedChart>
+                    </ChartContainer>
+                )}
+            </CardContent>
         </div>
     );
 }

@@ -133,7 +133,7 @@ router.get("/", requiresAuth(), async (req, res) => {
             }
         }
 
-        // Sort all events by timestamp descending and trim to limit
+        // Sort merged events by timestamp (most recent first)
         events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         res.json({ events });
     } catch (err) {

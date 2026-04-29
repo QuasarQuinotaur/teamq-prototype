@@ -36,8 +36,8 @@ import {
     enrichWorkflowForList,
     type WorkflowListRow,
 } from "@/components/service-requests/workflowTypes.ts";
-import UserActivityWidget from "@/components/widgets/UserActivityWidget.tsx";
 import ActivityChartWidget from "@/components/widgets/ActivityChartWidget.tsx";
+import ActivityFeedWidget from "@/components/widgets/ActivityFeedWidget.tsx";
 
 type Widget = {
     id: string;
@@ -68,10 +68,10 @@ const WIDGET_INFO_TEXT: Record<string, string> = {
         "Summarizes how fresh your documents are by last updated date: current (under 30 days), review soon (30–90 days), and outdated (over 90 days).",
     topDocumentActivity:
         "Ranks documents by combined views and downloads so you can see which content gets the most attention.",
-    userActivity:
-        "Charts how many content events occurred on each day this week. Filter by creations, updates, views, or deletes.",
     activityChart:
         "Charts how much activity occurred over time; switch the range to day, week, month, or year.",
+    activityFeed:
+        "Lists recent library activity—documents added, updated, viewed, or deleted—with who did what and when. Filter by event type.",
     gif:
         "Displays an animated GIF from the URL you chose when adding the widget, or a default embed if no GIF URL is set.",
 };
@@ -85,7 +85,6 @@ function getDefaultWidgets(jobPosition: string): Widget[] {
             ? [
                 { type: "contentCurrency", size: 1 },
                 { type: "activityChart", size: 2 },
-                { type: "userActivity", size: 2 },
                 { type: "topDocumentActivity", size: 1 },
                 { type: "expirationCalendar", size: 3},
             ]
@@ -111,6 +110,12 @@ function getDefaultWidgets(jobPosition: string): Widget[] {
         ...w,
         id: `${w.type}-${i}-${Date.now()}`,
     }));
+}
+
+function migrateWidgetsFromStorage(parsed: Widget[]): Widget[] {
+    return parsed.map((w) =>
+        w.type === "userActivity" ? { ...w, type: "activityChart" } : w
+    );
 }
 
 export default function Dashboard() {
@@ -145,7 +150,7 @@ export default function Dashboard() {
 
         if (saved) {
             try {
-                setWidgets(JSON.parse(saved));
+                setWidgets(migrateWidgetsFromStorage(JSON.parse(saved)));
             } catch {
                 setWidgets(getDefaultWidgets(jobPosition));
             }
@@ -170,8 +175,8 @@ export default function Dashboard() {
         { type: "expirationCalendar", label: "Content Expirations & Reviews (Calendar) " },
         { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
-        { type: "userActivity", label: "User Activity (week chart)" },
         { type: "activityChart", label: "User Activity (Chart)" },
+        { type: "activityFeed", label: "Activity Feed (List)" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -344,6 +349,7 @@ export default function Dashboard() {
             requestsList: 2,
             expirationLine: 3,
             expirationCalendar: 3,
+            activityFeed: 2,
             gif: 1,
         };
 
@@ -568,8 +574,7 @@ export default function Dashboard() {
                                             ) : (w.type === "progressStatsCard"
                                                 || w.type === "progressPieChart"
                                                 || w.type === "topDocumentActivity"
-                                                || w.type === "contentCurrency"
-                                                || w.type === "userActivity") ? (
+                                                || w.type === "contentCurrency") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -580,12 +585,12 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Small)
                                                 </button>
-                                            ) : w.type === "activityChart" ? (
+                                            ) : w.type === "activityChart" || w.type === "activityFeed" ? (
                                                 <div className="flex gap-2">
 
                                                     <button
                                                         onClick={() => {
-                                                            addWidget("activityChart", 2);
+                                                            addWidget(w.type, 2);
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
@@ -596,7 +601,7 @@ export default function Dashboard() {
 
                                                     <button
                                                         onClick={() => {
-                                                            addWidget("activityChart", 3);
+                                                            addWidget(w.type, 3);
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
@@ -811,8 +816,8 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
             />
         ); break;
         case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
-        case "userActivity": inner = <UserActivityWidget/>; break;
         case "activityChart": inner = <ActivityChartWidget/>; break;
+        case "activityFeed": inner = <ActivityFeedWidget />; break;
         case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;

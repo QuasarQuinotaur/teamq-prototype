@@ -17,8 +17,6 @@ import {
   PersonIcon,
   FilesIcon,
   ListBulletsIcon,
-  InfoIcon,
-  CopyrightIcon,
   LifebuoyIcon,
 } from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
@@ -214,19 +212,9 @@ export function AppSidebar({
           ]
         : []),
       {
-        title: "About",
-        url: `${pathPrefix}/about`,
-        icon: <InfoIcon />,
-      },
-      {
         title: "Help",
         url: `${pathPrefix}/help`,
         icon: <LifebuoyIcon />,
-      },
-      {
-        title: "Credits",
-        url: `${pathPrefix}/credits`,
-        icon: <CopyrightIcon />,
       },
   ];
 

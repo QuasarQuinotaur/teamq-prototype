@@ -1,3 +1,4 @@
+import { LandingHomeLogoLink } from "@/components/LandingHomeLogoLink"
 import { cn } from "@/lib/utils.ts"
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
 import { ArrowSquareOutIcon } from "@phosphor-icons/react"
@@ -180,7 +181,8 @@ function PernBadge({ label, sub, className }: { label: string; sub: string; clas
 
 export default function Credits() {
     return (
-        <div className="overflow-y-auto h-full">
+        <div className="min-h-0 w-full">
+            <LandingHomeLogoLink />
             <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
 
                 {/* Header */}

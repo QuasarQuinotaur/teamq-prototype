@@ -1,3 +1,4 @@
+import { LandingHomeLogoLink } from "@/components/LandingHomeLogoLink"
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
 
@@ -67,7 +68,8 @@ function MemberCard({ member }: { member: TeamMember }) {
 
 export default function About() {
     return (
-        <div className="overflow-y-auto h-full">
+        <div className="min-h-0 w-full">
+            <LandingHomeLogoLink />
             <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
 
                 <div className="space-y-1 text-center">

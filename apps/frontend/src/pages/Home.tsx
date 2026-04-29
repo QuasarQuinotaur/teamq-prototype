@@ -1,8 +1,5 @@
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Hero from '../components/Hero';
-import { Badge } from '@/elements/badge';
-import { Separator } from '@/elements/separator';
 import { cn } from '@/lib/utils';
 import { WarningIcon } from '@phosphor-icons/react';
 
@@ -44,16 +41,24 @@ function DisclaimerBadge() {
     );
 }
 
-
-function ImagePlaceholder({ label }: { label: string }) {
+function FeatureMediaFrame({ children, className }: { children: React.ReactNode; className?: string }) {
     return (
         <div
-            className="relative aspect-[4/3] w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-neutral-100 via-neutral-50 to-neutral-200/90 shadow-[0_32px_64px_-32px_rgba(15,23,42,0.22)] ring-1 ring-black/[0.06]"
-            role="img"
-            aria-label={label}
+            className={cn(
+                'relative aspect-[4/3] w-full overflow-hidden rounded-[2.5rem] bg-neutral-100 shadow-[0_32px_64px_-32px_rgba(15,23,42,0.22)] ring-1 ring-black/[0.06]',
+                className,
+            )}
         >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_42%,rgba(255,255,255,0.9),transparent_65%)]" />
+            {children}
         </div>
+    );
+}
+
+function FeaturePhoto({ src, alt }: { src: string; alt: string }) {
+    return (
+        <FeatureMediaFrame>
+            <img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        </FeatureMediaFrame>
     );
 }
 
@@ -61,14 +66,14 @@ function FeatureSection({
     eyebrow,
     title,
     description,
-    imageLabel,
+    media,
     reverse,
     className,
 }: {
     eyebrow: string;
     title: string;
     description: string;
-    imageLabel: string;
+    media: React.ReactNode;
     reverse?: boolean;
     className?: string;
 }) {
@@ -92,13 +97,7 @@ function FeatureSection({
                             {description}
                         </p>
                     </div>
-                    <div
-                        className={cn(
-                            reverse ? 'order-2 lg:order-1' : 'order-2'
-                        )}
-                    >
-                        <ImagePlaceholder label={imageLabel} />
-                    </div>
+                    <div className={cn(reverse ? 'order-2 lg:order-1' : 'order-2')}>{media}</div>
                 </div>
             </div>
         </section>
@@ -116,13 +115,23 @@ function Home() {
                 eyebrow="Heritage"
                 title="Strength that spans generations."
                 description="Founded in 1852 in Manhattan, The Hanover Insurance Group has one of the longest and most respected records in property and casualty insurance. With over 170 years of experience, the company has built a reputation for resilience and reliability—fulfilling claim obligations through events like the Great Chicago Fire of 1871 and the 1906 San Francisco earthquake. Today, headquartered in Worcester, Massachusetts, The Hanover helps independent partner agents and policyholders prepare for and recover from the unexpected."
-                imageLabel="Placeholder for heritage or company history imagery"
+                media={
+                    <FeaturePhoto
+                        src="/home/heritage-city-hall.png"
+                        alt="Hanover city hall at dusk reflected in calm water—a historic skyline at twilight."
+                    />
+                }
             />
             <FeatureSection
                 eyebrow="Culture"
                 title="CARE in every decision."
                 description="The company’s culture is anchored by core CARE values—Collaboration, Accountability, Respect, and Empowerment—which drive technical excellence, innovative insurance solutions, and an inclusive environment for its 4,800 employees."
-                imageLabel="Placeholder for team or workplace imagery"
+                media={
+                    <FeaturePhoto
+                        src="/home/care-collaboration.png"
+                        alt="Diverse teammates collaborating around a conference table in a bright modern office"
+                    />
+                }
                 reverse
                 className="bg-neutral-50/80"
             />
@@ -130,27 +139,13 @@ function Home() {
                 eyebrow="Strategy"
                 title="Protection for what matters most."
                 description="As a premier property and casualty franchise, The Hanover leverages advanced data analytics and a people-first approach to protect the cars people drive, the businesses they own, and the places they call home."
-                imageLabel="Placeholder for technology or protection imagery"
+                media={
+                    <FeaturePhoto
+                        src="/home/strategy-home-house.png"
+                        alt="Craftsman-style home with porch and green lawn under a bright sky"
+                    />
+                }
             />
-            <footer className="border-t border-border bg-gradient-to-b from-sky-50/40 to-white px-6 py-10 md:px-12 lg:px-16">
-                <div className="mx-auto max-w-6xl">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                        <Link
-                            to="/"
-                            className="inline-flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-muted/50"
-                        >
-                            <img src="/CombinationMark.png" alt="Hanover Insurance logo" className="h-9 w-auto object-contain" />
-                        </Link>
-                        <Badge variant="secondary" className="px-2.5 py-0.5 text-xs">
-                            WPI CS 3733 Class Project
-                        </Badge>
-                    </div>
-                    <Separator className="my-5 bg-border/70" />
-                    <p className="text-center text-sm text-muted-foreground">
-                        Built for educational use by WPI students. Not an official Hanover Insurance production application.
-                    </p>
-                </div>
-            </footer>
         </div>
     );
 }

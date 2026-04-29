@@ -17,13 +17,11 @@ import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
-import About from "@/pages/About.tsx";
 import Help from "@/pages/Help.tsx";
-import Credits from "@/pages/Credits.tsx";
 import References from "@/pages/References";
 import Tools from "@/pages/Tools";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import type { RouteObject } from "react-router-dom";
+import { Navigate, type RouteObject } from "react-router-dom";
 
 /** Shared under `path: documents` and `path: tutorial` (relative paths resolve per parent). */
 export const documentLayoutChildren: RouteObject[] = [
@@ -101,7 +99,7 @@ export const documentLayoutChildren: RouteObject[] = [
     },
     {
         path: "about",
-        element: <About />,
+        element: <Navigate to="/about" replace />,
     },
     {
         path: "help",
@@ -109,7 +107,7 @@ export const documentLayoutChildren: RouteObject[] = [
     },
     {
         path: "credits",
-        element: <Credits />,
+        element: <Navigate to="/credits" replace />,
     },
     {
         element: <RoleGuard onlyAdmins />,
