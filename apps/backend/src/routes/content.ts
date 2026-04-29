@@ -418,6 +418,14 @@ router.post("/:contentId/view", requiresAuth(), async (req, res) => {
             return;
         }
 
+        await Promise.all([
+            contentRepo.recordView(employee.id, contentId),
+            prisma.content.update({
+                where: { id: contentId },
+                data: { viewCount: { increment: 1 } },
+            }),
+        ]);
+
         await contentRepo.recordView(employee.id, contentId);
 
         res.json({ success: true });
