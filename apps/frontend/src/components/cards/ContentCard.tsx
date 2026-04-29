@@ -39,7 +39,7 @@ type ContentWithCheckout = Content & {
 async function viewItem(link: string, item: object & { id: number }) {
     if (isSupabasePath(link)) {
         const id = (item as { id: number }).id;
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/download`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/file-url`, {
             credentials: "include",
         });
         if (!res.ok) {
@@ -176,6 +176,9 @@ export default function ContentCard({
         if (selectMode && onSelectToggle) {
             onSelectToggle();
             return;
+        }
+        if (onOpen) {
+            onOpen(entry);
         }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
