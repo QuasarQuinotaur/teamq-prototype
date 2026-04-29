@@ -12,6 +12,7 @@ import {FileIcon, LinkIcon} from "lucide-react";
 import {cn} from "@/lib/utils.ts";
 import {useEffect, useRef, useState} from "react";
 import type {Employee} from "db";
+import { TutorialDocumentStepPanel } from "@/components/tutorial/TutorialDocumentStepPanel.tsx";
 
 export type ContentFields = {
     name: string,
@@ -33,6 +34,9 @@ type DocumentFormFieldsProps = {
     isUpdate: boolean
     existingFileName: string | null
     updateFileResetter: (resetter: () => void) => void
+    showTutorialCallouts?: boolean
+    /** Tutorial: prefilled fields are not editable; Save still works. */
+    fieldsReadOnly?: boolean
 } & FormFieldsProps<ContentFields>
 export default function DocumentFormFields({
                                                fields,
@@ -40,7 +44,9 @@ export default function DocumentFormFields({
                                                dateStrings,
                                                isUpdate,
                                                existingFileName,
-                                               updateFileResetter
+                                               updateFileResetter,
+                                               showTutorialCallouts,
+                                               fieldsReadOnly,
 }: DocumentFormFieldsProps) {
     function switchToFile() {
         setKey("sourceType", "file")
@@ -99,7 +105,10 @@ export default function DocumentFormFields({
                                 className={inputReadable}
                                 placeholder={"Name"}
                                 value={fields.name}
+                                readOnly={fieldsReadOnly}
+                                aria-readonly={fieldsReadOnly || undefined}
                                 onChange={(e) => {
+                                    if (fieldsReadOnly) return;
                                     setKey("name", e.target.value)
                                 }}
                             />
@@ -114,7 +123,9 @@ export default function DocumentFormFields({
                                 id={id}
                                 className={"w-full min-w-0"}
                                 contentType={fields.contentType}
+                                lockSelect={fieldsReadOnly}
                                 setContentType={(type) => {
+                                    if (fieldsReadOnly) return;
                                     setKey("contentType", type)
                                 }}
                             />
@@ -128,7 +139,9 @@ export default function DocumentFormFields({
                             <EmployeeCombobox
                                 isUpdate={isUpdate}
                                 ownerID={fields.newOwnerID}
+                                disabled={fieldsReadOnly}
                                 setNewOwner={(owner: Employee) => {
+                                    if (fieldsReadOnly) return;
                                     console.log(owner)
                                     setKey("newOwnerID", owner.id)
                                 }}
@@ -179,7 +192,9 @@ export default function DocumentFormFields({
                                                 className={inputReadable}
                                                 type={"file"}
                                                 ref={inputFile}
+                                                disabled={fieldsReadOnly}
                                                 onChange={(e) => {
+                                                    if (fieldsReadOnly) return;
                                                     setKey("file", e.target.files?.[0] ?? null)
                                                 }}
                                             />
@@ -190,7 +205,10 @@ export default function DocumentFormFields({
                                                 placeholder={"https://..."}
                                                 type={"url"}
                                                 value={fields.link}
+                                                readOnly={fieldsReadOnly}
+                                                aria-readonly={fieldsReadOnly || undefined}
                                                 onChange={(e) => {
+                                                    if (fieldsReadOnly) return;
                                                     setKey("link", e.target.value)
                                                 }}
                                             />
@@ -217,10 +235,12 @@ export default function DocumentFormFields({
                                             aria-label={"File upload"}
                                             title={"File upload"}
                                             onClick={() => {
+                                                if (fieldsReadOnly) return;
                                                 if (fields.sourceType !== "file") {
                                                     switchToFile()
                                                 }
                                             }}
+                                            disabled={fieldsReadOnly}
                                         >
                                             <FileIcon className={"size-4"} />
                                         </Button>
@@ -238,10 +258,12 @@ export default function DocumentFormFields({
                                             aria-label={"External URL"}
                                             title={"External URL"}
                                             onClick={() => {
+                                                if (fieldsReadOnly) return;
                                                 if (fields.sourceType !== "link") {
                                                     switchToLink()
                                                 }
                                             }}
+                                            disabled={fieldsReadOnly}
                                         >
                                             <LinkIcon className={"size-4"} />
                                         </Button>
@@ -274,7 +296,9 @@ export default function DocumentFormFields({
                                 <JobPositionMultiInput
                                     id={id}
                                     jobPositions={fields.jobPositions}
+                                    disabled={fieldsReadOnly}
                                     setJobPositions={(positions) => {
+                                        if (fieldsReadOnly) return;
                                         setKey("jobPositions", positions)
                                     }}
                                 />
@@ -289,17 +313,25 @@ export default function DocumentFormFields({
                                     id={id}
                                     placeholder={"Expiration Date"}
                                     date={fields.expirationDate}
+                                    disabled={fieldsReadOnly}
                                     setDate={(date) => {
+                                        if (fieldsReadOnly) return;
                                         setKey("expirationDate", date)
                                     }}
                                     dateString={dateStrings.expiration}
-                                    setDateString={dateStrings.setExpiration}
+                                    setDateString={(s) => {
+                                        if (fieldsReadOnly) return;
+                                        dateStrings.setExpiration(s)
+                                    }}
                                 />
                             )}
                         />
                     </div>
                 </section>
             </div>
+            {showTutorialCallouts ? (
+                <TutorialDocumentStepPanel active />
+            ) : null}
         </div>
     )
 }

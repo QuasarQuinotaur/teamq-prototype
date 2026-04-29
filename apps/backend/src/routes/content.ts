@@ -6,6 +6,7 @@ import { getEmployeeFromRequest } from "../app.ts";
 import {
     uploadBuffer,
     getSignedUrl,
+    tryGetSignedUrl,
     downloadBuffer,
 } from "../lib/supabase.ts";
 import {
@@ -52,11 +53,7 @@ async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
     const { userPhoto, ...rest } = emp;
     let profileImageUrl: string | undefined;
     if (userPhoto?.path) {
-        try {
-            profileImageUrl = await getSignedUrl(userPhoto.path, 3600);
-        } catch (err) {
-            console.error("Profile image signed URL failed", emp.id, err);
-        }
+        profileImageUrl = await tryGetSignedUrl(userPhoto.path, 3600);
     }
     return { ...rest, profileImageUrl };
 }
@@ -322,13 +319,25 @@ function parseRecentListQuery(
     query: express.Request["query"],
     employee: { id: number } | null,
 ): ParsedRecentListQuery | { legacyNoQuery: true } {
+    const includeTutorialDocuments = queryTruthy(
+        query,
+        "includeTutorialDocuments",
+    );
     const contentQuery = parseContentListQuery(query, employee)
     if ("legacyNoQuery" in contentQuery) {
         return contentQuery
     }
-    
+
+    const baseWhere = contentQuery.where;
+    const contentWhereMerged: Prisma.ContentWhereInput =
+        includeTutorialDocuments
+            ? baseWhere
+            : Object.keys(baseWhere).length === 0
+              ? { isTutorial: false }
+              : { AND: [baseWhere, { isTutorial: false }] };
+
     const where: Prisma.RecentContentViewWhereInput = {
-        Content: contentQuery.where
+        Content: contentWhereMerged,
     }
 
     let order: ContentListOrder | boolean = null
@@ -438,7 +447,7 @@ router.get("/recent", requiresAuth(), async (req, res) => {
         let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
 
         const parsed = parseRecentListQuery(req.query, employee);
-        if ("legacyNoQuery" in parsed) {1
+        if ("legacyNoQuery" in parsed) {
             recent = await contentRepo.getRecentViews(employee.id, take);
         } else {
             if (parsed.order === null) {
@@ -493,6 +502,20 @@ router.get("/", requiresAuth(), async (req, res) => {
         let contents: Awaited<ReturnType<typeof contentRepo.listWithFilters>>;
 
         const parsed = parseContentListQuery(req.query, employee);
+        const onlyMine = queryTruthy(req.query, "onlyMine");
+        const onlyMyCheckouts = queryTruthy(req.query, "onlyMyCheckouts");
+        /** Tutorial UI sends `includeTutorialDocuments=1` so My content / Checked out lists owned tutorial rows; main app omits it. */
+        const includeTutorialDocuments = queryTruthy(
+            req.query,
+            "includeTutorialDocuments",
+        );
+        const mineOpts =
+            employee && (onlyMine || onlyMyCheckouts)
+                ? {
+                      mineListOwnerId: employee.id,
+                      includeTutorialMine: includeTutorialDocuments,
+                  }
+                : undefined;
         if ("legacyNoQuery" in parsed) {
             contents = await contentRepo.getAll();
         } else {
@@ -500,11 +523,16 @@ router.get("/", requiresAuth(), async (req, res) => {
                 contents = await contentRepo.listWithFilters(
                     parsed.where,
                     parsed.order.orderBy,
+                    mineOpts,
                 );
             } else {
-                const unsorted = await contentRepo.listWithFilters(parsed.where, {
-                    id: "asc",
-                });
+                const unsorted = await contentRepo.listWithFilters(
+                    parsed.where,
+                    {
+                        id: "asc",
+                    },
+                    mineOpts,
+                );
                 contents = sortContentsByJobPosition(
                     unsorted,
                     parsed.order.ascending,
@@ -1024,7 +1052,7 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
             return;
         }
 
-        const { name, link, expirationDate, contentType } = req.body;
+        const { name, link, expirationDate, contentType, isTutorial: isTutorialRaw } = req.body;
 
         const jobPositions = parseJobPositions(req.body as Record<string, unknown>);
         if (
@@ -1064,6 +1092,11 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
             finalLink = link.trim();
         }
 
+        const isTutorialFlag =
+            isTutorialRaw === true ||
+            isTutorialRaw === "true" ||
+            isTutorialRaw === "1";
+
         const created = await prisma.content.create({
             data: {
                 title: name.trim(),
@@ -1073,6 +1106,7 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
                 contentType: contentType.trim(),
                 expirationDate: new Date(expirationDate),
                 ownerId: employee.id,
+                isTutorial: isTutorialFlag,
             },
             include: {
                 owner: true,

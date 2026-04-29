@@ -19,6 +19,7 @@ export default function CardList({
                                      selectMode,
                                      isEntrySelected,
                                      onDocumentRowContextMenu,
+                                     tutorialHighlightEntryId,
 }: CardListOwnProps) {
     const columns = createColumns(createOptionsElement, listColumnOptions);
 
@@ -31,6 +32,7 @@ export default function CardList({
                 selectMode={selectMode}
                 isRowSelected={isEntrySelected}
                 onDocumentRowContextMenu={onDocumentRowContextMenu}
+                tutorialHighlightEntryId={tutorialHighlightEntryId}
             />
         </div>
     )

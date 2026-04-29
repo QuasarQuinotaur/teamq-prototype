@@ -29,6 +29,7 @@ import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpir
 import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
 import ContentCurrencyWidget from "@/components/widgets/ContentCurrencyWidget.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
+import { Skeleton } from "@/elements/skeleton.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
 import {
     allEmployeeIdsFromWorkflow,
@@ -338,13 +339,18 @@ export default function Dashboard() {
             <div className="grid grid-cols-3 items-center px-6 py-4">
                 <div />
                 <div className="flex items-center justify-center gap-2 min-w-0">
-                    <h1 className="text-2xl font-heading text-center truncate">
-                        {loading
-                            ? "Hello"
-                            : userFirstName
-                              ? `Hello, ${userFirstName}`
-                              : "Hello, there"}
-                    </h1>
+                    {loading ? (
+                        <Skeleton
+                            className="h-8 w-[min(280px,85vw)] shrink-0"
+                            aria-hidden
+                        />
+                    ) : (
+                        <h1 className="text-2xl font-heading text-center truncate">
+                            {userFirstName
+                                ? `Hello, ${userFirstName}`
+                                : "Hello, there"}
+                        </h1>
+                    )}
                 </div>
                 <div className="flex justify-end">
                     <button
@@ -716,9 +722,9 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
 
     let inner: React.ReactNode;
     switch (type) {
-        case "progressStatsCard":    inner = <StatsWidget counts={data.counts} />; break;
+        case "progressStatsCard":    inner = <StatsWidget counts={data.counts} loading={data.loading} />; break;
         case "requestsList": inner = <RequestsWidget {...data} />; break;
-        case "progressPieChart":    inner = <PieChartWidget counts={data.counts} />; break;
+        case "progressPieChart":    inner = <PieChartWidget counts={data.counts} loading={data.loading} />; break;
         case "expirationLine": inner = (
             <DocumentExpirationLineWidget
                 items={data.contentForExpiration ?? []}

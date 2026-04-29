@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Button } from "@/elements/buttons/button.tsx";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useAppPathPrefix } from "@/hooks/useAppPathPrefix.ts";
+import { useServiceRequestTutorial } from "@/components/tutorial/ServiceRequestTutorialContext.tsx";
+import { ChevronDown } from "lucide-react";
 import { addDays, isValid, parseISO, startOfDay } from "date-fns";
 import Fuse from "fuse.js";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
@@ -28,6 +30,19 @@ import {
   enrichWorkflowForList,
   mergeStageStatus,
 } from "@/components/service-requests/workflowTypes.ts";
+import {
+  WORKFLOW_CREATION_PRESETS,
+  WORKFLOW_CREATION_PRESET_ORDER,
+} from "@/components/service-requests/workflowCreationPresets.ts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/DropdownMenu.tsx";
+import { Button } from "@/elements/buttons/button.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import { Separator } from "@/elements/separator.tsx";
 import type { Employee } from "db";
@@ -150,8 +165,15 @@ function filenameForLinkedDoc(d: ServiceRequestLinkedDocument): string {
   return d.filePath?.split("/").pop()?.split("?")[0] ?? d.title;
 }
 
+function isServiceRequestsListPath(pathname: string): boolean {
+  return /\/service-requests\/?$/.test(pathname);
+}
+
 export default function ServiceRequestsPage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const pathPrefix = useAppPathPrefix();
+  const srTutorial = useServiceRequestTutorial();
   const [requests, setRequests] = useState<WorkflowListRow[] | null>(null);
   const [meId, setMeId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +219,14 @@ export default function ServiceRequestsPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!srTutorial?.routeIsSrTutorial) return;
+    if (!isServiceRequestsListPath(location.pathname)) return;
+    if (srTutorial.phase === "sidebar_sr_nav") {
+      srTutorial.notifySrListRouteEntered();
+    }
+  }, [srTutorial, location.pathname]);
 
   const handleStageStatusUpdated = useCallback(
     (workflowId: number, stageId: number, status: string) => {
@@ -316,33 +346,78 @@ export default function ServiceRequestsPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center gap-3 px-4 pt-5 pb-5">
         <SidebarTrigger className="-ml-1 shrink-0" />
-        <div className="min-w-0 max-w-[21rem] flex-1">
+        <div id="tutorial-sr-search" className="min-w-0 max-w-[21rem] flex-1">
           <SearchBar setFilter={setSearchPhrase} />
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <Link
-            to="/documents/service-requests/new"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <div
+            id="tutorial-sr-presets"
+            className="flex shrink-0 rounded-lg shadow-sm"
           >
-            + New Request
-          </Link>
-          <FilterButton
-            emptyFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
-            defaultFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
-            fields={fieldsFilter}
-            setFields={setFieldsFilter}
-            createFieldsElement={FilterServiceRequestFields}
-          />
-          <SortButton
-            sortByMap={SERVICE_REQUEST_SORT_BY_MAP as Record<string, string>}
-            defaultSortFields={DEFAULT_SORT_FIELDS}
-            sortFields={sortFields}
-            setSortFields={setSortFields}
-          />
+            <Link
+              id="tutorial-sr-new-request"
+              to={`${pathPrefix}/service-requests/new`}
+              className="inline-flex h-9 items-center justify-center rounded-l-lg border border-transparent bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              + New Request
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="lg"
+                  className="h-9 rounded-l-none rounded-r-lg border-0 px-2 shadow-sm bg-primary hover:bg-hanover-blue/90 focus-visible:z-10"
+                  aria-label="New request from a preset template"
+                >
+                  <ChevronDown className="size-4 opacity-90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[16rem]">
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  Presets
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {WORKFLOW_CREATION_PRESET_ORDER.map((key) => {
+                  const preset = WORKFLOW_CREATION_PRESETS[key];
+                  return (
+                    <DropdownMenuItem key={key} asChild>
+                      <Link
+                        to={`${pathPrefix}/service-requests/new?template=${encodeURIComponent(key)}`}
+                        className="cursor-pointer"
+                      >
+                        {preset.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div id="tutorial-sr-filter">
+            <FilterButton
+              emptyFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+              defaultFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+              fields={fieldsFilter}
+              setFields={setFieldsFilter}
+              createFieldsElement={FilterServiceRequestFields}
+            />
+          </div>
+          <div id="tutorial-sr-sort">
+            <SortButton
+              sortByMap={SERVICE_REQUEST_SORT_BY_MAP as Record<string, string>}
+              defaultSortFields={DEFAULT_SORT_FIELDS}
+              sortFields={sortFields}
+              setSortFields={setSortFields}
+            />
+          </div>
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-3 overflow-auto px-4 pb-8">
+      <div
+        id="tutorial-sr-list-overview"
+        className="flex flex-1 flex-col gap-3 overflow-auto px-4 pb-8"
+      >
         {loading ? (
           <p className="text-center text-muted-foreground">Loading…</p>
         ) : error ? (
@@ -390,6 +465,7 @@ export default function ServiceRequestsPage() {
                         onLinkedDocumentOpen={handleLinkedDocumentOpen}
                         onStageStatusUpdated={handleStageStatusUpdated}
                         onDeleted={handleDeleted}
+                        appPathPrefix={pathPrefix}
                       />
                     </li>
                   ))}
@@ -420,6 +496,7 @@ export default function ServiceRequestsPage() {
                         onLinkedDocumentOpen={handleLinkedDocumentOpen}
                         onStageStatusUpdated={handleStageStatusUpdated}
                         onDeleted={handleDeleted}
+                        appPathPrefix={pathPrefix}
                       />
                     </li>
                   ))}

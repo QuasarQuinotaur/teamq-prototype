@@ -24,11 +24,30 @@ class ContentRepository {
         orderBy:
             | Prisma.ContentOrderByWithRelationInput
             | Prisma.ContentOrderByWithRelationInput[],
+        options?: {
+            mineListOwnerId?: number;
+            /** Only `/tutorial/*` lists send this; main app hides owned tutorial rows from My content / Checked out. */
+            includeTutorialMine?: boolean;
+        },
     ) {
+        const tutorialFilter: Prisma.ContentWhereInput =
+            options?.mineListOwnerId != null
+                ? options.includeTutorialMine === true
+                    ? {
+                          OR: [
+                              { isTutorial: false },
+                              {
+                                  isTutorial: true,
+                                  ownerId: options.mineListOwnerId,
+                              },
+                          ],
+                      }
+                    : { isTutorial: false }
+                : { isTutorial: false };
+
         return prisma.content.findMany({
             where: {
-                isTutorial: false,
-                ...where,
+                AND: [tutorialFilter, where],
             },
             orderBy,
             include: contentCatalogInclude,

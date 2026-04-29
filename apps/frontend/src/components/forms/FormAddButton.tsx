@@ -48,7 +48,10 @@ export default function FormAddButton({
     return (
         <Dialog
             open={formOpen}
-            onOpenChange={setFormOpen}
+            onOpenChange={(open) => {
+                setFormOpen(open);
+                state.onTutorialDialogOpenChange?.(open);
+            }}
         >
             <DialogTrigger asChild>
                 <Button

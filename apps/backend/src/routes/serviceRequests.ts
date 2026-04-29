@@ -7,7 +7,7 @@ import {
 } from "../ServiceRequestRepository.ts";
 import { NotificationRepository } from "../NotificationRepository.ts";
 import { notifyStageReady, notifyWorkflowAssignmentFyi } from "../serviceRequestNotifications.ts";
-import { getSignedUrl } from "../lib/supabase.ts";
+import { tryGetSignedUrl } from "../lib/supabase.ts";
 import { getEmployeeFromRequest } from "../app.ts";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
@@ -65,11 +65,7 @@ async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
     const { userPhoto, ...rest } = emp;
     let profileImageUrl: string | undefined;
     if (userPhoto?.path) {
-        try {
-            profileImageUrl = await getSignedUrl(userPhoto.path, 3600);
-        } catch (err) {
-            console.error("Profile image signed URL failed", emp.id, err);
-        }
+        profileImageUrl = await tryGetSignedUrl(userPhoto.path, 3600);
     }
     return { ...rest, profileImageUrl };
 }

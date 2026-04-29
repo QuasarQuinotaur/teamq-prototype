@@ -16,6 +16,8 @@ model Employee {
   lastName          String
   dateOfBirth       DateTime
   jobPosition       String
+  /** Set true after the guided document tutorial has been presented (auto or Help). */
+  documentTutorialShown Boolean @default(false)
   userPhoto         UserPhoto?
 
   contentsOwned     Content[]           @relation("ownedContents") // relationship list
