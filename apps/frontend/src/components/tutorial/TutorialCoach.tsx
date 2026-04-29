@@ -1,5 +1,10 @@
 import { useTutorial } from "@/components/tutorial/TutorialContext.tsx";
 import { TutorialCheckedOutPanel } from "@/components/tutorial/TutorialCheckedOutPanel.tsx";
+import {
+    setTutorialSidebarStackElevation,
+    TutorialDimOverlay,
+    TUTORIAL_HIGHLIGHT_Z,
+} from "@/components/tutorial/tutorialDimOverlay.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { useSidebar } from "@/elements/sidebar-elements.tsx";
 import { X, Loader2 } from "lucide-react";
@@ -12,12 +17,9 @@ import {
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 
-/** Spotlight hole matches the target element bounds (no extra margin outside it). */
+/** Caption placement uses measured bounds from the spotlight target. */
 const PADDING = 0;
-/** Below app dialogs/menus (`z-50`) so Edit/Save UI stays usable; above page content. */
-const BLOCK_Z = 45;
-const HIGHLIGHT_Z = 48;
-/** Coach caption must sit above the highlighted row/menu (`HIGHLIGHT_Z`). */
+/** Coach caption above highlighted targets and dim. */
 const CAPTION_Z = 100;
 const EXIT_Z = 200;
 
@@ -27,35 +29,6 @@ const pathTutorialCheckedOut = /\/tutorial\/checked-out\/?$/;
 /** Approx heights for captions anchored with `top` to spotlight rects. */
 const EST_CAPTION_MY_CONTENT_SEE_DOC = 140;
 const EST_CAPTION_DEFAULT = 88;
-
-/** Full-viewport dimmer with a rectangular hole via even-odd clip-path (no multi-div seams). */
-function SpotlightBlockers({
-    rect,
-    onPointerDown,
-}: {
-    rect: { top: number; left: number; width: number; height: number };
-    onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
-}) {
-    const { top, left, width, height } = rect;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const r = left + width;
-    const b = top + height;
-    const clipPath = `polygon(evenodd, 0px 0px, ${vw}px 0px, ${vw}px ${vh}px, 0px ${vh}px, 0px 0px, ${left}px ${top}px, ${r}px ${top}px, ${r}px ${b}px, ${left}px ${b}px, ${left}px ${top}px)`;
-    return (
-        <div
-            className="pointer-events-auto fixed inset-0"
-            style={{
-                backgroundColor: "rgba(0,0,0,0.55)",
-                clipPath,
-                WebkitClipPath: clipPath,
-                zIndex: BLOCK_Z,
-            }}
-            onPointerDown={onPointerDown}
-            aria-hidden
-        />
-    );
-}
 
 function clearSidebarTutorialStyles() {
     for (const id of ["tutorial-1", "tutorial-2", "tutorial-checked-out-nav"]) {
@@ -187,7 +160,7 @@ export function TutorialCoach() {
                 height: r.height + PADDING * 2,
             });
             el.style.position = "relative";
-            el.style.zIndex = String(HIGHLIGHT_Z);
+            el.style.zIndex = String(TUTORIAL_HIGHLIGHT_Z);
         };
 
         measure();
@@ -226,6 +199,19 @@ export function TutorialCoach() {
             clearTutorialDocRowStyles(docId);
         };
     }, [tutorial?.routeIsTutorial, tutorial?.phase, tutorial?.tutorialDocId, location.pathname]);
+
+    /** Sidebar layout uses `z-10`; lift it above the portaled dim so in-sidebar targets stay clickable. */
+    useLayoutEffect(() => {
+        if (!tutorial?.routeIsTutorial) {
+            setTutorialSidebarStackElevation(false);
+            return;
+        }
+        const lift =
+            tutorial.phase === "sidebar_highlight" ||
+            tutorial.phase === "sidebar_checked_out";
+        setTutorialSidebarStackElevation(lift);
+        return () => setTutorialSidebarStackElevation(false);
+    }, [tutorial?.routeIsTutorial, tutorial?.phase]);
 
     useLayoutEffect(() => {
         if (!tutorial?.routeIsTutorial) return;
@@ -358,7 +344,7 @@ export function TutorialCoach() {
         return createPortal(
             <>
                 {exitButton}
-                <SpotlightBlockers rect={rect} onPointerDown={blockBackground} />
+                <TutorialDimOverlay onPointerDown={blockBackground} />
                 {checkedOutCoachPanel ? (
                     <TutorialCheckedOutPanel
                         phase={
@@ -445,10 +431,7 @@ export function TutorialCoach() {
         return createPortal(
             <>
                 {exitButton}
-                <div
-                    className="fixed inset-0 bg-black/50"
-                    style={{ zIndex: BLOCK_Z - 1 }}
-                />
+                <TutorialDimOverlay onPointerDown={blockBackground} />
             </>,
             document.body,
         );
@@ -468,11 +451,7 @@ export function TutorialCoach() {
         return createPortal(
             <>
                 {exitButton}
-                <div
-                    className="fixed inset-0 bg-black/50"
-                    style={{ zIndex: BLOCK_Z - 1 }}
-                    onPointerDown={blockBackground}
-                />
+                <TutorialDimOverlay onPointerDown={blockBackground} />
                 <div
                     className="fixed inset-0 flex flex-col items-center justify-center gap-4 p-4"
                     style={{ zIndex: CAPTION_Z }}
@@ -509,11 +488,7 @@ export function TutorialCoach() {
         return createPortal(
             <>
                 {exitButton}
-                <div
-                    className="fixed inset-0 bg-black/50"
-                    style={{ zIndex: BLOCK_Z - 1 }}
-                    onPointerDown={blockBackground}
-                />
+                <TutorialDimOverlay onPointerDown={blockBackground} />
             </>,
             document.body,
         );

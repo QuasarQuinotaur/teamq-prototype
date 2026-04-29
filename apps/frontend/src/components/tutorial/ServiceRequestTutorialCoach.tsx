@@ -1,4 +1,9 @@
 import { useServiceRequestTutorial } from "@/components/tutorial/ServiceRequestTutorialContext.tsx";
+import {
+  setTutorialSidebarStackElevation,
+  TutorialDimOverlay,
+  TUTORIAL_HIGHLIGHT_Z,
+} from "@/components/tutorial/tutorialDimOverlay.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { useSidebar } from "@/elements/sidebar-elements.tsx";
 import { X } from "lucide-react";
@@ -12,8 +17,6 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 
 const PADDING = 0;
-const BLOCK_Z = 45;
-const HIGHLIGHT_Z = 48;
 const CAPTION_Z = 100;
 const EXIT_Z = 200;
 
@@ -50,34 +53,6 @@ const MAIN_STEP_COPY: Record<keyof typeof MAIN_STEP_IDS, string> = {
   sr_main_list:
     "Requests appear below. “Your tasks” are ones where you’re assigned; “Other tasks” are the rest. Open a row to expand stages, check items off, or edit.",
 };
-
-function SpotlightBlockers({
-  rect,
-  onPointerDown,
-}: {
-  rect: { top: number; left: number; width: number; height: number };
-  onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
-}) {
-  const { top, left, width, height } = rect;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const r = left + width;
-  const b = top + height;
-  const clipPath = `polygon(evenodd, 0px 0px, ${vw}px 0px, ${vw}px ${vh}px, 0px ${vh}px, 0px 0px, ${left}px ${top}px, ${r}px ${top}px, ${r}px ${b}px, ${left}px ${b}px, ${left}px ${top}px)`;
-  return (
-    <div
-      className="pointer-events-auto fixed inset-0"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.55)",
-        clipPath,
-        WebkitClipPath: clipPath,
-        zIndex: BLOCK_Z,
-      }}
-      onPointerDown={onPointerDown}
-      aria-hidden
-    />
-  );
-}
 
 function clearSrTutorialStyles() {
   for (const id of [
@@ -176,7 +151,7 @@ export function ServiceRequestTutorialCoach() {
         height: r.height + PADDING * 2,
       });
       el.style.position = "relative";
-      el.style.zIndex = String(HIGHLIGHT_Z);
+      el.style.zIndex = String(TUTORIAL_HIGHLIGHT_Z);
     };
 
     measure();
@@ -196,6 +171,16 @@ export function ServiceRequestTutorialCoach() {
       clearSrTutorialStyles();
     };
   }, [tutorial?.routeIsSrTutorial, tutorial?.phase, location.pathname]);
+
+  /** Same as document tutorial: desktop sidebar is `z-10` below the portaled dim. */
+  useLayoutEffect(() => {
+    if (!tutorial?.routeIsSrTutorial) {
+      setTutorialSidebarStackElevation(false);
+      return;
+    }
+    setTutorialSidebarStackElevation(tutorial.phase === "sidebar_sr_nav");
+    return () => setTutorialSidebarStackElevation(false);
+  }, [tutorial?.routeIsSrTutorial, tutorial?.phase]);
 
   useLayoutEffect(() => {
     if (!tutorial?.routeIsSrTutorial) return;
@@ -293,7 +278,7 @@ export function ServiceRequestTutorialCoach() {
     return createPortal(
       <>
         {exitButton}
-        <SpotlightBlockers rect={rect} onPointerDown={blockBackground} />
+        <TutorialDimOverlay onPointerDown={blockBackground} />
         <div
           className="fixed rounded-xl border border-border bg-popover px-4 py-3 text-sm text-popover-foreground shadow-lg"
           style={(() => {
@@ -345,10 +330,7 @@ export function ServiceRequestTutorialCoach() {
     return createPortal(
       <>
         {exitButton}
-        <div
-          className="fixed inset-0 bg-black/50"
-          style={{ zIndex: BLOCK_Z - 1 }}
-        />
+        <TutorialDimOverlay onPointerDown={blockBackground} />
       </>,
       document.body,
     );
@@ -390,11 +372,7 @@ export function ServiceRequestTutorialCoach() {
     return createPortal(
       <>
         {exitButton}
-        <div
-          className="fixed inset-0 bg-black/50"
-          style={{ zIndex: BLOCK_Z - 1 }}
-          onPointerDown={blockBackground}
-        />
+        <TutorialDimOverlay onPointerDown={blockBackground} />
       </>,
       document.body,
     );

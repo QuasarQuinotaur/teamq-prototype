@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils.ts";
+import { Skeleton } from "@/elements/skeleton.tsx";
 import { parseISO, isValid, startOfDay } from "date-fns";
 import type { WorkflowListRow } from "@/components/service-requests/workflowTypes.ts";
 
@@ -80,22 +81,22 @@ export default function ServiceRequests({
                     <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                         <TabsTrigger value="yours">
                             Your requests
-                            <Badge variant="secondary">{yourRequestsList.length}</Badge>
+                            <CountBadge loading={loading} count={yourRequestsList.length} />
                         </TabsTrigger>
 
                         <TabsTrigger value="overdue">
                             Overdue
-                            <Badge variant="secondary">{counts.overdue}</Badge>
+                            <CountBadge loading={loading} count={counts.overdue} />
                         </TabsTrigger>
 
                         <TabsTrigger value="week">
                             Due this week
-                            <Badge variant="secondary">{counts.dueWeek}</Badge>
+                            <CountBadge loading={loading} count={counts.dueWeek} />
                         </TabsTrigger>
 
                         <TabsTrigger value="todo">
                             To do
-                            <Badge variant="secondary">{counts.todo}</Badge>
+                            <CountBadge loading={loading} count={counts.todo} />
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -124,6 +125,17 @@ export default function ServiceRequests({
             </Tabs>
         </section>
     );
+}
+
+function CountBadge({ loading, count }: { loading: boolean; count: number }) {
+    if (loading) {
+        return (
+            <Badge variant="secondary" className="min-w-8 justify-center px-1.5">
+                <Skeleton className="mx-auto h-3.5 w-4" />
+            </Badge>
+        );
+    }
+    return <Badge variant="secondary">{count}</Badge>;
 }
 
 // --- LIST SECTION ---
