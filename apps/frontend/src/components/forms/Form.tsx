@@ -139,11 +139,11 @@ export default function Form<T extends object>({
 
     const tutorialSubmitOnly = Boolean(state.documentTutorial?.uploadAsTutorial);
 
-    // Sets a key within the field to be updated
-    function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
+    // Stable identity so memoized field subtrees can skip re-renders when unrelated keys change.
+    const setKey = useCallback(<TKey extends keyof T>(key: TKey, value: T[TKey]) => {
         handleKeyChange(setFields, key, value)
         setValidationError(null)
-    }
+    }, [])
 
     // Resets fields back to their initial fields
     function handleReset() {

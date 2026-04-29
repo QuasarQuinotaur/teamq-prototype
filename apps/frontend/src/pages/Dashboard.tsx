@@ -734,8 +734,7 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         case "requestsCalendar": inner = <CalendarWidget requests={data.requests} loading={data.loading} />; break;
         case "expirationCalendar": inner = (
             <DocumentExpirationCalendarWidget
-                items={data.contentForExpiration ?? []}
-                loading={data.loading}
+                onOpenDocument={() => {}}
             />
         ); break;
         case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;

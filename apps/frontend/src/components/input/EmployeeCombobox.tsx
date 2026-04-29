@@ -1,10 +1,10 @@
 import {
-    Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput,
+    Combobox,
     ComboboxContent,
     ComboboxEmpty,
     ComboboxInput,
     ComboboxItem,
-    ComboboxList, ComboboxValue, useComboboxAnchor,
+    ComboboxList,
 } from "@/components/Combobox.tsx"
 import {
     Item,
@@ -13,7 +13,7 @@ import {
     ItemTitle,
     ItemMedia,
 } from "@/elements/item"
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
 import type {Employee} from "db";
 import * as React from "react";
 import {Avatar} from "@/elements/avatar.tsx";
@@ -26,17 +26,17 @@ type EmployeeComboboxProps = {
     disabled?: boolean;
 };
 
-export default function EmployeeCombobox({
+function EmployeeCombobox({
     isUpdate,
     ownerID,
     setNewOwner,
     disabled = false,
 }: EmployeeComboboxProps) {
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [, setLoading] = useState<boolean>(true);
     const [ownerName, setOwnerName] = useState<string>("");
     const [myName, setMyName] = useState<string>("");
-    const [myID, setMyID] = useState<number>(0);
+    const [, setMyID] = useState<number>(0);
     const [permissions, setPermissions] = useState<boolean>(false);
 
     function fetchStates() {
@@ -75,19 +75,22 @@ export default function EmployeeCombobox({
         fetchStates()
     }, [ownerID, isUpdate]);
 
+    const itemToStringValue = useCallback((item: Employee) =>
+        `${item.firstName} ${item.lastName}`, []);
+
+    const handleValueChange = useCallback((value: Employee | null) => {
+        if (disabled) return;
+        if (value) setNewOwner(value)
+    }, [disabled, setNewOwner]);
+
     return (
 
             <Combobox
                 items={employees}
                 value={null}
-                itemToStringValue = {(item: Employee) =>
-                    `${item.firstName} ${item.lastName}`
-                }
+                itemToStringValue={itemToStringValue}
 
-                onValueChange={(value) => {
-                    if (disabled) return;
-                    setNewOwner(value)
-                }}
+                onValueChange={handleValueChange}
             >
                 <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={disabled || !permissions} />
                 <ScrollArea><ComboboxContent className="pointer-events-auto overflow-scroll">
@@ -120,3 +123,5 @@ export default function EmployeeCombobox({
 
     )
 }
+
+export default React.memo(EmployeeCombobox)

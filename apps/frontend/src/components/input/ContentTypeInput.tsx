@@ -7,8 +7,9 @@ import SelectMapInput from "@/components/input/SelectMapInput.tsx";
 type ContentTypeInputProps = {
     contentType: string;
     setContentType: (contentType: string) => void;
+    lockSelect?: boolean;
 } & ComponentProps<typeof SelectTrigger>
-export default function ContentTypeInput({
+function ContentTypeInput({
                                              contentType,
                                              setContentType,
                                              ...props
@@ -23,3 +24,5 @@ export default function ContentTypeInput({
         />
     )
 }
+
+export default React.memo(ContentTypeInput)

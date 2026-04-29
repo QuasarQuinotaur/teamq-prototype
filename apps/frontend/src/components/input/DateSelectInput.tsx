@@ -1,4 +1,4 @@
-import {type ComponentProps, useState} from "react"
+import {type ComponentProps, memo, useState} from "react"
 import { CalendarIcon } from "lucide-react"
 
 import { Calendar } from "@/components/Calendar.tsx"
@@ -93,4 +93,4 @@ function DateSelectInput({
     )
 }
 
-export default DateSelectInput
+export default memo(DateSelectInput)

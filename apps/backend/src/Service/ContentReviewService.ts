@@ -99,6 +99,7 @@ class ContentReviewService {
             note?: string;
             date?: Date;
             status?: "pending" | "done" | "skipped";
+            employeeId?: number | null;
         }
     ) {
         // get existing (for recipients + message context)

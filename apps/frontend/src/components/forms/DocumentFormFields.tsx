@@ -10,7 +10,7 @@ import {Item} from "@/elements/item.tsx";
 import {Button} from "@/elements/buttons/button.tsx";
 import {FileIcon, LinkIcon} from "lucide-react";
 import {cn} from "@/lib/utils.ts";
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, type ChangeEvent} from "react";
 import type {Employee} from "db";
 import { TutorialDocumentStepPanel } from "@/components/tutorial/TutorialDocumentStepPanel.tsx";
 
@@ -48,15 +48,55 @@ export default function DocumentFormFields({
                                                showTutorialCallouts,
                                                fieldsReadOnly,
 }: DocumentFormFieldsProps) {
-    function switchToFile() {
+    const switchToFile = useCallback(() => {
         setKey("sourceType", "file")
         setKey("link", "")
-    }
+    }, [setKey])
 
-    function switchToLink() {
+    const switchToLink = useCallback(() => {
         setKey("sourceType", "link")
         setKey("file", null)
-    }
+    }, [setKey])
+
+    const onNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        if (fieldsReadOnly) return;
+        setKey("name", e.target.value)
+    }, [fieldsReadOnly, setKey])
+
+    const onContentTypeChange = useCallback((type: string) => {
+        if (fieldsReadOnly) return;
+        setKey("contentType", type)
+    }, [fieldsReadOnly, setKey])
+
+    const onOwnerChange = useCallback((owner: Employee) => {
+        if (fieldsReadOnly) return;
+        setKey("newOwnerID", owner.id)
+    }, [fieldsReadOnly, setKey])
+
+    const onFileChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        if (fieldsReadOnly) return;
+        setKey("file", e.target.files?.[0] ?? null)
+    }, [fieldsReadOnly, setKey])
+
+    const onLinkChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        if (fieldsReadOnly) return;
+        setKey("link", e.target.value)
+    }, [fieldsReadOnly, setKey])
+
+    const onJobPositionsChange = useCallback((positions: string[]) => {
+        if (fieldsReadOnly) return;
+        setKey("jobPositions", positions)
+    }, [fieldsReadOnly, setKey])
+
+    const onExpirationDateChange = useCallback((date: Date | undefined) => {
+        if (fieldsReadOnly) return;
+        setKey("expirationDate", date)
+    }, [fieldsReadOnly, setKey])
+
+    const onExpirationStringChange = useCallback((s: string) => {
+        if (fieldsReadOnly) return;
+        dateStrings.setExpiration(s)
+    }, [fieldsReadOnly, dateStrings])
 
     // Reference input file to reset the text
     const inputFile = useRef(null);
@@ -107,10 +147,7 @@ export default function DocumentFormFields({
                                 value={fields.name}
                                 readOnly={fieldsReadOnly}
                                 aria-readonly={fieldsReadOnly || undefined}
-                                onChange={(e) => {
-                                    if (fieldsReadOnly) return;
-                                    setKey("name", e.target.value)
-                                }}
+                                onChange={onNameChange}
                             />
                         )}
                     />
@@ -124,10 +161,7 @@ export default function DocumentFormFields({
                                 className={"w-full min-w-0"}
                                 contentType={fields.contentType}
                                 lockSelect={fieldsReadOnly}
-                                setContentType={(type) => {
-                                    if (fieldsReadOnly) return;
-                                    setKey("contentType", type)
-                                }}
+                                setContentType={onContentTypeChange}
                             />
                         )}
                     />
@@ -140,11 +174,7 @@ export default function DocumentFormFields({
                                 isUpdate={isUpdate}
                                 ownerID={fields.newOwnerID}
                                 disabled={fieldsReadOnly}
-                                setNewOwner={(owner: Employee) => {
-                                    if (fieldsReadOnly) return;
-                                    console.log(owner)
-                                    setKey("newOwnerID", owner.id)
-                                }}
+                                setNewOwner={onOwnerChange}
                             />
                         )}
                     />
@@ -193,10 +223,7 @@ export default function DocumentFormFields({
                                                 type={"file"}
                                                 ref={inputFile}
                                                 disabled={fieldsReadOnly}
-                                                onChange={(e) => {
-                                                    if (fieldsReadOnly) return;
-                                                    setKey("file", e.target.files?.[0] ?? null)
-                                                }}
+                                                onChange={onFileChange}
                                             />
                                         ) : (
                                             <Input
@@ -207,10 +234,7 @@ export default function DocumentFormFields({
                                                 value={fields.link}
                                                 readOnly={fieldsReadOnly}
                                                 aria-readonly={fieldsReadOnly || undefined}
-                                                onChange={(e) => {
-                                                    if (fieldsReadOnly) return;
-                                                    setKey("link", e.target.value)
-                                                }}
+                                                onChange={onLinkChange}
                                             />
                                         )}
                                     </div>
@@ -297,10 +321,7 @@ export default function DocumentFormFields({
                                     id={id}
                                     jobPositions={fields.jobPositions}
                                     disabled={fieldsReadOnly}
-                                    setJobPositions={(positions) => {
-                                        if (fieldsReadOnly) return;
-                                        setKey("jobPositions", positions)
-                                    }}
+                                    setJobPositions={onJobPositionsChange}
                                 />
                             )}
                         />
@@ -314,15 +335,9 @@ export default function DocumentFormFields({
                                     placeholder={"Expiration Date"}
                                     date={fields.expirationDate}
                                     disabled={fieldsReadOnly}
-                                    setDate={(date) => {
-                                        if (fieldsReadOnly) return;
-                                        setKey("expirationDate", date)
-                                    }}
+                                    setDate={onExpirationDateChange}
                                     dateString={dateStrings.expiration}
-                                    setDateString={(s) => {
-                                        if (fieldsReadOnly) return;
-                                        dateStrings.setExpiration(s)
-                                    }}
+                                    setDateString={onExpirationStringChange}
                                 />
                             )}
                         />

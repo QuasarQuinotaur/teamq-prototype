@@ -69,6 +69,7 @@ class ContentReviewRepository {
             note?: string;
             date?: Date;
             status?: "pending" | "done" | "skipped";
+            employeeId?: number | null;
         }
     ) {
         const isCompleting = data.status === "done";
@@ -80,6 +81,7 @@ class ContentReviewRepository {
                 ...(data.note !== undefined ? { note: data.note } : {}),
                 ...(data.date !== undefined ? { date: data.date } : {}),
                 ...(data.status !== undefined ? { status: data.status } : {}),
+                ...(data.employeeId !== undefined ? { employeeId: data.employeeId } : {}),
 
                 // only set completion timestamp when first marked done
                 ...(isCompleting ? { completedAt: new Date() } : {}),

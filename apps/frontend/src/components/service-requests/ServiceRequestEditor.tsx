@@ -143,6 +143,221 @@ function isValidYyyyMmDd(s: string): boolean {
   return isValid(d);
 }
 
+type WorkflowStageSectionProps = {
+  stage: StageDraft;
+  employees: AssignEmployeeOption[];
+  contents: LinkContentOption[];
+  disabled: boolean;
+  showRemoveButton: boolean;
+  duePopoverKey: string | null;
+  updateStage: (key: string, patch: Partial<StageDraft>) => void;
+  removeStage: (key: string) => void;
+  setDuePopoverKey: (key: string | null) => void;
+};
+
+const WorkflowStageSection = React.memo(function WorkflowStageSection({
+  stage,
+  employees,
+  contents,
+  disabled,
+  showRemoveButton,
+  duePopoverKey,
+  updateStage,
+  removeStage,
+  setDuePopoverKey,
+}: WorkflowStageSectionProps) {
+  const onTitleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      updateStage(stage.key, { title: e.target.value });
+    },
+    [stage.key, updateStage],
+  );
+  const onDescriptionChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      updateStage(stage.key, { description: e.target.value });
+    },
+    [stage.key, updateStage],
+  );
+  const onAssigneesChange = React.useCallback(
+    (ids: number[]) => {
+      updateStage(stage.key, { assigneeIds: ids });
+    },
+    [stage.key, updateStage],
+  );
+  const onPriorityChange = React.useCallback(
+    (v: string) => {
+      updateStage(stage.key, { priority: v });
+    },
+    [stage.key, updateStage],
+  );
+  const onDocumentsChange = React.useCallback(
+    (ids: number[]) => {
+      updateStage(stage.key, { contentIds: ids });
+    },
+    [stage.key, updateStage],
+  );
+  const onDueOpenChange = React.useCallback(
+    (o: boolean) => {
+      setDuePopoverKey(o ? stage.key : null);
+    },
+    [stage.key, setDuePopoverKey],
+  );
+  const onCalendarSelect = React.useCallback(
+    (d: Date | undefined) => {
+      updateStage(stage.key, {
+        dueDate: d ? format(d, "yyyy-MM-dd") : "",
+      });
+      setDuePopoverKey(null);
+    },
+    [stage.key, updateStage, setDuePopoverKey],
+  );
+  const onClearDue = React.useCallback(() => {
+    updateStage(stage.key, { dueDate: "" });
+  }, [stage.key, updateStage]);
+
+  return (
+    <section
+      className="flex flex-col gap-6 rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-8">
+        <div className="min-w-0 flex-1">
+          <Label htmlFor={`sr-stage-title-${stage.key}`} className="sr-only">
+            Stage title
+          </Label>
+          <Textarea
+            id={`sr-stage-title-${stage.key}`}
+            value={stage.title}
+            onChange={onTitleChange}
+            placeholder="Untitled stage"
+            disabled={disabled}
+            rows={2}
+            className="min-h-[52px] w-full resize-y border-0 bg-transparent p-0 text-lg font-semibold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0"
+          />
+        </div>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:max-w-sm">
+          <Label htmlFor={`sr-assignees-${stage.key}`}>Assign to</Label>
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <AssignEmployeesCombobox
+                employees={employees}
+                value={stage.assigneeIds}
+                onValueChange={onAssigneesChange}
+                disabled={disabled}
+                placeholder="Select employees…"
+              />
+            </div>
+            {showRemoveButton ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label="Remove this stage"
+                onClick={() => removeStage(stage.key)}
+              >
+                <Trash2Icon className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`sr-desc-${stage.key}`}>Description</Label>
+        <Textarea
+          id={`sr-desc-${stage.key}`}
+          value={stage.description}
+          onChange={onDescriptionChange}
+          placeholder="Add details for this stage…"
+          disabled={disabled}
+          className="min-h-28"
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`sr-due-${stage.key}`}>Due date</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover
+              open={duePopoverKey === stage.key}
+              onOpenChange={onDueOpenChange}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  id={`sr-due-${stage.key}`}
+                  type="button"
+                  variant="outline"
+                  disabled={disabled}
+                  className={cn(
+                    "h-9 w-full max-w-xs justify-start text-left font-normal",
+                    !stage.dueDate && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 size-4 shrink-0 opacity-70" />
+                  {stage.dueDate ? (
+                    formatDate(dueStringToDate(stage.dueDate))
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dueStringToDate(stage.dueDate)}
+                  defaultMonth={dueStringToDate(stage.dueDate) ?? new Date()}
+                  onSelect={onCalendarSelect}
+                />
+              </PopoverContent>
+            </Popover>
+            {stage.dueDate ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 text-muted-foreground"
+                disabled={disabled}
+                onClick={onClearDue}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`sr-priority-${stage.key}`}>Priority</Label>
+          <Select
+            value={stage.priority}
+            onValueChange={onPriorityChange}
+            disabled={disabled}
+          >
+            <SelectTrigger id={`sr-priority-${stage.key}`} className="w-full max-w-xs">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`sr-docs-${stage.key}`}>Linked documents</Label>
+        <LinkContentsCombobox
+          contents={contents}
+          value={stage.contentIds}
+          onValueChange={onDocumentsChange}
+          disabled={disabled}
+        />
+      </div>
+    </section>
+  );
+});
+
 export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -309,9 +524,9 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
     setStages((prev) => [...prev, newStageDraft()]);
   }
 
-  function removeStage(key: string) {
+  const removeStage = React.useCallback((key: string) => {
     setStages((prev) => (prev.length <= 1 ? prev : prev.filter((s) => s.key !== key)));
-  }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -485,151 +700,18 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
 
           <div className="flex flex-col gap-10">
             {stages.map((stage) => (
-              <section
+              <WorkflowStageSection
                 key={stage.key}
-                className="flex flex-col gap-6 rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-8">
-                  <div className="min-w-0 flex-1">
-                    <Label htmlFor={`sr-stage-title-${stage.key}`} className="sr-only">
-                      Stage title
-                    </Label>
-                    <Textarea
-                      id={`sr-stage-title-${stage.key}`}
-                      value={stage.title}
-                      onChange={(e) => updateStage(stage.key, { title: e.target.value })}
-                      placeholder="Untitled stage"
-                      disabled={disabled}
-                      rows={2}
-                      className="min-h-[52px] w-full resize-y border-0 bg-transparent p-0 text-lg font-semibold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0"
-                    />
-                  </div>
-                  <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:max-w-sm">
-                    <Label htmlFor={`sr-assignees-${stage.key}`}>Assign to</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <AssignEmployeesCombobox
-                          employees={employees}
-                          value={stage.assigneeIds}
-                          onValueChange={(ids) => updateStage(stage.key, { assigneeIds: ids })}
-                          disabled={disabled}
-                          placeholder="Select employees…"
-                        />
-                      </div>
-                      {mode === "create" && stages.length > 1 ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="shrink-0 text-muted-foreground hover:text-destructive"
-                          aria-label="Remove this stage"
-                          onClick={() => removeStage(stage.key)}
-                        >
-                          <Trash2Icon className="size-4" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`sr-desc-${stage.key}`}>Description</Label>
-                  <Textarea
-                    id={`sr-desc-${stage.key}`}
-                    value={stage.description}
-                    onChange={(e) => updateStage(stage.key, { description: e.target.value })}
-                    placeholder="Add details for this stage…"
-                    disabled={disabled}
-                    className="min-h-28"
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor={`sr-due-${stage.key}`}>Due date</Label>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Popover
-                        open={duePopoverKey === stage.key}
-                        onOpenChange={(o) => setDuePopoverKey(o ? stage.key : null)}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            id={`sr-due-${stage.key}`}
-                            type="button"
-                            variant="outline"
-                            disabled={disabled}
-                            className={cn(
-                              "h-9 w-full max-w-xs justify-start text-left font-normal",
-                              !stage.dueDate && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 size-4 shrink-0 opacity-70" />
-                            {stage.dueDate ? (
-                              formatDate(dueStringToDate(stage.dueDate))
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={dueStringToDate(stage.dueDate)}
-                            defaultMonth={dueStringToDate(stage.dueDate) ?? new Date()}
-                            onSelect={(d) => {
-                              updateStage(stage.key, {
-                                dueDate: d ? format(d, "yyyy-MM-dd") : "",
-                              });
-                              setDuePopoverKey(null);
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {stage.dueDate ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 text-muted-foreground"
-                          disabled={disabled}
-                          onClick={() => updateStage(stage.key, { dueDate: "" })}
-                        >
-                          Clear
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor={`sr-priority-${stage.key}`}>Priority</Label>
-                    <Select
-                      value={stage.priority}
-                      onValueChange={(v) => updateStage(stage.key, { priority: v })}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger id={`sr-priority-${stage.key}`} className="w-full max-w-xs">
-                        <SelectValue placeholder="Priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`sr-docs-${stage.key}`}>Linked documents</Label>
-                  <LinkContentsCombobox
-                    contents={contents}
-                    value={stage.contentIds}
-                    onValueChange={(ids) => updateStage(stage.key, { contentIds: ids })}
-                    disabled={disabled}
-                  />
-                </div>
-              </section>
+                stage={stage}
+                employees={employees}
+                contents={contents}
+                disabled={disabled}
+                showRemoveButton={mode === "create" && stages.length > 1}
+                duePopoverKey={duePopoverKey}
+                updateStage={updateStage}
+                removeStage={removeStage}
+                setDuePopoverKey={setDuePopoverKey}
+              />
             ))}
           </div>
 

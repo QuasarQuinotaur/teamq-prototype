@@ -8,14 +8,24 @@ import { useState } from "react";
 const DEFAULT_REVIEW_FIELDS: ReviewFields = {
     date: undefined,
     stepName: "",
+    employeeId: null,
+}
+
+type ReviewWithEmployee = ContentReview & {
+    employee?: { id: number; firstName: string; lastName: string } | null
 }
 
 function itemAsReview(item: object): ReviewFields {
-    const r = item as ContentReview;
+    const row = item as ReviewWithEmployee
+    const employeeId = row.employeeId ?? row.employee?.id ?? null
+    const stepName = row.employee
+        ? `${row.employee.firstName} ${row.employee.lastName}`
+        : row.stepName
     return {
-        date: new Date(r.date),
-        stepName: r.stepName
-    };
+        date: new Date(row.date),
+        stepName,
+        employeeId,
+    }
 }
 
 function getDefaultReviewFields(defaultItem: object = null): ReviewFields {
@@ -26,7 +36,7 @@ function hasRequiredReviewFields(fields: ReviewFields): boolean {
     if (!fields.date) {
         return false
     }
-    return !!fields.stepName.trim()
+    return fields.employeeId != null && !!fields.stepName.trim()
 }
 
 export type ReviewFormProps = {
@@ -66,10 +76,7 @@ export default function ReviewForm({
             contentId: contentId,
             date: fields.date,
             stepName: fields.stepName,
-
-            // Stuff that could be added in the future
-            // employeeId: null,
-            // note: null,
+            employeeId: fields.employeeId,
         }
         const response = await fetch(url, {
             method: isUpdate ? "PUT" : "POST",

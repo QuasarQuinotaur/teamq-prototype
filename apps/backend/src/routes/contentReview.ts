@@ -82,6 +82,12 @@ router.put("/:id", requiresAuth(), async (req, res) => {
             note: req.body.note,
             date: req.body.date ? new Date(req.body.date) : undefined,
             status: req.body.status,
+            employeeId:
+                req.body.employeeId === undefined
+                    ? undefined
+                    : req.body.employeeId === null
+                      ? null
+                      : Number(req.body.employeeId),
         });
 
         res.json({ success: true, review: updated });

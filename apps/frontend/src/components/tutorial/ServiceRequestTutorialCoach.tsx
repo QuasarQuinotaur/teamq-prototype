@@ -1,9 +1,5 @@
 import { useServiceRequestTutorial } from "@/components/tutorial/ServiceRequestTutorialContext.tsx";
-import {
-  setTutorialSidebarStackElevation,
-  TutorialDimOverlay,
-  TUTORIAL_HIGHLIGHT_Z,
-} from "@/components/tutorial/tutorialDimOverlay.tsx";
+import { TutorialDimOverlay } from "@/components/tutorial/tutorialDimOverlay.tsx";
 import { Button } from "@/elements/buttons/button.tsx";
 import { useSidebar } from "@/elements/sidebar-elements.tsx";
 import { X } from "lucide-react";
@@ -54,6 +50,24 @@ const MAIN_STEP_COPY: Record<keyof typeof MAIN_STEP_IDS, string> = {
     "Requests appear below. “Your tasks” are ones where you’re assigned; “Other tasks” are the rest. Open a row to expand stages, check items off, or edit.",
 };
 
+/** Applies pointer-events recursively so descendants (inputs, links) don’t steal hits. */
+function setSubtreePointerEvents(root: HTMLElement, value: "" | "none"): void {
+  root.style.pointerEvents = value;
+  root.querySelectorAll<HTMLElement>("*").forEach((node) => {
+    node.style.pointerEvents = value;
+  });
+}
+
+/** Block interaction on the spotlighted node (and descendants); dim uses a matching hole so the real UI stays visible un-dimmed. */
+function blockSpotlightSubtreePointerEvents(el: HTMLElement): void {
+  setSubtreePointerEvents(el, "none");
+}
+
+function clearSpotlightPointerBlocks(el: HTMLElement): void {
+  setSubtreePointerEvents(el, "");
+}
+
+/** Cleans pointer-event blocks left on tutorial anchor ids. */
 function clearSrTutorialStyles() {
   for (const id of [
     "tutorial-sr-main-nav",
@@ -65,9 +79,8 @@ function clearSrTutorialStyles() {
     "tutorial-sr-list-overview",
   ]) {
     const el = document.getElementById(id);
-    if (el) {
-      el.style.position = "";
-      el.style.zIndex = "";
+    if (el instanceof HTMLElement) {
+      clearSpotlightPointerBlocks(el);
     }
   }
 }
@@ -150,13 +163,18 @@ export function ServiceRequestTutorialCoach() {
         width: r.width + PADDING * 2,
         height: r.height + PADDING * 2,
       });
-      el.style.position = "relative";
-      el.style.zIndex = String(TUTORIAL_HIGHLIGHT_Z);
+      if (mainPhase && onList) {
+        blockSpotlightSubtreePointerEvents(el);
+      } else if (sidebarSpotlight) {
+        clearSpotlightPointerBlocks(el);
+      }
     };
 
     measure();
     const t =
-      mainPhase && onList ? window.setInterval(measure, 250) : undefined;
+      (mainPhase && onList) || sidebarSpotlight
+        ? window.setInterval(measure, 250)
+        : undefined;
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
     const observed = document.querySelector(targetSelector) as HTMLElement | null;
@@ -171,16 +189,6 @@ export function ServiceRequestTutorialCoach() {
       clearSrTutorialStyles();
     };
   }, [tutorial?.routeIsSrTutorial, tutorial?.phase, location.pathname]);
-
-  /** Same as document tutorial: desktop sidebar is `z-10` below the portaled dim. */
-  useLayoutEffect(() => {
-    if (!tutorial?.routeIsSrTutorial) {
-      setTutorialSidebarStackElevation(false);
-      return;
-    }
-    setTutorialSidebarStackElevation(tutorial.phase === "sidebar_sr_nav");
-    return () => setTutorialSidebarStackElevation(false);
-  }, [tutorial?.routeIsSrTutorial, tutorial?.phase]);
 
   useLayoutEffect(() => {
     if (!tutorial?.routeIsSrTutorial) return;
@@ -278,7 +286,10 @@ export function ServiceRequestTutorialCoach() {
     return createPortal(
       <>
         {exitButton}
-        <TutorialDimOverlay onPointerDown={blockBackground} />
+        <TutorialDimOverlay
+          onPointerDown={blockBackground}
+          holeRect={rect}
+        />
         <div
           className="fixed rounded-xl border border-border bg-popover px-4 py-3 text-sm text-popover-foreground shadow-lg"
           style={(() => {

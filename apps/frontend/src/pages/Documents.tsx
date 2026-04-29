@@ -98,10 +98,17 @@ export default function Documents() {
     location.pathname.startsWith("/tutorial/my-documents") ||
     location.pathname.startsWith("/tutorial/checked-out");
 
+  /** Help “Service requests tutorial” navigates here; only used for SR tour (do not rely on sessionStorage racing the first paint). */
+  const onSrTutorialEntryDashboard =
+    location.pathname === "/tutorial/dashboard" ||
+    location.pathname === "/tutorial/dashboard/";
+
   const routeIsSrTutorial =
     location.pathname.startsWith("/tutorial") &&
     !onDocumentTutorialPath &&
-    (location.pathname.startsWith("/tutorial/service-requests") || srTutorialSession);
+    (location.pathname.startsWith("/tutorial/service-requests") ||
+      onSrTutorialEntryDashboard ||
+      srTutorialSession);
 
   const routeIsDocumentTutorial =
     location.pathname.startsWith("/tutorial") && !routeIsSrTutorial;

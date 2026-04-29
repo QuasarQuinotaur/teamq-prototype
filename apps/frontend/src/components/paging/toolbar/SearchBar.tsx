@@ -10,16 +10,19 @@ import {
 import {
     MagnifyingGlassIcon
 } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils.ts";
 
 
 export type SearchBarProps = {
-    setFilter: (phrase: string) => void
+    setFilter: (phrase: string) => void;
+    className?: string;
 }
 export default function SearchBar({
-                                      setFilter
+                                      setFilter,
+                                      className,
 }: SearchBarProps) {
     return (
-        <InputGroup>
+        <InputGroup className={cn("bg-background", className)}>
             <InputGroupInput
                 placeholder={"Search..."}
                 onChange={(e) => setFilter(e.target.value)}
