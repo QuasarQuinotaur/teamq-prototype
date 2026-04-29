@@ -177,9 +177,6 @@ export default function ContentCard({
             onSelectToggle();
             return;
         }
-        if (onOpen) {
-            onOpen(entry);
-        }
         if (onView && isSupabasePath(entry.link)) {
             onView(entry);
         } else {
