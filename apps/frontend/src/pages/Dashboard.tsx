@@ -35,6 +35,7 @@ import {
     enrichWorkflowForList,
     type WorkflowListRow,
 } from "@/components/service-requests/workflowTypes.ts";
+import UserActivityWidget from "@/components/widgets/UserActivityWidget.tsx";
 
 type Widget = {
     id: string;
@@ -74,6 +75,7 @@ export default function Dashboard() {
         { type: "expirationCalendar", label: "Content Expirations & Reviews (Calendar) " },
         { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
+        { type: "userActivity", label: "User Activity (Log)" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -460,7 +462,11 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
-                                            ) : (w.type === "progressStatsCard" || w.type === "progressPieChart" || w.type === "topDocumentActivity" || w.type === "contentCurrency") ? (
+                                            ) : (w.type === "progressStatsCard"
+                                                || w.type === "progressPieChart"
+                                                || w.type === "topDocumentActivity"
+                                                || w.type === "contentCurrency"
+                                                || w.type === "userActivity") ? (
                                                 <button
                                                     onClick={() => {
                                                         addWidget(w.type, 1);
@@ -638,6 +644,7 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
             />
         ); break;
         case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
+        case "userActivity": inner = <UserActivityWidget/>; break;
         case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
