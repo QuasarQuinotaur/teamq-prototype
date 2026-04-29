@@ -19,6 +19,7 @@ export default function ContentCurrencyWidget() {
                     credentials: "include",
                 });
                 const data = await res.json();
+                if (!res.ok) throw new Error("Failed to fetch content");
                 setDocs(data);
             } catch (err) {
                 console.error("Failed to fetch content", err);
@@ -40,6 +41,9 @@ export default function ContentCurrencyWidget() {
     let current = 0;
     let review = 0;
     let outdated = 0;
+
+    console.log("Docs:")
+    console.log(docs);
 
     docs.forEach((doc) => {
         const days = getDaysSince(doc.dateUpdated || doc.dateAdded);

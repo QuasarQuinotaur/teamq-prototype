@@ -700,7 +700,7 @@ router.get("/:id/download", requiresAuth(), async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
     }
-    await prisma.ActivityLog.create({
+    await prisma.activityLog.create({
         data: {
             employeeId: employee.id,
             contentId: id,
@@ -1117,7 +1117,7 @@ router.post("/upload", requiresAuth(), upload.single("file"), async (req, res) =
             success: true,
             content: created,
         });
-        await prisma.ActivityLog.create({
+        await prisma.activityLog.create({
             data: {
                 employeeId: employee.id,
                 contentId: created.id,
@@ -1168,7 +1168,7 @@ router.post("/checkin/:id", requiresAuth(), async (req, res) => {
             checkedOutOn: null,
         },
     });
-    await prisma.ActivityLog.create({
+    await prisma.activityLog.create({
         data: {
             employeeId: employee.id,
             contentId: id,
@@ -1237,7 +1237,7 @@ router.post("/checkout/:id", requiresAuth(), async (req, res) => {
         success: true,
         content: { ...updated, checkedOutBy },
     });
-    await prisma.ActivityLog.create({
+    await prisma.activityLog.create({
         data: {
             employeeId: employee.id,
             contentId: id,
@@ -1401,7 +1401,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             success: true,
             content: updated,
         });
-        await prisma.ActivityLog.create({
+        await prisma.activityLog.create({
             data: {
                 employeeId: employee.id,
                 contentId: id,
@@ -1459,7 +1459,7 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         await unlink(thumbFsPath).catch(() => {});
 
         res.json({ success: true });
-        await prisma.ActivityLog.create({
+        await prisma.activityLog.create({
             data: {
                 employeeId: employee.id,
                 contentId: id,
@@ -1564,7 +1564,7 @@ router.post("/:contentId/tags/:tagId", requiresAuth(), async (req, res) => {
             return;
         }
 
-        const tag = await prisma.Tag.findFirst({
+        const tag = await prisma.tag.findFirst({
             where: {
                 id: tagId,
                 OR: [{ ownerId: employee.id }, { isGlobal: true }],
