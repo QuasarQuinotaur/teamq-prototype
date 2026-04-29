@@ -36,6 +36,7 @@ import {
     type WorkflowListRow,
 } from "@/components/service-requests/workflowTypes.ts";
 import UserActivityWidget from "@/components/widgets/UserActivityWidget.tsx";
+import ActivityChartWidget from "@/components/widgets/ActivityChartWidget.tsx";
 
 type Widget = {
     id: string;
@@ -76,6 +77,7 @@ export default function Dashboard() {
         { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
         { type: "userActivity", label: "User Activity (Log)" },
+        { type: "activityChart", label: "User Activity (Chart)" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -449,7 +451,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add {w.label} (Large
+                                                    Add {w.label} (Large)
                                                 </button>
                                             ) : w.type === "expirationCalendar" ? (
                                                 <button
@@ -477,6 +479,31 @@ export default function Dashboard() {
                                                 >
                                                     Add {w.label} (Small)
                                                 </button>
+                                            ) : w.type === "activityChart" ? (
+                                                <div className="flex gap-2">
+
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget("activityChart", 2);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Medium)
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            addWidget("activityChart", 3);
+                                                            setShowAddModal(false);
+                                                            setOpenPreview(null);
+                                                        }}
+                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    >
+                                                        Add {w.label} (Large)
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <div className="flex gap-2">
                                                     <button
@@ -645,6 +672,7 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         ); break;
         case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
         case "userActivity": inner = <UserActivityWidget/>; break;
+        case "activityChart": inner = <ActivityChartWidget/>; break;
         case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         default:         inner = <div>Unknown widget</div>;
