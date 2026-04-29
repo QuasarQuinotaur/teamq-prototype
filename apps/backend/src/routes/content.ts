@@ -583,6 +583,28 @@ router.get("/expirations", requiresAuth(), async (req, res) => {
     }
 });
 
+router.get("/currency", requiresAuth(), async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 20;
+        const contents = await prisma.content.findMany({
+            orderBy: { dateUpdated: "desc" },
+            take: limit,
+            select: {
+                id: true,
+                title: true,
+                contentType: true,
+                dateAdded: true,
+                dateUpdated: true,
+                owner: {
+                    select: { id: true, firstName: true, lastName: true },
+                },
+            },
+        });
+        res.json({ contents });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Failed to fetch currency data" });
+    }
+});
 
 router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
@@ -1345,7 +1367,24 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         if (!employee) {
             return res.status(404).json({error: "No linked employee account found"});
         }
+
+        const contentToDelete = await prisma.content.findUnique({
+            where: { id },
+            select: { title: true, contentType: true },
+        });
+
         await contentService.deleteContent(id, employee);
+
+        if (contentToDelete) {
+            await prisma.deletedContentLog.create({
+                data: {
+                    contentId: id,
+                    title: contentToDelete.title,
+                    contentType: contentToDelete.contentType,
+                    deletedById: employee.id,
+                },
+            });
+        }
 
         const thumbFsPath = path.join(process.cwd(), "tmp", "thumbnails", `${id}.png`);
         await unlink(thumbFsPath).catch(() => {});
@@ -1609,6 +1648,7 @@ router.delete("/tutorial", requiresAuth(), async (req, res) => {
         res.status(500).json({ error: err });
     }
 });
+
 
 export default router;
 
