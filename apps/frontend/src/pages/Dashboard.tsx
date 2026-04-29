@@ -50,22 +50,87 @@ type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
+function getDefaultWidgets(jobPosition: string): Widget[] {
+    const base: { type: string; size: 1 | 2 | 3 }[] =
+        jobPosition === "admin"
+            ? [
+                { type: "contentCurrency", size: 1 },
+                { type: "activityChart", size: 2 },
+                { type: "userActivity", size: 2 },
+                { type: "topDocumentActivity", size: 1 },
+                { type: "expirationCalendar", size: 3},
+            ]
+            : jobPosition === "underwriter"
+                ? [
+                    { type: "progressStatsCard", size: 1 },
+                    { type: "requestsCalendar", size: 2 },
+                    { type: "expirationCalendar", size: 3 },
+                ]
+                : jobPosition === "businessAnalyst"
+                    ? [
+                        { type: "progressPieChart", size: 1 },
+                        { type: "requestsCalendar", size: 2 },
+                        { type: "requestsCalendar", size: 3 },
+                    ]
+                    : [
+                        { type: "progressPieChart", size: 1 },
+                        { type: "requestsList", size: 2 },
+                        { type: "requestsCalendar", size: 3 },
+                    ];
+
+    return base.map((w, i) => ({
+        ...w,
+        id: `${w.type}-${i}-${Date.now()}`,
+    }));
+}
+
 export default function Dashboard() {
-    const [widgets, setWidgets] = useState<Widget[]>(() => {
-        const saved = localStorage.getItem("widgets");
+
+    const [user, setUser] = useState<any>(null);
+    const [jobPosition, setJobPosition] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`${base}/me`, {
+                    credentials: "include",
+                });
+                const data = await res.json();
+                setUser(data);
+                setJobPosition(data.jobPosition);
+            } catch (err) {
+                console.error("Failed to fetch user", err);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const [widgets, setWidgets] = useState<Widget[]>([]);
+
+    useEffect(() => {
+        if (!jobPosition || !user) return;
+
+        const storageKey = `dashboard-widgets-${user.id}`;
+        const saved = localStorage.getItem(storageKey);
+
         if (saved) {
             try {
-                return JSON.parse(saved);
-            } catch (e) {
-                console.error("Failed to parse widgets", e);
-                }
+                setWidgets(JSON.parse(saved));
+            } catch {
+                setWidgets(getDefaultWidgets(jobPosition));
+            }
+        } else {
+            setWidgets(getDefaultWidgets(jobPosition));
         }
-        return [
-            { id: "1", type: "progressStatsCard", size: 1 },
-            { id: "2", type: "requestsCalendar", size: 2 },
-            { id: "3", type: "requestsList", size: 3 },
-        ];
-    });
+    }, [jobPosition, user]);
+
+    useEffect(() => {
+        if (!widgets.length || !user) return;
+
+        const storageKey = `dashboard-widgets-${user.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(widgets));
+    }, [widgets, user]);
 
     const widgetOptions = [
         { type: "progressStatsCard", label: "Requests (Stats) " },
@@ -110,9 +175,6 @@ export default function Dashboard() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [openPreview, setOpenPreview] = useState<string | null>(null);
 
-    useEffect(() => {
-        localStorage.setItem("widgets", JSON.stringify(widgets));
-    }, [widgets]);
 
     useEffect(() => {
         Promise.all([
