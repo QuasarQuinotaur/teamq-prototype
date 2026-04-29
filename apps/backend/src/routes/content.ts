@@ -717,6 +717,39 @@ router.get("/:id/download", requiresAuth(), async (req, res) => {
     });
 });
 
+router.get("/:id/file-url", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const filePath = content.filePath;
+        if (!filePath?.trim()) {
+            res.status(404).json({ error: "No file or link" });
+            return;
+        }
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+            res.json({ url: filePath });
+            return;
+        }
+        const signedUrl = await getSignedUrl(filePath);
+        res.json({ url: signedUrl });
+    } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate URL" });
+    }
+});
+
 function mapSummaryErrorToMessage(err: unknown): string {
     if (err instanceof SummaryUnsupportedError) {
         return err.message;

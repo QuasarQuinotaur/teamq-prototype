@@ -271,7 +271,7 @@ export default function ContentEntryPage({
 
     const fetchViewerState = useCallback(async (entry: CardEntry): Promise<ViewerState | null> => {
         const id = entry.item.id;
-        const res = await fetch(`${apiBase}/api/content/${id}/download`, {
+        const res = await fetch(`${apiBase}/api/content/${id}/file-url`, {
             credentials: "include",
         });
         if (!res.ok) return null;
