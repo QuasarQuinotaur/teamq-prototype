@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -33,6 +34,7 @@ model Employee {
   userSettings      UserSettings?
 
   deletedContentLogs DeletedContentLog[]
+  activityLogs      ActivityLog[]
 }
 
 model Content {
@@ -70,12 +72,14 @@ model Content {
   downloadCount Int @default(0)
 
   isTutorial Boolean @default(false)
+  
+  activityLogs                ActivityLog[]
 
-  @@index([isTutorial, ownerId])
-  @@index([ownerId])
-  @@index([contentType])
-  @@index([expirationDate])
-  @@index([isCheckedOut, checkedOutOn])
+ @@index([isTutorial, ownerId])
+ @@index([ownerId])
+ @@index([contentType])
+ @@index([expirationDate])
+ @@index([isCheckedOut, checkedOutOn])
 }
 
 model ServiceRequestWorkflow {
@@ -219,4 +223,17 @@ model DeletedContentLog {
 
   @@index([deletedAt])
   @@index([deletedById])
+}
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  contentId   Int?
+  type        String
+  dateCreated DateTime @default(now())
+
+  contentTitle String?
+  contentType  String?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  content  Content? @relation(fields: [contentId], references: [id])
 }
