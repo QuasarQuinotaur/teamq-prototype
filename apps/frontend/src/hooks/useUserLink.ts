@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const api = axios.create({
@@ -9,12 +9,35 @@ const api = axios.create({
 export const useUserLink = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [notRegistered, setNotRegistered] = useState(false);
+  const [documentTutorialShown, setDocumentTutorialShown] = useState<
+    boolean | null
+  >(null);
+
+  /** Re-sync after marking shown on the server (or after migration deploy). */
+  const refetchTutorialEligibility = useCallback(async () => {
+    try {
+      const response = await api.get('/me');
+      setDocumentTutorialShown(
+        Boolean(
+          (response.data as { documentTutorialShown?: boolean })
+            .documentTutorialShown,
+        ),
+      );
+    } catch {
+      /* leave prior value */
+    }
+  }, []);
 
   useEffect(() => {
     const bootstrapUser = async () => {
       try {
         const response = await api.get('/me');
-        console.log("User verified:", response.data);
+        setDocumentTutorialShown(
+          Boolean(
+            (response.data as { documentTutorialShown?: boolean })
+              .documentTutorialShown,
+          ),
+        );
         setIsLoading(false);
       } catch (error: any) {
         if (error.response?.status === 404) {
@@ -30,5 +53,10 @@ export const useUserLink = () => {
     bootstrapUser();
   }, []);
 
-  return { isLoading, notRegistered };
+  return {
+    isLoading,
+    notRegistered,
+    documentTutorialShown,
+    refetchTutorialEligibility,
+  };
 };

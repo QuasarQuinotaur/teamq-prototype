@@ -29,6 +29,8 @@ export type EntryProps = {
     entries: CardEntry[];
     createOptionsElement?: (entry: CardEntry, trigger: React.ReactNode) => React.ReactNode;
     listColumnOptions?: CreateColumnsOptions;
+    /** List/grid tutorial: mark this entry’s row or card (`data-tutorial-doc-card`). */
+    tutorialHighlightEntryId?: number | null;
     /** When true, cards/list rows support multi-select for bulk actions. */
     selectMode?: boolean;
     isEntrySelected?: (entry: CardEntry) => boolean;
@@ -90,9 +92,11 @@ export default function EntryPage<T extends object>({
     const {
         entries,
         listColumnOptions,
+        tutorialHighlightEntryId,
         selectMode,
         onMarqueeSelect,
         marqueeBlocked,
+        ...restEntryProps
     } = entryProps;
 
     const [favoritesOpen, setFavoritesOpen] = useState(true);
@@ -236,7 +240,7 @@ export default function EntryPage<T extends object>({
         return (
             <CardGrid
                 {...cardGridProps}
-                {...entryProps}
+                {...restEntryProps}
                 entries={gridEntries}
                 isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
             />
@@ -246,10 +250,11 @@ export default function EntryPage<T extends object>({
     function createCardList(listEntries: CardEntry[]) {
         return (
             <CardList
-                {...entryProps}
+                {...restEntryProps}
                 entries={listEntries}
                 onRowClick={onListRowClick}
                 listColumnOptions={listColumnOptions}
+                tutorialHighlightEntryId={tutorialHighlightEntryId}
             />
         )
     }

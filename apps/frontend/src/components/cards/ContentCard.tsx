@@ -118,6 +118,8 @@ type ContentCardProps = {
     showJobPositionBadge?: boolean;
     /** When set, checkout dimmer/avatar/dots are hidden if this user holds the checkout (others still see them). */
     viewerEmployeeId?: number | null;
+    /** When true, marks the card for the tutorial coach (`data-tutorial-doc-card`). */
+    tutorialSeeDocHighlight?: boolean;
 } & CardState;
 
 export default function ContentCard({
@@ -128,6 +130,7 @@ export default function ContentCard({
                                         showContentTypeBadge = true,
                                         showJobPositionBadge = true,
                                         viewerEmployeeId,
+                                        tutorialSeeDocHighlight,
                                         selectMode,
                                         selected,
                                         onSelectToggle,
@@ -232,7 +235,11 @@ export default function ContentCard({
     const showBadges = tagsEnabled;
 
     return (
-        <div className="relative" style={{ paddingTop: TAB_H }}>
+        <div
+            className="relative"
+            style={{ paddingTop: TAB_H }}
+            {...(tutorialSeeDocHighlight ? { "data-tutorial-doc-card": "" as const } : {})}
+        >
         {!showBadges && <FolderTabs badges={allBadges} />}
         <CardContainer
             className="group relative w-full h-52 flex flex-col gap-0 cursor-pointer shadow-sm rounded-t-md"

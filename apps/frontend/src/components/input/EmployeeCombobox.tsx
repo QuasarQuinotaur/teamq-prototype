@@ -19,7 +19,19 @@ import * as React from "react";
 import {Avatar} from "@/elements/avatar.tsx";
 import {ScrollArea} from "@/elements/scroll-area.tsx";
 
-export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
+type EmployeeComboboxProps = {
+    isUpdate: boolean;
+    ownerID: number;
+    setNewOwner: (owner: Employee) => void;
+    disabled?: boolean;
+};
+
+export default function EmployeeCombobox({
+    isUpdate,
+    ownerID,
+    setNewOwner,
+    disabled = false,
+}: EmployeeComboboxProps) {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [ownerName, setOwnerName] = useState<string>("");
@@ -73,10 +85,11 @@ export default function EmployeeCombobox({ isUpdate, ownerID, setNewOwner }) {
                 }
 
                 onValueChange={(value) => {
+                    if (disabled) return;
                     setNewOwner(value)
                 }}
             >
-                <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={!permissions} />
+                <ComboboxInput placeholder={isUpdate ? ownerName : myName} showClear disabled={disabled || !permissions} />
                 <ScrollArea><ComboboxContent className="pointer-events-auto overflow-scroll">
 
                     <ComboboxEmpty>No items found.</ComboboxEmpty>

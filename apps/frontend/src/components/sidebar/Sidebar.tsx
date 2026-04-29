@@ -11,7 +11,16 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/elements/sidebar-elements.tsx"
-import {ChartBarIcon, ClockIcon, PersonIcon, FilesIcon, ListBulletsIcon, InfoIcon, CopyrightIcon} from "@phosphor-icons/react"
+import {
+  ChartBarIcon,
+  ClockIcon,
+  PersonIcon,
+  FilesIcon,
+  ListBulletsIcon,
+  InfoIcon,
+  CopyrightIcon,
+  LifebuoyIcon,
+} from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
 import { useEffect, useState } from "react"
@@ -54,6 +63,7 @@ const data = {
     {
       title: "Service requests",
       url: "/documents/service-requests",
+      id: "tutorial-sr-main-nav",
       icon: (
         <ListBulletsIcon/>
       ),
@@ -105,11 +115,29 @@ const data = {
   // ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+function withDocumentsPrefix(pathPrefix: "/documents" | "/tutorial", path: string): string {
+  return path.replace(/^\/documents\b/, pathPrefix);
+}
+
+export function AppSidebar({
+  pathPrefix = "/documents",
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  pathPrefix?: "/documents" | "/tutorial";
+}) {
 
   const [employee, setEmployee] = useState<Employee | null>(null);
   const { jobNameMap, rolesLoading } = useJobNameMap();
   const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
+  const navMain = React.useMemo(
+    () =>
+      data.navMain.map((item) => ({
+        ...item,
+        url: withDocumentsPrefix(pathPrefix, item.url),
+      })),
+    [pathPrefix],
+  );
+
   const otherRolesItems = React.useMemo(() => {
         if (!employee) {
             return null
@@ -121,9 +149,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             return null
         }
         return notOfRole.map(([id, name]) => {
-            return { title: name, url: `/documents/role/${id}` }
+            return { title: name, url: `${pathPrefix}/role/${id}` }
         })
-  }, [jobNameMap, employee])
+  }, [jobNameMap, employee, pathPrefix])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -141,54 +169,63 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const allDocumentsItem = {
       title: "Content",
-      url: "/documents/all",
+      url: `${pathPrefix}/all`,
       id: "tutorial-1",
       icon: (<FilesIcon/>),
       isActive: true,
       items: [
-        { title: "My content", url: "/documents/my-documents" },
-        { title: "Checked out", url: "/documents/checked-out" },
+        { title: "My content", url: `${pathPrefix}/my-documents` },
+        {
+          title: "Checked out",
+          url: `${pathPrefix}/checked-out`,
+          id: "tutorial-checked-out-nav",
+        },
         ...((employee && getEmployeeIsAdmin(employee))
-          ? [{ title: "Check in", url: "/documents/admin-check-in" }]
+          ? [{ title: "Check in", url: `${pathPrefix}/admin-check-in` }]
           : []),
         ...(employee?.jobPosition
-          ? [{ title: "My role", url: `/documents/role/${employee.jobPosition}` }]
+          ? [{ title: "My role", url: `${pathPrefix}/role/${employee.jobPosition}` }]
           : []),
         ...((!rolesLoading && otherRolesItems && otherRolesItems.length > 0)
-          ? [{ title: "Other roles", url: "/documents/all", items: otherRolesItems }]
+          ? [{ title: "Other roles", url: `${pathPrefix}/all`, items: otherRolesItems }]
           : []),
         {
           title: "Document type",
-          url: "/documents/all",
+          url: `${pathPrefix}/all`,
           items: [
-            { title: "Workflow", url: "/documents/workflow" },
-            { title: "Reference", url: "/documents/reference" },
-            { title: "Tools", url: "/documents/tools" },
+            { title: "Workflow", url: `${pathPrefix}/workflow` },
+            { title: "Reference", url: `${pathPrefix}/reference` },
+            { title: "Tools", url: `${pathPrefix}/tools` },
           ],
         },
       ],
     };
 
     const navItems = [
-      ...data.navMain,
+      ...navMain,
       allDocumentsItem,
       ...((employee && getEmployeeIsAdmin(employee))
         ? [
             {
               title: "Employees",
-              url: "/documents/employees",
+              url: `${pathPrefix}/employees`,
               icon: <PersonIcon />,
             },
           ]
         : []),
       {
         title: "About",
-        url: "/documents/about",
+        url: `${pathPrefix}/about`,
         icon: <InfoIcon />,
       },
       {
+        title: "Help",
+        url: `${pathPrefix}/help`,
+        icon: <LifebuoyIcon />,
+      },
+      {
         title: "Credits",
-        url: "/documents/credits",
+        url: `${pathPrefix}/credits`,
         icon: <CopyrightIcon />,
       },
   ];
@@ -226,7 +263,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           size="lg"
           className="w-full group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2"
         >
-          <Link to="/documents/notifications">
+          <Link to={`${pathPrefix}/notifications`}>
             <InboxIcon />
             <span className="group-data-[collapsible=icon]:sr-only">Inbox</span>
           </Link>

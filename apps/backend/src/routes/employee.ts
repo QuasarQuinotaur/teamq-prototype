@@ -2,7 +2,7 @@ import { Router } from "express";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
 import { EmployeeRepository } from "../EmployeeRepository.ts";
-import {getSignedUrl} from "../lib/supabase.ts";
+import { tryGetSignedUrl } from "../lib/supabase.ts";
 import {prisma} from "db";
 const employeeRepo = new EmployeeRepository();
 
@@ -27,7 +27,7 @@ router.get("/", requiresAuth(), async (req, res) => {
             });
 
             if (photo?.path) {
-                image = await getSignedUrl(photo.path);
+                image = await tryGetSignedUrl(photo.path);
             }
 
             return {

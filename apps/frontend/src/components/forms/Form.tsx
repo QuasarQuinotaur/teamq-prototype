@@ -66,6 +66,20 @@ export type FormState = {
     onCancel?: () => void;
     /** When true, form body grows with content (e.g. modal) instead of a fixed scroll area */
     noFixedHeight?: boolean;
+    /** Called after a successful document create with the new content id (before onCancel). */
+    onTutorialDocumentCreated?: (contentId: number) => void;
+    /** Called after a successful update submit (before onCancel). */
+    onAfterSuccessfulSubmit?: () => void;
+    /** Update dialog closed without a successful save (Cancel, X, overlay). Wired by ModifyDropdown. */
+    onDismissUpdateDialog?: () => void;
+    /** Guided tutorial: prefill, flags for document form only. */
+    documentTutorial?: {
+        uploadAsTutorial: boolean;
+        showFieldCallouts: boolean;
+        prefill?: object;
+    };
+    /** Tutorial: dialog open state (add-document). */
+    onTutorialDialogOpenChange?: (open: boolean) => void;
 }
 export type FormFieldsProps<T> = {
     fields: T,
@@ -80,7 +94,7 @@ type FormProps<T> = {
     state?: FormState;
     initialFields: T;
     createFieldsElement: CreateFieldsElement<T>;
-    submit: (fields: T) => Promise<void>;
+    submit: (fields: T) => Promise<void | number>;
     reset?: () => void;
     // If specified will be set on reset instead of initial fields
     resetFields?: T;
@@ -123,6 +137,8 @@ export default function Form<T extends object>({
     const [submitError, setSubmitError] = useState<string | null>(null)
     const [validationError, setValidationError] = useState<string | null>(null)
 
+    const tutorialSubmitOnly = Boolean(state.documentTutorial?.uploadAsTutorial);
+
     // Sets a key within the field to be updated
     function setKey<TKey extends keyof T>(key: TKey, value: T[TKey]) {
         handleKeyChange(setFields, key, value)
@@ -144,7 +160,14 @@ export default function Form<T extends object>({
         try {
             setIsSubmitting(true);
 
-            await submit(fields)
+            const submitOut = await submit(fields);
+
+            if (!state.baseItem && typeof submitOut === "number") {
+                state.onTutorialDocumentCreated?.(submitOut);
+            }
+            if (state.baseItem) {
+                state.onAfterSuccessfulSubmit?.();
+            }
 
             handleReset();
             if (state.onCancel) {
@@ -232,6 +255,8 @@ export default function Form<T extends object>({
                 <FormActions
                     {...actionsProps}
                     {...state}
+                    hideCancel={tutorialSubmitOnly ? true : actionsProps.hideCancel}
+                    hideReset={tutorialSubmitOnly ? true : actionsProps.hideReset}
                     isSubmitting={isSubmitting}
                     relaxedLayout={scrollBodyNaturalHeight}
                 />

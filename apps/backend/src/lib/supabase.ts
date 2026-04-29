@@ -21,6 +21,41 @@ export async function getSignedUrl(path: string, expiresIn = 60) {
     return data.signedUrl;
 }
 
+/** Max wait for storage before giving up (avoids multi‑minute hangs on bad gateway / network issues). */
+const DEFAULT_SIGNED_URL_TIMEOUT_MS = 10_000;
+
+/**
+ * Like {@link getSignedUrl} but never throws: returns `undefined` on error or timeout.
+ * Prefer this for list endpoints so one bad photo does not fail the whole response.
+ */
+export async function tryGetSignedUrl(
+    path: string,
+    expiresIn = 60,
+    timeoutMs = DEFAULT_SIGNED_URL_TIMEOUT_MS,
+): Promise<string | undefined> {
+    try {
+        const pending = getSignedUrl(path, expiresIn);
+        if (timeoutMs <= 0) {
+            return await pending;
+        }
+        const timeout = new Promise<never>((_, reject) => {
+            setTimeout(
+                () =>
+                    reject(
+                        new Error(
+                            `getSignedUrl timed out after ${timeoutMs}ms`,
+                        ),
+                    ),
+                timeoutMs,
+            );
+        });
+        return await Promise.race([pending, timeout]);
+    } catch (err) {
+        console.warn("[supabase] tryGetSignedUrl failed:", path, err);
+        return undefined;
+    }
+}
+
 export async function deleteFile(path: string) {
     const { error } = await getSupabase().storage.from("uploads").remove([path]);
     if (error) throw new Error(error.message);
