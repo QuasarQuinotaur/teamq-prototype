@@ -656,7 +656,7 @@ router.get("/:id", requiresAuth(), async (req, res) => {
             res.status(404).json({ error: "Not found" });
             return;
         }
-        await prisma.ActivityLog.create({
+        await prisma.activityLog.create({
             data: {
                 employeeId: employee.id,
                 contentId: id,
@@ -699,22 +699,23 @@ router.get("/:id/download", requiresAuth(), async (req, res) => {
             where: { id },
             data: { downloadCount: { increment: 1 } }
         });
-        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-            res.json({ url: filePath });
-            return;
-        }
-        const signedUrl = await getSignedUrl(filePath);
-        res.json({ url: signedUrl });
+        const url =
+            filePath.startsWith("http://") || filePath.startsWith("https://")
+                ? filePath
+                : await getSignedUrl(filePath);
+        void prisma.activityLog
+            .create({
+                data: {
+                    employeeId: employee.id,
+                    contentId: id,
+                    type: "Download",
+                },
+            })
+            .catch((e) => console.error("activityLog download", e));
+        res.json({ url });
     } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : "Failed to generate download URL" });
     }
-    await prisma.activityLog.create({
-        data: {
-            employeeId: employee.id,
-            contentId: id,
-            type: "Download"
-        }
-    });
 });
 
 router.get("/:id/file-url", requiresAuth(), async (req, res) => {

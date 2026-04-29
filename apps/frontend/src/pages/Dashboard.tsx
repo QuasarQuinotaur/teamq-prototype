@@ -21,7 +21,7 @@ import RequestsWidget from "@/components/widgets/RequestsListWidget.tsx";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { addDays, startOfDay } from "date-fns";
-import { Plus, GripVertical, Trash2, ChevronDown } from "lucide-react";
+import { Plus, GripVertical, Trash2, ChevronDown, Info } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
@@ -50,6 +50,34 @@ type Widget = {
 type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
+
+const WIDGET_INFO_TEXT: Record<string, string> = {
+    progressStatsCard:
+        "Shows counts of your assigned service requests: to do, overdue, due this week, and completed. Each stat links to a filtered view of requests.",
+    requestsCalendar:
+        "Shows a week view of your assigned service requests placed on their due dates so you can see what is coming up.",
+    requestsList:
+        "Lists your assigned requests in tabs by status—overdue, due this week, and other upcoming work—with links to each request.",
+    progressPieChart:
+        "Shows a pie chart of how your assigned requests split across done, overdue, due this week, and upcoming work.",
+    expirationLine:
+        "Plots how many documents expire on each day over the next 30 days, using content expiration dates from the library.",
+    expirationCalendar:
+        "Calendar of document expirations and review-related dates from your content catalog.",
+    contentCurrency:
+        "Summarizes how fresh your documents are by last updated date: current (under 30 days), review soon (30–90 days), and outdated (over 90 days).",
+    topDocumentActivity:
+        "Ranks documents by combined views and downloads so you can see which content gets the most attention.",
+    userActivity:
+        "Charts how many content events occurred on each day this week. Filter by creations, updates, views, or deletes.",
+    activityChart:
+        "Charts how much activity occurred over time; switch the range to day, week, month, or year.",
+    gif:
+        "Displays an animated GIF from the URL you chose when adding the widget, or a default embed if no GIF URL is set.",
+};
+
+const DEFAULT_WIDGET_INFO =
+    "This dashboard tile shows information from Hanover. Remove it from the grip menu if you no longer need it.";
 
 function getDefaultWidgets(jobPosition: string): Widget[] {
     const base: { type: string; size: 1 | 2 | 3 }[] =
@@ -142,7 +170,7 @@ export default function Dashboard() {
         { type: "expirationCalendar", label: "Content Expirations & Reviews (Calendar) " },
         { type: "contentCurrency", label: "Content Currency" },
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
-        { type: "userActivity", label: "User Activity (Log)" },
+        { type: "userActivity", label: "User Activity (week chart)" },
         { type: "activityChart", label: "User Activity (Chart)" },
         { type: "gif", label: "GIF" },
     ];
@@ -379,6 +407,11 @@ export default function Dashboard() {
                                     id={widget.id}
                                     size={widget.size}
                                     tall={widget.type === "expirationCalendar"}
+                                    widgetType={widget.type}
+                                    widgetTitle={
+                                        widgetOptions.find(w => w.type === widget.type)?.label.trim() ??
+                                        "Widget"
+                                    }
                                     onDelete={removeWidget}
                                     isActive={widget.id === activeId}
                                     isDraggingAny={activeId !== null}
@@ -614,6 +647,8 @@ function SortableItem({
     size,
     tall,
     children,
+    widgetType,
+    widgetTitle,
     onDelete,
     isActive,
     isDraggingAny,
@@ -622,13 +657,17 @@ function SortableItem({
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
     const [menuOpen, setMenuOpen] = useState(false);
+    const [infoHover, setInfoHover] = useState(false);
     const dragStartPos = useRef<{ x: number; y: number } | null>(null);
     const didDrag = useRef(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu if a drag starts
     useEffect(() => {
-        if (isDraggingAny) setMenuOpen(false);
+        if (isDraggingAny) {
+            setMenuOpen(false);
+            setInfoHover(false);
+        }
     }, [isDraggingAny]);
 
     // Close menu on outside click
@@ -637,6 +676,7 @@ function SortableItem({
         function handleOutside(e: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setMenuOpen(false);
+                setInfoHover(false);
             }
         }
         document.addEventListener("mousedown", handleOutside);
@@ -673,7 +713,10 @@ function SortableItem({
     }
 
     function handleGripPointerUp() {
-        if (!didDrag.current) setMenuOpen(prev => !prev);
+        if (!didDrag.current) {
+            setInfoHover(false);
+            setMenuOpen(prev => !prev);
+        }
         dragStartPos.current = null;
     }
 
@@ -698,10 +741,40 @@ function SortableItem({
                     <GripVertical className="size-4 text-muted-foreground" />
                 </div>
                 {menuOpen && (
-                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[130px] py-1">
+                    <div className="absolute top-full left-0 z-50 mt-1 min-w-[130px] overflow-visible rounded-lg border bg-popover py-1 text-popover-foreground shadow-md">
+                        <div
+                            className="relative"
+                            onMouseEnter={() => setInfoHover(true)}
+                            onMouseLeave={() => setInfoHover(false)}
+                        >
+                            <div
+                                className={`flex cursor-help items-center gap-2 px-3 py-1.5 text-sm ${
+                                    infoHover ? "bg-muted" : ""
+                                }`}
+                            >
+                                <Info className="size-3.5 shrink-0" />
+                                Info
+                            </div>
+                            {infoHover && (
+                                <div
+                                    className="pointer-events-auto absolute left-full top-0 z-[60] ml-2 max-h-[min(20rem,70vh)] w-[min(19rem,calc(100vw-3rem))] overflow-y-auto rounded-lg border bg-popover px-3 py-2 text-popover-foreground shadow-lg before:pointer-events-auto before:absolute before:-left-2 before:top-0 before:h-full before:w-2 before:content-['']"
+                                >
+                                    <div className="text-sm font-medium leading-snug">{widgetTitle}</div>
+                                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                                        {WIDGET_INFO_TEXT[widgetType] ?? DEFAULT_WIDGET_INFO}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="my-1 h-px bg-border" role="presentation" />
                         <button
+                            type="button"
                             className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-2 text-destructive"
-                            onClick={() => { onDelete(id); setMenuOpen(false); }}
+                            onClick={() => {
+                                onDelete(id);
+                                setMenuOpen(false);
+                                setInfoHover(false);
+                            }}
                         >
                             <Trash2 className="size-3.5" />
                             Delete
