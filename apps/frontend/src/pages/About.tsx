@@ -1,10 +1,12 @@
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
+import React, { useState } from 'react'
 
 type TeamMember = {
     name: string
     position: string
     image?: string
+    quote?: string
 }
 
 const TEAM_MEMBERS: TeamMember[] = [
@@ -14,7 +16,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png" },
     { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png" },
     { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg" },
-    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png" },
+    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "Go Yankees!" },
     { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png" },
     { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png" },
 ]
@@ -38,12 +40,12 @@ function accentColor(name: string): string {
 
 function MemberCard({ member }: { member: TeamMember }) {
     const avatarFrame = "h-28 w-28 rounded-full border-4 border-background shadow-md object-cover"
-
+    const [isVisible, setIsVisible] = useState<boolean>(false)
     return (
         <CardContainer className="items-center pb-6 text-center w-full">
             <div className="flex justify-center pt-4">
                 {member.image ? (
-                    <img src={member.image} alt={member.name} className={avatarFrame} />
+                    <img src={member.image} onClick={() => setIsVisible(!isVisible)} alt={member.name} className={avatarFrame} />
                 ) : (
                     <div
                         className={cn(
@@ -56,6 +58,7 @@ function MemberCard({ member }: { member: TeamMember }) {
                         {initials(member.name)}
                     </div>
                 )}
+                {isVisible && <div>{member.quote}</div>}
             </div>
             <CardHeader className="text-center items-center w-full px-4">
                 <CardTitle className="text-center w-full">{member.name}</CardTitle>
