@@ -40,6 +40,7 @@ import TagsOption from "@/components/paging/tags/TagsOption.tsx";
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 import ContentReviewsOption from "./review/ContentReviewsOption";
 import { useTutorial } from "@/components/tutorial/TutorialContext.tsx";
+import InfiniteScroll from "@/components/InfiniteScroll.tsx";
 
 type ViewerState = {
     contentId: number;
@@ -461,6 +462,11 @@ export default function ContentEntryPage({
         }
     }, [jobPosition, filterJobPosition, defaultFieldsFilter])
 
+    const [page, setPage] = useState<number>(0)
+    const [hasMore, setHasMore] = useState<boolean>(true);
+    const itemsPerPage = 3
+
+
     function loadContentList() {
         const isInitialLoad = entries.length === 0;
         if (isInitialLoad) setLoading(true);
@@ -488,13 +494,23 @@ export default function ContentEntryPage({
                 if (!res.ok) throw new Error("Failed to load content");
                 return res.json();
             })
-            .then((data: object) => {
-                const useData: ContentListRow[] = onlyRecents ? data["recent"] : data
+            .then((data: Array<object>) => {
+                const useData: ContentListRow[] =
+                    onlyRecents ?
+                        data["recent"].slice(page, page + itemsPerPage) :
+                        data.slice(page, page + itemsPerPage);
+                console.log(useData)
                 setEntries(
-                    useData.map((c) =>
+                    (prev) => [...prev, ...useData.map((c) =>
                         getContentEntryFromRow(onlyRecents ? c["content"] : c, employee, employeeMap),
-                    ),
+                    )],
                 );
+                setPage((prev) => prev + 1);
+
+                if((!onlyRecents && data.length < itemsPerPage) || (onlyRecents && data["recent"].length < itemsPerPage)) {
+                    setHasMore(false);
+                }
+                setLoading(false);
             })
             .catch((err) => {
                 console.error(err);
@@ -1171,84 +1187,95 @@ export default function ContentEntryPage({
 
     if (splitMode) {
         const leftPaneEntryPage = (
-            <EntryPage
-                key="split-left-grid"
-                entries={entries}
-                displayedEntryLabels={{ one: "document", other: "documents" }}
-                showFavoritesSection={showFavoritesSection}
-                favoritedEntries={favoritedQueryEntries}
-                gridSkeletonCount={gridSkeletonCount}
-                createOptionsElement={createOptionsElement}
-                listColumnOptions={listColumnOptions}
-                tutorialHighlightEntryId={tutorialHighlightEntryId}
-                selectMode={selectMode}
-                isEntrySelected={isEntrySelected}
-                onToggleEntrySelect={onToggleEntrySelect}
-                onMarqueeSelect={onMarqueeSelect}
-                marqueeBlocked={bulkActionLoading}
-                onDocumentRowContextMenu={openDocumentMenuFromRow}
-                onListRowClick={wrapRowOpen(openDocInLeftPane)}
-                omitToolbar
-                contentClassName={embeddedContentClassName}
-                cardGridProps={{
-                    renderCard: (state) => (
-                        <ContentCard
-                            key={state.entry.item.id}
-                            onView={openDocInLeftPane}
-                            showContentTypeBadge={showContentTypeBadge}
-                            showJobPositionBadge={showJobPositionBadge}
-                            viewerEmployeeId={employee?.id ?? null}
-                            tutorialSeeDocHighlight={
-                                tutorialHighlightEntryId != null &&
-                                state.entry.item.id === tutorialHighlightEntryId
-                            }
-                            {...state}
-                            onOpen={onContentOpened}
-                        />
-                    ),
-                }}
-                queryProps={queryProps}
-            />
+            <>
+                <EntryPage
+                    key="split-left-grid"
+                    entries={entries}
+                    displayedEntryLabels={{ one: "document", other: "documents" }}
+                    showFavoritesSection={showFavoritesSection}
+                    favoritedEntries={favoritedQueryEntries}
+                    gridSkeletonCount={gridSkeletonCount}
+                    createOptionsElement={createOptionsElement}
+                    listColumnOptions={listColumnOptions}
+                    tutorialHighlightEntryId={tutorialHighlightEntryId}
+                    selectMode={selectMode}
+                    isEntrySelected={isEntrySelected}
+                    onToggleEntrySelect={onToggleEntrySelect}
+                    onMarqueeSelect={onMarqueeSelect}
+                    marqueeBlocked={bulkActionLoading}
+                    onDocumentRowContextMenu={openDocumentMenuFromRow}
+                    onListRowClick={wrapRowOpen(openDocInLeftPane)}
+                    omitToolbar
+                    contentClassName={embeddedContentClassName}
+                    cardGridProps={{
+                        renderCard: (state) => (
+                            <ContentCard
+                                key={state.entry.item.id}
+                                onView={openDocInLeftPane}
+                                showContentTypeBadge={showContentTypeBadge}
+                                showJobPositionBadge={showJobPositionBadge}
+                                viewerEmployeeId={employee?.id ?? null}
+                                tutorialSeeDocHighlight={
+                                    tutorialHighlightEntryId != null &&
+                                    state.entry.item.id === tutorialHighlightEntryId
+                                }
+                                {...state}
+                                onOpen={onContentOpened}
+                            />
+                        ),
+                    }}
+                    queryProps={queryProps}
+                />
+                <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+                    {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
+                </InfiniteScroll>
+            </>
+
         );
         const rightPaneEntryPage = (
-            <EntryPage
-                key="split-right-grid"
-                entries={entries}
-                displayedEntryLabels={{ one: "document", other: "documents" }}
-                showFavoritesSection={showFavoritesSection}
-                favoritedEntries={favoritedQueryEntries}
-                gridSkeletonCount={gridSkeletonCount}
-                createOptionsElement={createOptionsElement}
-                listColumnOptions={listColumnOptions}
-                tutorialHighlightEntryId={tutorialHighlightEntryId}
-                selectMode={selectMode}
-                isEntrySelected={isEntrySelected}
-                onToggleEntrySelect={onToggleEntrySelect}
-                onMarqueeSelect={onMarqueeSelect}
-                marqueeBlocked={bulkActionLoading}
-                onDocumentRowContextMenu={openDocumentMenuFromRow}
-                onListRowClick={wrapRowOpen(openDocInRightPane)}
-                omitToolbar
-                contentClassName={embeddedContentClassName}
-                cardGridProps={{
-                    renderCard: (state) => (
-                        <ContentCard
-                            key={state.entry.item.id}
-                            onView={openDocInRightPane}
-                            showContentTypeBadge={showContentTypeBadge}
-                            showJobPositionBadge={showJobPositionBadge}
-                            viewerEmployeeId={employee?.id ?? null}
-                            tutorialSeeDocHighlight={
-                                tutorialHighlightEntryId != null &&
-                                state.entry.item.id === tutorialHighlightEntryId
-                            }
-                            {...state}
-                            onOpen={onContentOpened}
-                        />
-                    ),
-                }}
-                queryProps={queryProps}
-            />
+            <>
+                <EntryPage
+                    key="split-right-grid"
+                    entries={entries}
+                    displayedEntryLabels={{ one: "document", other: "documents" }}
+                    showFavoritesSection={showFavoritesSection}
+                    favoritedEntries={favoritedQueryEntries}
+                    gridSkeletonCount={gridSkeletonCount}
+                    createOptionsElement={createOptionsElement}
+                    listColumnOptions={listColumnOptions}
+                    tutorialHighlightEntryId={tutorialHighlightEntryId}
+                    selectMode={selectMode}
+                    isEntrySelected={isEntrySelected}
+                    onToggleEntrySelect={onToggleEntrySelect}
+                    onMarqueeSelect={onMarqueeSelect}
+                    marqueeBlocked={bulkActionLoading}
+                    onDocumentRowContextMenu={openDocumentMenuFromRow}
+                    onListRowClick={wrapRowOpen(openDocInRightPane)}
+                    omitToolbar
+                    contentClassName={embeddedContentClassName}
+                    cardGridProps={{
+                        renderCard: (state) => (
+                            <ContentCard
+                                key={state.entry.item.id}
+                                onView={openDocInRightPane}
+                                showContentTypeBadge={showContentTypeBadge}
+                                showJobPositionBadge={showJobPositionBadge}
+                                viewerEmployeeId={employee?.id ?? null}
+                                tutorialSeeDocHighlight={
+                                    tutorialHighlightEntryId != null &&
+                                    state.entry.item.id === tutorialHighlightEntryId
+                                }
+                                {...state}
+                                onOpen={onContentOpened}
+                            />
+                        ),
+                    }}
+                    queryProps={queryProps}
+                />
+                <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+                    {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
+                </InfiniteScroll>
+            </>
         );
         return (
             <div className="bg-muted/50 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl pt-2">
@@ -1351,6 +1378,9 @@ export default function ContentEntryPage({
                 queryProps={queryProps}
             />
             <SplitScreenEdgeAffordance onActivate={enterSplitFromGrid} />
+            <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+                {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
+            </InfiniteScroll>
         </div>
     );
 }
