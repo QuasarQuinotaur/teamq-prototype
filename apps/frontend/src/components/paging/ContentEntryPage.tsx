@@ -464,6 +464,7 @@ export default function ContentEntryPage({
 
     const [page, setPage] = useState<number>(0)
     const [hasMore, setHasMore] = useState<boolean>(true);
+    const [scrollLoad, setScrollLoad] = useState<boolean>(false);
     const itemsPerPage = 3
 
 
@@ -510,7 +511,7 @@ export default function ContentEntryPage({
                 if((!onlyRecents && data.length < itemsPerPage) || (onlyRecents && data["recent"].length < itemsPerPage)) {
                     setHasMore(false);
                 }
-                setLoading(false);
+                setScrollLoad(false);
             })
             .catch((err) => {
                 console.error(err);
@@ -1226,7 +1227,7 @@ export default function ContentEntryPage({
                     }}
                     queryProps={queryProps}
                 />
-                <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+                <InfiniteScroll hasMore={hasMore} isLoading={scrollLoad} next={loadContentList}>
                     {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
                 </InfiniteScroll>
             </>
@@ -1272,7 +1273,7 @@ export default function ContentEntryPage({
                     }}
                     queryProps={queryProps}
                 />
-                <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+                <InfiniteScroll hasMore={hasMore} isLoading={scrollLoad} next={loadContentList}>
                     {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
                 </InfiniteScroll>
             </>
@@ -1378,7 +1379,7 @@ export default function ContentEntryPage({
                 queryProps={queryProps}
             />
             <SplitScreenEdgeAffordance onActivate={enterSplitFromGrid} />
-            <InfiniteScroll hasMore={hasMore} isLoading={loading} next={loadContentList}>
+            <InfiniteScroll hasMore={hasMore} isLoading={scrollLoad} next={loadContentList}>
                 {hasMore && <Loader2 className="my-4 h-8 w-8 animate-spin" />}
             </InfiniteScroll>
         </div>
