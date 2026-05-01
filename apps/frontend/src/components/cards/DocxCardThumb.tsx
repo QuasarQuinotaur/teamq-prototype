@@ -6,23 +6,23 @@
 import * as React from "react";
 import { renderAsync } from "docx-preview";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
-import { FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { FileTypeSkeleton } from "@/components/cards/FileThumbnailSkeletons.tsx";
 import { DOCX_PREVIEW_RENDER_OPTIONS } from "@/lib/docx-preview-render.ts";
 
 function DocxThumbFallback(props: FallbackProps) {
     void props;
     return (
-        <div className="flex size-full items-center justify-center bg-muted">
-            <FileIcon className="size-10 text-muted-foreground" aria-hidden />
+        <div className="relative size-full overflow-hidden bg-muted">
+            <FileTypeSkeleton ext="docx" />
         </div>
     );
 }
 
 function DocxThumbError() {
     return (
-        <div className="flex size-full items-center justify-center bg-muted">
-            <FileIcon className="size-10 text-muted-foreground" aria-hidden />
+        <div className="relative size-full overflow-hidden bg-muted">
+            <FileTypeSkeleton ext="docx" />
         </div>
     );
 }

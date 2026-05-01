@@ -3,9 +3,9 @@
 // Can search, filter, and sort through all entries
 // Can switch between list/grid view
 
-import {type ChangeEvent, useCallback, useMemo, useState} from "react";
+import {type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import Toolbar from "@/components/paging/toolbar/Toolbar.tsx";
 import Pagination from "@/components/paging/Pagination.tsx";
@@ -71,6 +71,16 @@ type EntryPageProps<T> = {
     toolbarLeadingSlot?: React.ReactNode;
     /** Passed to Toolbar: centered content (e.g. selection count). */
     toolbarCenterSlot?: React.ReactNode;
+    /** When lengths sum to `entries.length`, `CardGrid` batches thumbnail reveal per chunk. */
+    thumbnailChunkSizes?: number[];
+    /** Grid infinite scroll + list prefetch for paginated catalogs. */
+    catalogInfiniteScroll?: {
+        hasMore: boolean;
+        loadingMore: boolean;
+        onLoadMore: () => void;
+    };
+    /** When true, entry counts show a trailing "+" (more rows not loaded yet). */
+    catalogHasMore?: boolean;
 }
 export default function EntryPage<T extends object>({
                                                         cardGridProps,
@@ -87,6 +97,9 @@ export default function EntryPage<T extends object>({
                                                         listEntriesPerPage,
                                                         toolbarLeadingSlot,
                                                         toolbarCenterSlot,
+                                                        thumbnailChunkSizes,
+                                                        catalogInfiniteScroll,
+                                                        catalogHasMore,
                                                         ...entryProps
 }: EntryPageProps<T> & EntryProps) {
     const {
@@ -206,7 +219,7 @@ export default function EntryPage<T extends object>({
                         of
                         {entries.length === 1
                             ? ` 1 ${displayedEntryLabels.one}`
-                            : ` ${entries.length} ${displayedEntryLabels.other}`}
+                            : ` ${entries.length}${catalogHasMore ? "+" : ""} ${displayedEntryLabels.other}`}
                         </p>
                     </>
                 ) : (
@@ -216,11 +229,31 @@ export default function EntryPage<T extends object>({
                     >
                         {entries.length === 1
                             ? `1 ${displayedEntryLabels.one}`
-                            : `${entries.length} ${displayedEntryLabels.other}`}
+                            : `${entries.length}${catalogHasMore ? "+" : ""} ${displayedEntryLabels.other}`}
                     </p>
                 ))}
             </section>
         ) : null;
+
+    const scrollRootRef = useRef<HTMLDivElement>(null);
+    const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+    const userHasScrolledCatalogRef = useRef(false);
+
+    useEffect(() => {
+        if (entries.length === 0) {
+            userHasScrolledCatalogRef.current = false;
+        }
+    }, [entries.length]);
+
+    useEffect(() => {
+        const el = scrollRootRef.current;
+        if (!el) return;
+        const onScroll = () => {
+            userHasScrolledCatalogRef.current = true;
+        };
+        el.addEventListener("scroll", onScroll, { passive: true });
+        return () => el.removeEventListener("scroll", onScroll);
+    }, []);
 
     const gridExpectedIds = useMemo(() => entries.map((e) => e.item.id), [entries]);
 
@@ -236,15 +269,119 @@ export default function EntryPage<T extends object>({
         [favoritesExpectedIds],
     );
 
+    const thumbnailChunkSum = useMemo(
+        () => thumbnailChunkSizes?.reduce((acc, n) => acc + n, 0) ?? 0,
+        [thumbnailChunkSizes],
+    );
+
+    const mainGridUsesInnerThumbnailBatches =
+        Boolean(thumbnailChunkSizes?.length) &&
+        thumbnailChunkSum === entries.length &&
+        entries.length > 0;
+
+    const maxDocIndexExclusiveForListPage = useCallback(
+        (viewPageNum: number) => {
+            if (viewPageNum === 1) return slotsPage1;
+            const first = slotsPage1 + entriesPerPage * (viewPageNum - 2);
+            return first + entriesPerPage;
+        },
+        [slotsPage1, entriesPerPage],
+    );
+
+    useEffect(() => {
+        if (view !== "List" || !catalogInfiniteScroll) return;
+        const need = maxDocIndexExclusiveForListPage(displayedPage);
+        if (need <= entries.length) return;
+        if (!catalogInfiniteScroll.hasMore || catalogInfiniteScroll.loadingMore) {
+            return;
+        }
+        catalogInfiniteScroll.onLoadMore();
+    }, [
+        view,
+        displayedPage,
+        entries.length,
+        catalogInfiniteScroll,
+        maxDocIndexExclusiveForListPage,
+    ]);
+
+    useEffect(() => {
+        if (view !== "Grid" || !catalogInfiniteScroll?.hasMore) return;
+        const root = scrollRootRef.current;
+        const target = loadMoreSentinelRef.current;
+        if (!root || !target) return;
+        const obs = new IntersectionObserver(
+            (observed) => {
+                const hit = observed.some((e) => e.isIntersecting);
+                if (
+                    hit &&
+                    userHasScrolledCatalogRef.current &&
+                    catalogInfiniteScroll.hasMore &&
+                    !catalogInfiniteScroll.loadingMore &&
+                    !(gridSkeletonCount != null && gridSkeletonCount > 0 && entries.length === 0)
+                ) {
+                    catalogInfiniteScroll.onLoadMore();
+                }
+            },
+            { root, rootMargin: "280px", threshold: 0 },
+        );
+        obs.observe(target);
+        return () => obs.disconnect();
+    }, [
+        view,
+        catalogInfiniteScroll?.hasMore,
+        catalogInfiniteScroll?.loadingMore,
+        catalogInfiniteScroll?.onLoadMore,
+        entries.length,
+        gridSkeletonCount,
+    ]);
+
     function createCardGrid(gridEntries: CardEntry[]) {
         return (
             <CardGrid
                 {...cardGridProps}
                 {...restEntryProps}
                 entries={gridEntries}
+                thumbnailChunkSizes={
+                    mainGridUsesInnerThumbnailBatches ? thumbnailChunkSizes : undefined
+                }
                 isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
             />
-        )
+        );
+    }
+
+    const catalogInfiniteFooter =
+        view === "Grid" &&
+        catalogInfiniteScroll &&
+        (catalogInfiniteScroll.hasMore || catalogInfiniteScroll.loadingMore) ? (
+            <div className="flex w-full flex-col items-center gap-2 px-10 pb-6">
+                {catalogInfiniteScroll.hasMore ? (
+                    <div
+                        ref={loadMoreSentinelRef}
+                        className="h-2 w-full shrink-0"
+                        aria-hidden
+                    />
+                ) : null}
+                {catalogInfiniteScroll.loadingMore ? (
+                    <Loader2
+                        className="size-6 animate-spin text-muted-foreground"
+                        aria-label="Loading more documents"
+                    />
+                ) : null}
+            </div>
+        ) : null;
+
+    function wrapMainGrid(inner: React.ReactNode) {
+        if (mainGridUsesInnerThumbnailBatches) {
+            return inner;
+        }
+        return (
+            <ThumbnailBatchProvider
+                batchKey={gridBatchKey}
+                expectedContentIds={gridExpectedIds}
+            >
+                {inner}
+            </ThumbnailBatchProvider>
+        );
     }
 
     function createCardList(listEntries: CardEntry[]) {
@@ -294,23 +431,15 @@ export default function EntryPage<T extends object>({
                             <section className="flex flex-col gap-2">
                                 {allDocumentsHeading}
                                 {resultCountLine}
-                                <ThumbnailBatchProvider
-                                    batchKey={gridBatchKey}
-                                    expectedContentIds={gridExpectedIds}
-                                >
-                                    {createCardGrid(entries)}
-                                </ThumbnailBatchProvider>
+                                {wrapMainGrid(createCardGrid(entries))}
+                                {catalogInfiniteFooter}
                             </section>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
                             {resultCountLine}
-                            <ThumbnailBatchProvider
-                                batchKey={gridBatchKey}
-                                expectedContentIds={gridExpectedIds}
-                            >
-                                {createCardGrid(entries)}
-                            </ThumbnailBatchProvider>
+                            {wrapMainGrid(createCardGrid(entries))}
+                            {catalogInfiniteFooter}
                         </div>
                     )
                 ) : (
@@ -361,6 +490,7 @@ export default function EntryPage<T extends object>({
                 onCommit={marqueeCommit}
             >
                 <div
+                    ref={scrollRootRef}
                     className={cn(
                         contentClassName ??
                             "flex h-full min-h-0 flex-1 flex-col overflow-auto rounded-xl pt-2 pb-0",

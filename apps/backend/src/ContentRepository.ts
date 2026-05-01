@@ -28,6 +28,8 @@ class ContentRepository {
             mineListOwnerId?: number;
             /** Only `/tutorial/*` lists send this; main app hides owned tutorial rows from My content / Checked out. */
             includeTutorialMine?: boolean;
+            skip?: number;
+            take?: number;
         },
     ) {
         const tutorialFilter: Prisma.ContentWhereInput =
@@ -51,7 +53,70 @@ class ContentRepository {
             },
             orderBy,
             include: contentCatalogInclude,
+            skip: options?.skip,
+            take: options?.take,
         });
+    }
+
+    /**
+     * Paginated catalog when sort is by job position (in-memory sort).
+     * Loads id/jobPositions/title for all matches, sorts, then hydrates the requested window.
+     */
+    async listCatalogPageJobPositionSorted(
+        where: Prisma.ContentWhereInput,
+        ascending: boolean,
+        mineOpts:
+            | {
+                  mineListOwnerId?: number;
+                  includeTutorialMine?: boolean;
+              }
+            | undefined,
+        skip: number,
+        take: number,
+    ) {
+        const tutorialFilter = this.tutorialFilterForMineList(mineOpts);
+        const light = await prisma.content.findMany({
+            where: { AND: [tutorialFilter, where] },
+            select: { id: true, jobPositions: true, title: true },
+        });
+        const mult = ascending ? 1 : -1;
+        const sorted = [...light].sort((a, b) => {
+            const sa = [...a.jobPositions].sort().join(",");
+            const sb = [...b.jobPositions].sort().join(",");
+            const c = sa.localeCompare(sb);
+            if (c !== 0) return c * mult;
+            return mult * a.title.localeCompare(b.title);
+        });
+        const windowIds = sorted
+            .slice(skip, skip + take)
+            .map((r) => r.id);
+        if (windowIds.length === 0) return [];
+
+        const full = await prisma.content.findMany({
+            where: { id: { in: windowIds } },
+            include: contentCatalogInclude,
+        });
+        const byId = new Map(full.map((c) => [c.id, c]));
+        return windowIds.map((id) => byId.get(id)).filter((c): c is NonNullable<typeof c> => c != null);
+    }
+
+    tutorialFilterForMineList(options?: {
+        mineListOwnerId?: number;
+        includeTutorialMine?: boolean;
+    }): Prisma.ContentWhereInput {
+        return options?.mineListOwnerId != null
+            ? options.includeTutorialMine === true
+                ? {
+                      OR: [
+                          { isTutorial: false },
+                          {
+                              isTutorial: true,
+                              ownerId: options.mineListOwnerId,
+                          },
+                      ],
+                  }
+                : { isTutorial: false }
+            : { isTutorial: false };
     }
 
     async getByJobPosition(jobPosition: string) {
@@ -181,21 +246,25 @@ class ContentRepository {
     }
 
     async getRecentViews(
-        employeeId: number, take = 10,
+        employeeId: number,
+        take = 10,
         where?: RecentContentViewWhereInput,
         orderBy?:
             | Prisma.RecentContentViewOrderByWithRelationInput
-            | Prisma.RecentContentViewOrderByWithRelationInput[]
+            | Prisma.RecentContentViewOrderByWithRelationInput[],
+        skip?: number,
     ) {
         return prisma.recentContentView.findMany({
             where: where ? { employeeId, ...where } : { employeeId },
             orderBy: orderBy ?? { lastViewedAt: "desc" },
+            skip: skip && skip > 0 ? skip : undefined,
             take,
             include: {
                 Content: {
                     include: {
                         owner: true,
                         checkedOutBy: { include: { userPhoto: true } },
+                        tags: { include: { tag: true } },
                     },
                 },
             },

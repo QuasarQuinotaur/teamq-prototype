@@ -73,7 +73,66 @@ async function employeeWithProfileUrl<T extends EmployeeWithPhoto>(
     return { ...rest, profileImageUrl };
 }
 
-/** Multipart bodies send strings; accept JSON array, comma-separated, or legacy single `jobPosition`. */
+const MAX_CATALOG_PAGE = 50;
+
+function parseCatalogPagination(query: express.Request["query"]): {
+    take: number;
+    skip: number;
+} | null {
+    const rawLimit = query["limit"];
+    if (rawLimit === undefined || rawLimit === "") {
+        return null;
+    }
+    const limit = Number(rawLimit);
+    if (Number.isNaN(limit)) {
+        return null;
+    }
+    const take = Math.min(Math.max(limit, 1), MAX_CATALOG_PAGE);
+    const rawOff = query["offset"];
+    const offset =
+        rawOff === undefined || rawOff === ""
+            ? 0
+            : Number(rawOff);
+    const skip = Number.isNaN(offset) ? 0 : Math.max(0, offset);
+    return { take, skip };
+}
+
+async function enrichRecentCheckoutProfiles(
+    rows: Array<{
+        lastViewedAt: Date;
+        Content: {
+            checkedOutBy: EmployeeWithPhoto | null;
+            [key: string]: unknown;
+        };
+    }>,
+) {
+    return Promise.all(
+        rows.map(async (row) => {
+            const c = row.Content;
+            if (!c.checkedOutBy) return row;
+            const mapped = await employeeWithProfileUrl(c.checkedOutBy);
+            return {
+                ...row,
+                Content: { ...c, checkedOutBy: mapped },
+            };
+        }),
+    );
+}
+
+async function enrichCheckedOutProfiles<
+    T extends { checkedOutBy: EmployeeWithPhoto | null },
+>(contents: T[]): Promise<T[]> {
+    return Promise.all(
+        contents.map(async (c) => {
+            if (!c.checkedOutBy) {
+                return { ...c, checkedOutBy: null };
+            }
+            const mapped = await employeeWithProfileUrl(c.checkedOutBy);
+            return { ...c, checkedOutBy: mapped };
+        }),
+    );
+}
+
 function parseJobPositions(body: Record<string, unknown>): string[] | null {
     const raw = body.jobPositions;
     if (typeof raw === "string" && raw.trim()) {
@@ -463,45 +522,107 @@ router.get("/recent", requiresAuth(), async (req, res) => {
         }
 
         const limit = Number(req.query.limit);
-        const take = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
+        const takeBase = Number.isNaN(limit)
+            ? 10
+            : Math.min(Math.max(limit, 1), MAX_CATALOG_PAGE);
+        const rawOff = req.query.offset;
+        const skipParsed =
+            rawOff === undefined || rawOff === ""
+                ? 0
+                : Number(rawOff);
+        const skip = Number.isNaN(skipParsed) ? 0 : Math.max(0, skipParsed);
+
+        const fetchHint =
+            skip > 0 ||
+            (req.query.limit !== undefined && req.query.limit !== "");
+        const fetchTake = fetchHint ? takeBase + 1 : takeBase;
 
         let recent: Awaited<ReturnType<typeof contentRepo.getRecentViews>>;
+        let hasMore = false;
 
         const parsed = parseRecentListQuery(req.query, employee);
         if ("legacyNoQuery" in parsed) {
-            recent = await contentRepo.getRecentViews(employee.id, take);
-        } else {
-            if (parsed.order === null) {
-                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where);
-            } else if (typeof parsed.order === "boolean") {
-                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, {
-                    lastViewedAt: parsed.order ? "asc" : "desc"
+            recent = await contentRepo.getRecentViews(
+                employee.id,
+                fetchTake,
+                undefined,
+                undefined,
+                skip,
+            );
+        } else if (parsed.order === null) {
+            recent = await contentRepo.getRecentViews(
+                employee.id,
+                fetchTake,
+                parsed.where,
+                undefined,
+                skip,
+            );
+        } else if (typeof parsed.order === "boolean") {
+            recent = await contentRepo.getRecentViews(
+                employee.id,
+                fetchTake,
+                parsed.where,
+                {
+                    lastViewedAt: parsed.order ? "asc" : "desc",
+                },
+                skip,
+            );
+        } else if (parsed.order.kind === "prisma") {
+            let orderBy:
+                | Prisma.RecentContentViewOrderByWithRelationInput
+                | Prisma.RecentContentViewOrderByWithRelationInput[] = null;
+            const contentOrderBy = parsed.order.orderBy;
+            if (Array.isArray(contentOrderBy)) {
+                orderBy = contentOrderBy.map((order) => {
+                    return { Content: order };
                 });
-            } else if (parsed.order.kind === "prisma") {
-                let orderBy:
-                    | Prisma.RecentContentViewOrderByWithRelationInput
-                    | Prisma.RecentContentViewOrderByWithRelationInput[] = null
-                const contentOrderBy = parsed.order.orderBy
-                if (Array.isArray(contentOrderBy)) {
-                    orderBy = contentOrderBy.map((order) => {
-                        return {Content: order}
-                    })
-                } else {
-                    orderBy = {Content: contentOrderBy}
-                }
-                recent = await contentRepo.getRecentViews(employee.id, take, parsed.where, orderBy);
             } else {
-                const unsorted = await contentRepo.getRecentViews(employee.id, take, parsed.where);
-                recent = sortRecentsByJobPosition(unsorted, parsed.order.ascending)
+                orderBy = { Content: contentOrderBy };
             }
+            recent = await contentRepo.getRecentViews(
+                employee.id,
+                fetchTake,
+                parsed.where,
+                orderBy,
+                skip,
+            );
+        } else {
+            const allRows = await prisma.recentContentView.findMany({
+                where: {
+                    employeeId: employee.id,
+                    ...parsed.where,
+                },
+                include: {
+                    Content: {
+                        include: {
+                            owner: true,
+                            checkedOutBy: { include: { userPhoto: true } },
+                            tags: { include: { tag: true } },
+                        },
+                    },
+                },
+            });
+            const sorted = sortRecentsByJobPosition(
+                allRows,
+                parsed.order.ascending,
+            );
+            recent = sorted.slice(skip, skip + fetchTake);
         }
+
+        if (fetchHint) {
+            hasMore = recent.length > takeBase;
+            recent = recent.slice(0, takeBase);
+        }
+
+        const enrichedRecent = await enrichRecentCheckoutProfiles(recent);
 
         res.json({
             success: true,
-            recent: recent.map((row) => ({
+            recent: enrichedRecent.map((row) => ({
                 lastViewedAt: row.lastViewedAt,
                 content: row.Content,
             })),
+            ...(fetchHint ? { hasMore } : {}),
         });
     } catch (err) {
         console.error(err);
@@ -537,9 +658,12 @@ router.get("/", requiresAuth(), async (req, res) => {
                       includeTutorialMine: includeTutorialDocuments,
                   }
                 : undefined;
+
+        const pageOpts = parseCatalogPagination(req.query);
+
         if ("legacyNoQuery" in parsed) {
             contents = await contentRepo.getAll();
-        } else {
+        } else if (!pageOpts) {
             if (parsed.order.kind === "prisma") {
                 contents = await contentRepo.listWithFilters(
                     parsed.where,
@@ -559,17 +683,42 @@ router.get("/", requiresAuth(), async (req, res) => {
                     parsed.order.ascending,
                 );
             }
+        } else {
+            const fetchTake = pageOpts.take + 1;
+            if (parsed.order.kind === "prisma") {
+                contents = await contentRepo.listWithFilters(
+                    parsed.where,
+                    parsed.order.orderBy,
+                    {
+                        ...mineOpts,
+                        skip: pageOpts.skip,
+                        take: fetchTake,
+                    },
+                );
+            } else {
+                contents =
+                    await contentRepo.listCatalogPageJobPositionSorted(
+                        parsed.where,
+                        parsed.order.ascending,
+                        mineOpts,
+                        pageOpts.skip,
+                        fetchTake,
+                    );
+            }
         }
 
-        const enriched = await Promise.all(
-            contents.map(async (c) => {
-                if (!c.checkedOutBy) {
-                    return { ...c, checkedOutBy: null };
-                }
-                const mapped = await employeeWithProfileUrl(c.checkedOutBy);
-                return { ...c, checkedOutBy: mapped };
-            }),
-        );
+        let hasMore = false;
+        let slice = contents;
+        if (pageOpts && !("legacyNoQuery" in parsed)) {
+            hasMore = contents.length > pageOpts.take;
+            slice = contents.slice(0, pageOpts.take);
+        }
+
+        const enriched = await enrichCheckedOutProfiles(slice);
+        if (pageOpts && !("legacyNoQuery" in parsed)) {
+            res.json({ items: enriched, hasMore });
+            return;
+        }
         res.json(enriched);
     } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED_EMPLOYEE") {

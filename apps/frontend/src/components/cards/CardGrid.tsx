@@ -8,6 +8,7 @@ import type {
     CardState
 } from "@/components/cards/Card.tsx";
 import type {EntryProps} from "@/components/paging/EntryPage.tsx";
+import { ThumbnailBatchProvider } from "@/components/cards/ThumbnailBatchContext.tsx";
 import { cn } from "@/lib/utils.ts";
 
 /** Min track ~0.7× the prior 22rem (~15.4rem →15.5rem); `min(100%,…)` keeps one column on narrow viewports. */
@@ -18,6 +19,8 @@ export type CardGridProps = {
     renderCard: (state: CardState) => React.ReactNode;
     defaultBadge?: string;
     isLoading?: boolean;
+    /** When set with lengths summing to `entries.length`, thumbnails reveal per chunk (nested providers). */
+    thumbnailChunkSizes?: number[];
 }
 export default function CardGrid({
                                      renderCard,
@@ -28,6 +31,7 @@ export default function CardGrid({
                                      selectMode,
                                      isEntrySelected,
                                      onToggleEntrySelect,
+                                     thumbnailChunkSizes,
 }: CardGridProps & EntryProps) {
     if (!isLoading && entries.length === 0) {
         return (
@@ -66,6 +70,34 @@ export default function CardGrid({
                 }
             >
                 {renderCard(cardState)}
+            </div>
+        );
+    }
+
+    const chunkSum =
+        thumbnailChunkSizes?.reduce((acc, n) => acc + n, 0) ?? 0;
+    const useChunkedThumbnails =
+        Boolean(thumbnailChunkSizes?.length) &&
+        chunkSum === entries.length;
+
+    if (useChunkedThumbnails && thumbnailChunkSizes) {
+        let offset = 0;
+        return (
+            <div className={CARD_GRID_LAYOUT_CLASS}>
+                {thumbnailChunkSizes.map((sz, ci) => {
+                    const chunk = entries.slice(offset, offset + sz);
+                    offset += sz;
+                    const ids = chunk.map((e) => e.item.id);
+                    return (
+                        <ThumbnailBatchProvider
+                            key={`thumb-chunk-${ci}-${ids[0] ?? ci}`}
+                            batchKey={`thumb-chunk-${ci}-${ids.join(",")}`}
+                            expectedContentIds={ids}
+                        >
+                            <React.Fragment>{chunk.map(renderEntry)}</React.Fragment>
+                        </ThumbnailBatchProvider>
+                    );
+                })}
             </div>
         );
     }

@@ -31,7 +31,8 @@ router.get("/", requiresAuth(), async (req, res) => {
                     },
                     include: {
                         owner: true,
-                        checkedOutBy: true,
+                        checkedOutBy: { include: { userPhoto: true } },
+                        tags: { include: { tag: true } },
                     },
                     orderBy: {
                         dateAdded: "desc",
@@ -93,7 +94,8 @@ router.post("/:contentId", requiresAuth(), async (req, res) => {
                     },
                     include: {
                         owner: true,
-                        checkedOutBy: true,
+                        checkedOutBy: { include: { userPhoto: true } },
+                        tags: { include: { tag: true } },
                     },
                     orderBy: {
                         dateAdded: "desc",
@@ -149,7 +151,8 @@ router.delete("/:contentId", requiresAuth(), async (req, res) => {
                     },
                     include: {
                         owner: true,
-                        checkedOutBy: true,
+                        checkedOutBy: { include: { userPhoto: true } },
+                        tags: { include: { tag: true } },
                     },
                     orderBy: {
                         dateAdded: "desc",

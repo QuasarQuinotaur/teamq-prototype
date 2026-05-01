@@ -6,18 +6,28 @@
 
 import * as React from "react";
 import * as XLSX from "xlsx";
-import { FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { FileTypeSkeleton } from "@/components/cards/FileThumbnailSkeletons.tsx";
 
 const MAX_ROWS = 20;
 const MAX_COLS = 10;
 
 type Row = (string | number | boolean | null)[];
 
-function ExcelThumbError() {
+function extFromUrl(url: string): string | undefined {
+    const clean = url.split("?")[0]?.split("#")[0] ?? "";
+    const leaf = clean.split("/").pop() ?? "";
+    if (!leaf.includes(".")) return undefined;
+    return leaf.split(".").pop()?.toLowerCase();
+}
+
+function ExcelThumbError({ url }: { url: string }) {
+    const ext = extFromUrl(url);
+    const forSkeleton =
+        ext === "csv" || ext === "xls" || ext === "xlsx" ? ext : "xlsx";
     return (
-        <div className="flex size-full items-center justify-center bg-muted">
-            <FileIcon className="size-10 text-muted-foreground" aria-hidden />
+        <div className="relative size-full overflow-hidden bg-white">
+            <FileTypeSkeleton ext={forSkeleton} />
         </div>
     );
 }
@@ -132,7 +142,7 @@ export default function ExcelCardThumb({ url, onReady }: ExcelCardThumbProps) {
                 />
             ) : null}
             {error ? (
-                <ExcelThumbError />
+                <ExcelThumbError url={url} />
             ) : rows ? (
                 <div
                     ref={scaleBlockRef}

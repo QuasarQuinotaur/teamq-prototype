@@ -103,6 +103,31 @@ type ContentListRow = Content & {
     tags?: { tag: Tag }[];
 };
 
+const CATALOG_INITIAL_LIMIT = 30;
+const CATALOG_PAGE_LIMIT = 20;
+
+function parsePaginatedCatalogBody(
+    data: unknown,
+    onlyRecents: boolean,
+): { rows: ContentListRow[]; hasMore: boolean } {
+    if (onlyRecents) {
+        const body = data as {
+            recent?: Array<{ content: ContentListRow }>;
+            hasMore?: boolean;
+        };
+        const rows = (body.recent ?? []).map((r) => r.content);
+        return { rows, hasMore: Boolean(body.hasMore) };
+    }
+    if (Array.isArray(data)) {
+        return { rows: data as ContentListRow[], hasMore: false };
+    }
+    const body = data as { items?: ContentListRow[]; hasMore?: boolean };
+    return {
+        rows: body.items ?? [],
+        hasMore: Boolean(body.hasMore),
+    };
+}
+
 function buildContentListQueryString(opts: {
     fieldsFilter: ContentFieldsFilter;
     debouncedSearch: string;
@@ -112,6 +137,8 @@ function buildContentListQueryString(opts: {
     onlyMyCheckouts?: boolean;
     /** `/tutorial/*` lists pass this so API returns owned tutorial rows; `/documents/*` omits it. */
     includeTutorialDocuments?: boolean;
+    limit?: number;
+    offset?: number;
 }): string {
     const p = new URLSearchParams();
     const {
@@ -122,6 +149,8 @@ function buildContentListQueryString(opts: {
         onlyMine,
         onlyMyCheckouts,
         includeTutorialDocuments,
+        limit,
+        offset,
     } = opts;
     for (const c of fieldsFilter.contentTypes ?? []) p.append("contentTypes", c);
     for (const j of fieldsFilter.jobPositions ?? []) p.append("jobPositions", j);
@@ -136,6 +165,8 @@ function buildContentListQueryString(opts: {
     if (onlyMine) p.set("onlyMine", "1");
     if (onlyMyCheckouts) p.set("onlyMyCheckouts", "1");
     if (includeTutorialDocuments) p.set("includeTutorialDocuments", "1");
+    if (limit != null) p.set("limit", String(limit));
+    if (offset != null) p.set("offset", String(offset));
     return p.toString();
 }
 
@@ -179,6 +210,11 @@ export default function ContentEntryPage({
     const tutorial = useTutorial();
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [catalogHasMore, setCatalogHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [thumbnailChunkSizes, setThumbnailChunkSizes] = useState<number[]>([]);
+    const entriesRef = useRef<CardEntry[]>([]);
+    entriesRef.current = entries;
     /** Fullscreen single-document view (when not in split workspace). */
     const [fullscreenDoc, setFullscreenDoc] = useState<ViewerState | null>(null);
     const [splitMode, setSplitMode] = useState(
@@ -189,6 +225,12 @@ export default function ContentEntryPage({
     const [rightPaneDoc, setRightPaneDoc] = useState<ViewerState | null>(null);
     const [employeeMap, setEmployeeMap] = useState<Map<number, { name: string; image?: string }>>(new Map());
     const [employee, setEmployee] = useState<Employee>(null);
+    const employeeRef = useRef<Employee>(null);
+    const employeeMapRef = useRef(employeeMap);
+    employeeRef.current = employee;
+    employeeMapRef.current = employeeMap;
+    /** Monotonic id so overlapping `resetCatalog` runs (e.g. Strict Mode) only the latest applies state. */
+    const catalogResetGenRef = useRef(0);
 
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
@@ -426,8 +468,8 @@ export default function ContentEntryPage({
                 const content = data.content as ContentListRow;
                 const mapEntry = getContentEntryFromRow(
                     content,
-                    employee,
-                    employeeMap,
+                    employeeRef.current,
+                    employeeMapRef.current,
                 );
                 setEntries((prev) => {
                     const has = prev.some((e) => e.item.id === contentId);
@@ -437,7 +479,7 @@ export default function ContentEntryPage({
                     );
                 });
             });
-    }, [employee, employeeMap]);
+    }, []);
 
     const defaultSortFields: SortFields = onlyRecents ? DEFAULT_SORT_FIELDS_RECENT : DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
@@ -461,9 +503,14 @@ export default function ContentEntryPage({
         }
     }, [jobPosition, filterJobPosition, defaultFieldsFilter])
 
-    function loadContentList() {
-        const isInitialLoad = entries.length === 0;
-        if (isInitialLoad) setLoading(true);
+    const resetCatalog = useCallback(async () => {
+        const gen = ++catalogResetGenRef.current;
+        setLoading(true);
+        setLoadingMore(false);
+        setEntries([]);
+        setThumbnailChunkSizes([]);
+        setCatalogHasMore(false);
+
         const onTutorialDocumentsRoute = location.pathname.startsWith(
             "/tutorial",
         );
@@ -478,57 +525,143 @@ export default function ContentEntryPage({
             onlyMine,
             onlyMyCheckouts,
             includeTutorialDocuments,
+            limit: CATALOG_INITIAL_LIMIT,
+            offset: 0,
         });
-        /** TODO: Can you sort */
-        const url = `${apiBase}/api/content` + (onlyRecents ? "/recent" : "") +
-                (qs ? `?${qs}` : "")
-        console.log(qs, url)
-        fetch(url, { credentials: "include" })
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to load content");
-                return res.json();
-            })
-            .then((data: object) => {
-                const useData: ContentListRow[] = onlyRecents ? data["recent"] : data
-                setEntries(
-                    useData.map((c) =>
-                        getContentEntryFromRow(onlyRecents ? c["content"] : c, employee, employeeMap),
-                    ),
-                );
-            })
-            .catch((err) => {
-                console.error(err);
-                setEntries([]);
-            })
-            .finally(() => {
-                if (isInitialLoad) setLoading(false);
-            });
-    }
-
-    const fetchContentRef = useRef(loadContentList);
-    fetchContentRef.current = loadContentList;
-    useEffect(() => {
-        return subscribeContentCheckoutSync(() => {
-            fetchContentRef.current();
-        });
-    }, []);
-
-    useEffect(() => {
-        void loadContentList();
-        // Intentionally omit `entries` from deps: used only to decide initial loading skeleton, not to re-fetch when list updates
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const url =
+            `${apiBase}/api/content` +
+            (onlyRecents ? "/recent" : "") +
+            (qs ? `?${qs}` : "");
+        console.log(qs, url);
+        try {
+            const res = await fetch(url, { credentials: "include" });
+            if (!res.ok) throw new Error("Failed to load content");
+            const data: unknown = await res.json();
+            const { rows, hasMore } = parsePaginatedCatalogBody(data, onlyRecents);
+            const mapped = rows.map((c) =>
+                getContentEntryFromRow(
+                    c,
+                    employeeRef.current,
+                    employeeMapRef.current,
+                ),
+            );
+            if (gen !== catalogResetGenRef.current) return;
+            setEntries(mapped);
+            setThumbnailChunkSizes(mapped.length > 0 ? [mapped.length] : []);
+            setCatalogHasMore(hasMore);
+        } catch (err) {
+            console.error(err);
+            if (gen !== catalogResetGenRef.current) return;
+            setEntries([]);
+            setThumbnailChunkSizes([]);
+            setCatalogHasMore(false);
+        } finally {
+            if (gen === catalogResetGenRef.current) {
+                setLoading(false);
+            }
+        }
     }, [
-        debouncedSearch,
+        location.pathname,
         fieldsFilter,
+        debouncedSearch,
         sortFields,
         onlyFavorites,
         onlyMine,
         onlyMyCheckouts,
         onlyRecents,
-        location.pathname,
-        employee,
-        employeeMap,
     ]);
+
+    const loadMoreCatalog = useCallback(async () => {
+        if (!catalogHasMore || loadingMore || loading) return;
+        const offset = entriesRef.current.length;
+        setLoadingMore(true);
+
+        const onTutorialDocumentsRoute = location.pathname.startsWith(
+            "/tutorial",
+        );
+        const includeTutorialDocuments =
+            onTutorialDocumentsRoute &&
+            Boolean(onlyMine || onlyMyCheckouts || onlyRecents);
+        const qs = buildContentListQueryString({
+            fieldsFilter,
+            debouncedSearch,
+            sortFields,
+            onlyFavorites,
+            onlyMine,
+            onlyMyCheckouts,
+            includeTutorialDocuments,
+            limit: CATALOG_PAGE_LIMIT,
+            offset,
+        });
+        const url =
+            `${apiBase}/api/content` +
+            (onlyRecents ? "/recent" : "") +
+            (qs ? `?${qs}` : "");
+
+        try {
+            const res = await fetch(url, { credentials: "include" });
+            if (!res.ok) throw new Error("Failed to load content");
+            const data: unknown = await res.json();
+            const { rows, hasMore } = parsePaginatedCatalogBody(data, onlyRecents);
+            const mapped = rows.map((c) =>
+                getContentEntryFromRow(
+                    c,
+                    employeeRef.current,
+                    employeeMapRef.current,
+                ),
+            );
+            setEntries((prev) => {
+                const seen = new Set(prev.map((e) => e.item.id));
+                const add = mapped.filter((e) => !seen.has(e.item.id));
+                return [...prev, ...add];
+            });
+            if (mapped.length > 0) {
+                setThumbnailChunkSizes((prev) => [...prev, mapped.length]);
+            }
+            setCatalogHasMore(hasMore);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [
+        catalogHasMore,
+        loadingMore,
+        loading,
+        location.pathname,
+        fieldsFilter,
+        debouncedSearch,
+        sortFields,
+        onlyFavorites,
+        onlyMine,
+        onlyMyCheckouts,
+        onlyRecents,
+    ]);
+
+    const fetchContentRef = useRef(resetCatalog);
+    fetchContentRef.current = resetCatalog;
+    useEffect(() => {
+        return subscribeContentCheckoutSync(() => {
+            void fetchContentRef.current();
+        });
+    }, []);
+
+    useEffect(() => {
+        void resetCatalog();
+    }, [resetCatalog]);
+
+    useEffect(() => {
+        setEntries((prev) => {
+            if (prev.length === 0) return prev;
+            return prev.map((e) =>
+                getContentEntryFromRow(
+                    e.item as ContentListRow,
+                    employee,
+                    employeeMap,
+                ),
+            );
+        });
+    }, [employee, employeeMap]);
     useEffect(() => {
         void fetchTagList();
     }, [])
@@ -542,7 +675,7 @@ export default function ContentEntryPage({
         if (!res.ok) {
             throw new Error("Delete failed");
         }
-        loadContentList();
+        fetchContentRef.current();
         notifyContentCheckoutSync();
         if (
             tutorial?.routeIsTutorial &&
@@ -552,7 +685,7 @@ export default function ContentEntryPage({
         }
     }
 
-    const [favoritedList, setFavoritedList] = useState<{ id: number }[]>([])
+    const [favoritedList, setFavoritedList] = useState<ContentListRow[]>([])
 
     // All favorites for logged in user
     const fetchFavorites = useCallback(async () => {
@@ -1158,10 +1291,19 @@ export default function ContentEntryPage({
 
     const favoritedQueryEntries = useMemo(() => {
         if (favoritedList.length === 0) return [];
-        return entries.filter((entry) =>
-            favoritedList && favoritedList.some((f) => f.id === entry.item.id),
+        return favoritedList.map((f) =>
+            getContentEntryFromRow(f, employee, employeeMap),
         );
-    }, [entries, favoritedList]);
+    }, [favoritedList, employee, employeeMap]);
+
+    const catalogInfiniteScrollProps = useMemo(
+        () => ({
+            hasMore: catalogHasMore,
+            loadingMore,
+            onLoadMore: loadMoreCatalog,
+        }),
+        [catalogHasMore, loadingMore, loadMoreCatalog],
+    );
 
     const { view, setView } = useMainContext();
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };
@@ -1178,6 +1320,9 @@ export default function ContentEntryPage({
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
+                thumbnailChunkSizes={thumbnailChunkSizes}
+                catalogInfiniteScroll={catalogInfiniteScrollProps}
+                catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
                 tutorialHighlightEntryId={tutorialHighlightEntryId}
@@ -1218,6 +1363,9 @@ export default function ContentEntryPage({
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
+                thumbnailChunkSizes={thumbnailChunkSizes}
+                catalogInfiniteScroll={catalogInfiniteScrollProps}
+                catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
                 tutorialHighlightEntryId={tutorialHighlightEntryId}
@@ -1302,6 +1450,9 @@ export default function ContentEntryPage({
                 showFavoritesSection={showFavoritesSection}
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
+                thumbnailChunkSizes={thumbnailChunkSizes}
+                catalogInfiniteScroll={catalogInfiniteScrollProps}
+                catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}
                 listColumnOptions={listColumnOptions}
                 tutorialHighlightEntryId={tutorialHighlightEntryId}
