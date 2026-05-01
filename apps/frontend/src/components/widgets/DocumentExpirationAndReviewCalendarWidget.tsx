@@ -116,9 +116,12 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
                 let reviews = [];
 
                 try {
-                    const expRes = await fetch("http://localhost:3000/api/content/expirations", {
-                        credentials: "include",
-                    });
+                    const expRes = await fetch(
+                        `${import.meta.env.VITE_BACKEND_URL}/api/content/expirations`,
+                        {
+                            credentials: "include",
+                        },
+                    );
                     expirations = await expRes.json();
                 } catch (e) {
                     console.error("Expirations failed:", e);
@@ -126,7 +129,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
 
                 // theres no endpoint for geting all reviews, need to get all content and access that attribute
                 try {
-                    const reviewRes = await fetch("http://localhost:3000/api/reviews", {
+                    const reviewRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reviews`, {
                         credentials: "include",
                     });
                     reviews = await reviewRes.json();

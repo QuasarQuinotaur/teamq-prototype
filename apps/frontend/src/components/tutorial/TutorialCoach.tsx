@@ -10,7 +10,6 @@ import { useSidebar } from "@/elements/sidebar-elements.tsx";
 import { X, Loader2 } from "lucide-react";
 import {
     useLayoutEffect,
-    useRef,
     useState,
     type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -26,12 +25,117 @@ const EXIT_Z = 200;
 const pathTutorialMyDocuments = /\/tutorial\/my-documents\/?$/;
 const pathTutorialCheckedOut = /\/tutorial\/checked-out\/?$/;
 
+/** Padding when scrolling a tutorial row inside nested `overflow-auto` regions (e.g. document list). */
+const TUTORIAL_ROW_SCROLL_PADDING = 16;
+
+function isVerticallyFullyVisibleInScrollParents(
+    el: HTMLElement,
+    padding: number,
+): boolean {
+    let node: HTMLElement | null = el;
+    while (node && node !== document.body) {
+        const parent = node.parentElement;
+        if (!parent) {
+            break;
+        }
+        const st = window.getComputedStyle(parent);
+        const canScrollY =
+            (st.overflowY === "auto" ||
+                st.overflowY === "scroll" ||
+                st.overflow === "auto" ||
+                st.overflow === "scroll") &&
+            parent.scrollHeight > parent.clientHeight + 1;
+        if (canScrollY) {
+            const er = el.getBoundingClientRect();
+            const pr = parent.getBoundingClientRect();
+            if (
+                er.top < pr.top + padding - 0.5 ||
+                er.bottom > pr.bottom - padding + 0.5
+            ) {
+                return false;
+            }
+        }
+        node = parent;
+    }
+    const er = el.getBoundingClientRect();
+    if (er.top < padding || er.bottom > window.innerHeight - padding) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Ensures the element is not clipped vertically by any scrollable ancestor or the window.
+ * Repeated calls are cheap when already visible; the tutorial measure interval uses this after layout.
+ */
+function scrollTutorialRowFullyIntoView(el: HTMLElement, padding: number) {
+    for (let i = 0; i < 16; i++) {
+        if (isVerticallyFullyVisibleInScrollParents(el, padding)) {
+            return;
+        }
+
+        let adjusted = false;
+        let node: HTMLElement | null = el;
+        while (node && node !== document.body) {
+            const parent = node.parentElement;
+            if (!parent) {
+                break;
+            }
+            const st = window.getComputedStyle(parent);
+            const canScrollY =
+                (st.overflowY === "auto" ||
+                    st.overflowY === "scroll" ||
+                    st.overflow === "auto" ||
+                    st.overflow === "scroll") &&
+                parent.scrollHeight > parent.clientHeight + 1;
+            if (canScrollY) {
+                const er = el.getBoundingClientRect();
+                const pr = parent.getBoundingClientRect();
+                if (er.top < pr.top + padding) {
+                    parent.scrollTop -= pr.top + padding - er.top;
+                    adjusted = true;
+                    break;
+                }
+                if (er.bottom > pr.bottom - padding) {
+                    parent.scrollTop += er.bottom - (pr.bottom - padding);
+                    adjusted = true;
+                    break;
+                }
+            }
+            node = parent;
+        }
+
+        if (!adjusted) {
+            const er = el.getBoundingClientRect();
+            if (er.top < padding) {
+                window.scrollBy({ top: er.top - padding, behavior: "auto" });
+                adjusted = true;
+            } else if (er.bottom > window.innerHeight - padding) {
+                window.scrollBy({
+                    top: er.bottom - window.innerHeight + padding,
+                    behavior: "auto",
+                });
+                adjusted = true;
+            }
+        }
+
+        if (!adjusted) {
+            break;
+        }
+    }
+}
+
 /** Approx heights for captions anchored with `top` to spotlight rects. */
 const EST_CAPTION_MY_CONTENT_SEE_DOC = 140;
 const EST_CAPTION_DEFAULT = 88;
 
 function clearSidebarTutorialStyles() {
-    for (const id of ["tutorial-1", "tutorial-2", "tutorial-checked-out-nav"]) {
+    for (const id of [
+        "tutorial-1",
+        "tutorial-2",
+        "tutorial-my-content-nav",
+        "tutorial-checked-out-nav",
+    ]) {
         const el = document.getElementById(id);
         if (el) {
             el.style.position = "";
@@ -66,12 +170,9 @@ export function TutorialCoach() {
         width: number;
         height: number;
     } | null>(null);
-    /** Scroll target into view once per phase/doc/route so long grids don’t leave the row clipped. */
-    const tutorialSpotlightScrollKeyRef = useRef<string | null>(null);
 
     useLayoutEffect(() => {
         if (!tutorial?.routeIsTutorial) {
-            tutorialSpotlightScrollKeyRef.current = null;
             setRect(null);
             return;
         }
@@ -94,12 +195,12 @@ export function TutorialCoach() {
         const activeSpotlight =
             phase === "sidebar_highlight" ||
             phase === "new_doc_highlight" ||
+            phase === "sidebar_my_content" ||
             phase === "sidebar_checked_out" ||
             myDocumentsRowSpotlight ||
             checkedOutRowSpotlight;
 
         if (!activeSpotlight) {
-            tutorialSpotlightScrollKeyRef.current = null;
             setRect(null);
             clearSidebarTutorialStyles();
             clearTutorialDocRowStyles(docId);
@@ -113,6 +214,8 @@ export function TutorialCoach() {
                 el = document.getElementById("tutorial-1");
             } else if (phase === "new_doc_highlight") {
                 el = document.getElementById("tutorial-2");
+            } else if (phase === "sidebar_my_content") {
+                el = document.getElementById("tutorial-my-content-nav");
             } else if (phase === "sidebar_checked_out") {
                 el = document.getElementById("tutorial-checked-out-nav");
             } else if (phase === "my_content_see_doc") {
@@ -130,7 +233,6 @@ export function TutorialCoach() {
                 return;
             }
 
-            const spotlightScrollKey = `${phase}-${docId ?? ""}-${location.pathname}`;
             const scrollMyContentSpotlight =
                 myDocumentsRowSpotlight &&
                 (phase === "my_content_see_doc" ||
@@ -140,16 +242,23 @@ export function TutorialCoach() {
                 (phase === "checked_out_edit" ||
                     phase === "checked_out_delete");
 
-            if (
-                tutorialSpotlightScrollKeyRef.current !== spotlightScrollKey &&
-                (scrollMyContentSpotlight || scrollCheckedOutSpotlight)
-            ) {
-                el.scrollIntoView({
-                    behavior: "auto",
-                    block: "center",
-                    inline: "nearest",
-                });
-                tutorialSpotlightScrollKeyRef.current = spotlightScrollKey;
+            if (scrollMyContentSpotlight || scrollCheckedOutSpotlight) {
+                if (
+                    !isVerticallyFullyVisibleInScrollParents(
+                        el,
+                        TUTORIAL_ROW_SCROLL_PADDING,
+                    )
+                ) {
+                    el.scrollIntoView({
+                        behavior: "auto",
+                        block: "nearest",
+                        inline: "nearest",
+                    });
+                    scrollTutorialRowFullyIntoView(
+                        el,
+                        TUTORIAL_ROW_SCROLL_PADDING,
+                    );
+                }
             }
 
             const r = el.getBoundingClientRect();
@@ -173,6 +282,8 @@ export function TutorialCoach() {
         const observed = (() => {
             if (phase === "sidebar_highlight") return document.getElementById("tutorial-1");
             if (phase === "new_doc_highlight") return document.getElementById("tutorial-2");
+            if (phase === "sidebar_my_content")
+                return document.getElementById("tutorial-my-content-nav");
             if (phase === "sidebar_checked_out")
                 return document.getElementById("tutorial-checked-out-nav");
             if (phase === "my_content_see_doc") {
@@ -208,6 +319,7 @@ export function TutorialCoach() {
         }
         const lift =
             tutorial.phase === "sidebar_highlight" ||
+            tutorial.phase === "sidebar_my_content" ||
             tutorial.phase === "sidebar_checked_out";
         setTutorialSidebarStackElevation(lift);
         return () => setTutorialSidebarStackElevation(false);
@@ -218,6 +330,7 @@ export function TutorialCoach() {
         if (
             tutorial.phase === "sidebar_highlight" ||
             tutorial.phase === "new_doc_highlight" ||
+            tutorial.phase === "sidebar_my_content" ||
             tutorial.phase === "sidebar_checked_out" ||
             (tutorial.phase.startsWith("my_content") &&
                 pathTutorialMyDocuments.test(location.pathname)) ||
@@ -321,6 +434,7 @@ export function TutorialCoach() {
         Boolean(rect) &&
         (tutorial.phase === "sidebar_highlight" ||
             tutorial.phase === "new_doc_highlight" ||
+            tutorial.phase === "sidebar_my_content" ||
             tutorial.phase === "sidebar_checked_out" ||
             ((tutorial.phase === "my_content_see_doc" ||
                 tutorial.phase === "my_content_checkout") &&
@@ -337,7 +451,9 @@ export function TutorialCoach() {
                 ? "Open Content to view all documents."
                 : tutorial.phase === "new_doc_highlight"
                   ? 'Click "+ New Document" to open the form.'
-                  : null;
+                  : tutorial.phase === "sidebar_my_content"
+                    ? "Under Content, click My content to open your library and continue."
+                    : null;
 
         const caption = sidebarCaption ?? listCaption;
 
@@ -427,7 +543,11 @@ export function TutorialCoach() {
         );
     }
 
-    if (tutorial.phase === "sidebar_highlight" || tutorial.phase === "new_doc_highlight") {
+    if (
+        tutorial.phase === "sidebar_highlight" ||
+        tutorial.phase === "new_doc_highlight" ||
+        tutorial.phase === "sidebar_my_content"
+    ) {
         return createPortal(
             <>
                 {exitButton}

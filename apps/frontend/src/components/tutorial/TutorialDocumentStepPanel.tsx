@@ -37,7 +37,7 @@ const TUTORIAL_DOCUMENT_STEPS: { anchorId: string; message: string }[] = [
     {
         anchorId: "tutorial-9",
         message:
-            "Click Save. Next you’ll open My content, check out this document, then edit or delete it from the Checked out page.",
+            "Click Save. Next you’ll click My content in the sidebar, then check out this document and edit or delete it from Checked out.",
     },
 ];
 

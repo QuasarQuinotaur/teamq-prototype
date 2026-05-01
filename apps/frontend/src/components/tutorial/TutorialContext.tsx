@@ -15,7 +15,9 @@ export type TutorialPhase =
     | "sidebar_highlight"
     | "new_doc_highlight"
     | "form"
-    /** Navigated to My content; list fetch must finish before spotlighting the new row. */
+    /** After save: user clicks My content in the sidebar before we load the list. */
+    | "sidebar_my_content"
+    /** On My content; list fetch must finish before spotlighting the new row. */
     | "my_content_loading"
     | "my_content_see_doc"
     /** Open ⋯ and check out the tutorial document on My content. */
@@ -118,6 +120,14 @@ export function TutorialProvider({
         }
     }, [routeIsTutorial, phase, location.pathname]);
 
+    useEffect(() => {
+        if (!routeIsTutorial) return;
+        if (phase !== "sidebar_my_content") return;
+        if (/\/tutorial\/my-documents\/?$/.test(location.pathname)) {
+            setPhase("my_content_loading");
+        }
+    }, [routeIsTutorial, phase, location.pathname]);
+
     const resetAndLeave = useCallback(() => {
         setTutorialDocId(null);
         setPhase("inactive");
@@ -149,10 +159,9 @@ export function TutorialProvider({
         (contentId: number) => {
             if (!routeIsTutorial) return;
             setTutorialDocId(contentId);
-            setPhase("my_content_loading");
-            navigate("/tutorial/my-documents");
+            setPhase("sidebar_my_content");
         },
-        [navigate, routeIsTutorial],
+        [routeIsTutorial],
     );
 
     const notifyTutorialMyContentListReady = useCallback(() => {

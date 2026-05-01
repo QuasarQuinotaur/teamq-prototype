@@ -172,7 +172,11 @@ export function AppSidebar({
       icon: (<FilesIcon/>),
       isActive: true,
       items: [
-        { title: "My content", url: `${pathPrefix}/my-documents` },
+        {
+          title: "My content",
+          url: `${pathPrefix}/my-documents`,
+          id: "tutorial-my-content-nav",
+        },
         {
           title: "Checked out",
           url: `${pathPrefix}/checked-out`,
