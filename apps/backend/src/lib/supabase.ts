@@ -89,3 +89,38 @@ export async function uploadBuffer(
 
     return data;
 }
+
+const THUMB_BUCKET = "uploads";
+
+/** Client-generated card thumbnails — small PNG/WebP, upsert on re-upload. */
+export async function uploadThumbnailBuffer(
+    contentId: number,
+    buffer: Buffer,
+    contentType: "image/png" | "image/webp",
+) {
+    const ext = contentType === "image/webp" ? "webp" : "png";
+    const filePath = `uploads/thumbnails/${contentId}.${ext}`;
+    const { data, error } = await getSupabase().storage
+        .from(THUMB_BUCKET)
+        .upload(filePath, buffer, {
+            contentType,
+            upsert: true,
+        });
+    if (error) throw error;
+    return data;
+}
+
+/** Best-effort remove (replacement flow, deletes); ignores missing objects. */
+export async function tryDeleteStoredPath(path: string | null | undefined) {
+    if (!path?.trim()) return;
+    try {
+        const { error } = await getSupabase().storage
+            .from(THUMB_BUCKET)
+            .remove([path]);
+        if (error) {
+            console.warn("[supabase] tryDeleteStoredPath:", path, error.message);
+        }
+    } catch (err) {
+        console.warn("[supabase] tryDeleteStoredPath:", path, err);
+    }
+}

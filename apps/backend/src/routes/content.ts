@@ -5,6 +5,8 @@ import { getEmployeeFromRequest } from "../app.ts";
 
 import {
     uploadBuffer,
+    uploadThumbnailBuffer,
+    tryDeleteStoredPath,
     getSignedUrl,
     tryGetSignedUrl,
     downloadBuffer,
@@ -41,6 +43,19 @@ const contentRepo = new ContentRepository();
 
 const router = Router();
 const upload = multer();
+
+const MAX_THUMB_BYTES = 1_048_576;
+const THUMB_SIGNED_EXPIRES_SEC = 3600;
+const thumbnailUpload = multer({
+    limits: { fileSize: MAX_THUMB_BYTES },
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype === "image/png" || file.mimetype === "image/webp") {
+            cb(null, true);
+            return;
+        }
+        cb(new Error("thumbnail must be image/png or image/webp"));
+    },
+});
 
 type EmployeeWithPhoto = {
     id: number;
@@ -748,6 +763,142 @@ router.get("/:id/file-url", requiresAuth(), async (req, res) => {
     }
 });
 
+router.get("/:id/thumbnail-url", requiresAuth(), async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+    }
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+        const content = await contentRepo.getById(id, employee.id);
+        if (!content) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
+        const thumbPath = content.thumbnailPath;
+        if (!thumbPath?.trim()) {
+            res.status(404).json({ error: "No thumbnail" });
+            return;
+        }
+        const signedUrl = await getSignedUrl(thumbPath, THUMB_SIGNED_EXPIRES_SEC);
+        res.json({ url: signedUrl });
+    } catch (err) {
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to generate thumbnail URL",
+        });
+    }
+});
+
+router.post(
+    "/:id/thumbnail",
+    requiresAuth(),
+    function contentThumbnailMultipart(
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+    ): void {
+        thumbnailUpload.single("thumbnail")(req, res, (err: unknown) => {
+            const m = err as { code?: string; message?: string } | undefined;
+            if (!err) {
+                next();
+                return;
+            }
+            if (m?.code === "LIMIT_FILE_SIZE") {
+                res.status(413).json({ error: "Thumbnail too large" });
+                return;
+            }
+            if (m?.message?.includes("thumbnail must be")) {
+                res.status(400).json({ error: m.message });
+                return;
+            }
+            console.error("[content] thumbnail multipart", err);
+            res.status(400).json({
+                error: m?.message ?? "Invalid thumbnail upload",
+            });
+        });
+    },
+    async (req, res) => {
+        const id = Number(req.params.id);
+        if (isNaN(id)) {
+            res.status(400).json({ error: "Invalid id" });
+            return;
+        }
+
+        try {
+            const employee = await getEmployeeFromRequest(req);
+            if (!employee) {
+                res.status(404).json({ error: "No linked employee account found" });
+                return;
+            }
+            const content = await contentRepo.getById(id, employee.id);
+            if (!content) {
+                res.status(404).json({ error: "Not found" });
+                return;
+            }
+
+            const filePathMeta = content.filePath;
+            if (
+                !filePathMeta?.trim() ||
+                filePathMeta.startsWith("http://") ||
+                filePathMeta.startsWith("https://")
+            ) {
+                res.status(400).json({
+                    error: "Thumbnail cache is only for uploaded documents in storage.",
+                });
+                return;
+            }
+
+            if (!req.file?.buffer?.length) {
+                res.status(400).json({ error: "Missing thumbnail image" });
+                return;
+            }
+
+            const mime = req.file.mimetype;
+            if (mime !== "image/png" && mime !== "image/webp") {
+                res.status(400).json({ error: "Invalid image type" });
+                return;
+            }
+
+            if (content.thumbnailPath?.trim()) {
+                await tryDeleteStoredPath(content.thumbnailPath);
+            }
+
+            const uploaded = await uploadThumbnailBuffer(
+                id,
+                req.file.buffer,
+                mime,
+            );
+
+            const updated = await prisma.content.update({
+                where: { id },
+                data: { thumbnailPath: uploaded.path },
+                select: { thumbnailPath: true },
+            });
+
+            const thumbnailUrl = await getSignedUrl(
+                updated.thumbnailPath!,
+                THUMB_SIGNED_EXPIRES_SEC,
+            );
+
+            res.json({
+                success: true,
+                thumbnailPath: updated.thumbnailPath,
+                thumbnailUrl,
+            });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Thumbnail upload failed";
+            console.error(err);
+            res.status(500).json({ error: message });
+        }
+    },
+);
+
 function mapSummaryErrorToMessage(err: unknown): string {
     if (err instanceof SummaryUnsupportedError) {
         return err.message;
@@ -1386,6 +1537,13 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
             finalLink = link.trim();
         }
 
+        const oldFilePath = content.filePath?.trim() ?? "";
+        const fileActuallyChanged = finalLink.trim() !== oldFilePath;
+
+        if (fileActuallyChanged && content.thumbnailPath?.trim()) {
+            await tryDeleteStoredPath(content.thumbnailPath);
+        }
+
         const updated = await prisma.content.update({
             where: { id: id },
             data: {
@@ -1403,6 +1561,7 @@ router.put("/upload/:id", requiresAuth(), upload.single("file"), async (req, res
                 hasBeenNotifiedOfExpiration: false,
                 aiSummary: null,
                 ...(newOwnerID && { ownerId: Number(newOwnerID) }),
+                ...(fileActuallyChanged ? { thumbnailPath: null } : {}),
             },
             include: {
                 owner: true,
