@@ -4,7 +4,7 @@
 import { NotificationRepository } from "../NotificationRepository.ts";
 import { ContentRepository} from "../ContentRepository.ts";
 import {Employee, prisma} from "db";
-import { deleteFile } from "../lib/supabase";
+import { deleteFile, tryDeleteStoredPath } from "../lib/supabase.ts";
 import { getEmployeeIsAdmin } from "../util.ts";
 
 class ContentService {
@@ -43,6 +43,9 @@ class ContentService {
         });
 
         // delete file
+        if (content.thumbnailPath?.trim()) {
+            await tryDeleteStoredPath(content.thumbnailPath);
+        }
         if (content.filePath && !content.filePath.startsWith("http")) {
             await deleteFile(content.filePath);
         }

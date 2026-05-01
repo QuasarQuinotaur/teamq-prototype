@@ -98,6 +98,121 @@ function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
     return { url, loading, failed };
 }
 
+function useSignedThumbnailUrl(contentId: number | undefined, enabled: boolean) {
+    const [url, setUrl] = React.useState<string | null>(null);
+    const [loading, setLoading] = React.useState(false);
+    const [failed, setFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        if (contentId == null || !enabled) return;
+        let cancelled = false;
+        setLoading(true);
+        setFailed(false);
+        void fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/thumbnail-url`, {
+            credentials: "include",
+        })
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error("thumbnail"))))
+            .then((body: { url?: string }) => {
+                if (!cancelled && body.url) setUrl(body.url);
+                else if (!cancelled) setFailed(true);
+            })
+            .catch(() => {
+                if (!cancelled) setFailed(true);
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [contentId, enabled]);
+
+    return { url, loading, failed };
+}
+
+function getContentThumbnailMeta(item: CardEntry["item"]) {
+    const raw = item as { thumbnailPath?: string | null; dateUpdated?: string };
+    const p = typeof raw.thumbnailPath === "string" ? raw.thumbnailPath.trim() : "";
+    return {
+        thumbnailPath: p.length ? p : (null as string | null),
+        dateUpdatedISO: typeof raw.dateUpdated === "string" ? raw.dateUpdated : "",
+    };
+}
+
+const THUMB_SENT_SESSION_PREFIX = "hanover-thumb-sent:";
+
+function thumbSentSessionKey(contentId: number, dateUpdatedISO: string) {
+    return `${THUMB_SENT_SESSION_PREFIX}${contentId}:${dateUpdatedISO}`;
+}
+
+function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+    });
+}
+
+async function uploadPdfThumbnailCapture(
+    rootEl: HTMLElement,
+    opts: { contentId: number; dateUpdatedISO: string; onUploaded: (url: string) => void },
+    busyRef: React.MutableRefObject<boolean>,
+): Promise<void> {
+    if (busyRef.current) return;
+
+    const dateKey = opts.dateUpdatedISO || `fallback-${opts.contentId}`;
+
+    try {
+        if (typeof sessionStorage !== "undefined") {
+            if (sessionStorage.getItem(thumbSentSessionKey(opts.contentId, dateKey)) === "1") return;
+        }
+    } catch {
+        // quota / unavailable
+    }
+
+    const canvas = rootEl.querySelector("canvas");
+    if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 8 || canvas.height < 8) return;
+
+    busyRef.current = true;
+    try {
+        const blob = await canvasToPngBlob(canvas);
+        if (blob.size < 32) return;
+
+        const form = new FormData();
+        form.append("thumbnail", blob, "thumb.png");
+
+        const res = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/api/content/${opts.contentId}/thumbnail`,
+            {
+                method: "POST",
+                credentials: "include",
+                body: form,
+            },
+        );
+
+        if (!res.ok) return;
+
+        let body: { thumbnailUrl?: string } = {};
+        try {
+            body = (await res.json()) as { thumbnailUrl?: string };
+        } catch {
+            //
+        }
+
+        try {
+            if (typeof sessionStorage !== "undefined") {
+                sessionStorage.setItem(thumbSentSessionKey(opts.contentId, dateKey), "1");
+            }
+        } catch {
+            //
+        }
+
+        if (body.thumbnailUrl) opts.onUploaded(body.thumbnailUrl);
+    } catch {
+        //
+    } finally {
+        busyRef.current = false;
+    }
+}
+
 export type LinkMicrolinkState = {
     /** og:image or screenshot — full thumbnail area */
     fullImageUrl: string | null;
@@ -185,8 +300,22 @@ function PdfDocumentError({ onReady }: { onReady: () => void }) {
     return <PdfLoadError />;
 }
 
+type PdfThumbnailCaptureOpts = {
+    contentId: number;
+    dateUpdatedISO: string;
+    onUploaded: (thumbnailUrl: string) => void;
+};
+
 /** Renders only the first PDF page at low width (thumbnail), no interactive layers. */
-function PdfFirstPageThumbnailInner({ url, onReady }: { url: string; onReady: () => void }) {
+function PdfFirstPageThumbnailInner({
+    url,
+    onReady,
+    thumbCapture,
+}: {
+    url: string;
+    onReady: () => void;
+    thumbCapture?: PdfThumbnailCaptureOpts | null;
+}) {
     const called = React.useRef(false);
     const safeReady = React.useCallback(() => {
         if (called.current) return;
@@ -200,7 +329,18 @@ function PdfFirstPageThumbnailInner({ url, onReady }: { url: string; onReady: ()
     }, [safeReady]);
 
     const wrapRef = React.useRef<HTMLDivElement>(null);
+    const thumbUploadBusyRef = React.useRef(false);
     const [pageWidth, setPageWidth] = React.useState(160);
+
+    const onPdfRendered = React.useCallback(() => {
+        safeReady();
+        if (!thumbCapture) return;
+        queueMicrotask(() => {
+            const root = wrapRef.current;
+            if (!root) return;
+            void uploadPdfThumbnailCapture(root, thumbCapture, thumbUploadBusyRef);
+        });
+    }, [safeReady, thumbCapture]);
 
     const ErrorBoundaryFallback = React.useMemo(
         () =>
@@ -243,7 +383,7 @@ function PdfFirstPageThumbnailInner({ url, onReady }: { url: string; onReady: ()
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
                         className="shadow-sm [&_.react-pdf__Page__canvas]:!h-auto"
-                        onRenderSuccess={safeReady}
+                        onRenderSuccess={onPdfRendered}
                         onRenderError={safeReady}
                     />
                 </Document>
@@ -577,6 +717,34 @@ export default function ContentCardThumbnail({
         loadAllowed && isFile && Boolean(entry.link),
     );
 
+    const { thumbnailPath: serverThumbnailPath, dateUpdatedISO } = getContentThumbnailMeta(entry.item);
+
+    const thumbnailUrlFetchEnabled =
+        loadAllowed && isFile && Boolean(entry.link) && Boolean(serverThumbnailPath);
+
+    const [optimisticThumbnailUrl, setOptimisticThumbnailUrl] = React.useState<string | null>(
+        null,
+    );
+
+    const {
+        url: signedThumbnailUrl,
+        loading: thumbnailUrlLoading,
+        failed: thumbnailUrlFailed,
+    } = useSignedThumbnailUrl(contentId, thumbnailUrlFetchEnabled);
+
+    const mergedThumbnailUrl =
+        optimisticThumbnailUrl ??
+        (thumbnailUrlFetchEnabled && !thumbnailUrlFailed && signedThumbnailUrl
+            ? signedThumbnailUrl
+            : null);
+
+    const awaitingCachedThumbnailUrl =
+        thumbnailUrlFetchEnabled && thumbnailUrlLoading && !optimisticThumbnailUrl;
+
+    const setOptimisticFromUpload = React.useCallback((u: string) => {
+        setOptimisticThumbnailUrl(u);
+    }, []);
+
     const fileName = getDisplayFileName(entry);
     const ext = getExt(fileName);
 
@@ -596,6 +764,37 @@ export default function ContentCardThumbnail({
             !IMAGE_EXT.has(ext),
     );
 
+    const pdfThumbCaptureOpts = React.useMemo((): PdfThumbnailCaptureOpts | null => {
+        if (
+            !loadAllowed ||
+            !isFile ||
+            !previewUrl ||
+            ext !== "pdf" ||
+            serverThumbnailPath ||
+            optimisticThumbnailUrl ||
+            awaitingCachedThumbnailUrl ||
+            mergedThumbnailUrl
+        )
+            return null;
+        return {
+            contentId,
+            dateUpdatedISO,
+            onUploaded: setOptimisticFromUpload,
+        };
+    }, [
+        awaitingCachedThumbnailUrl,
+        contentId,
+        dateUpdatedISO,
+        ext,
+        isFile,
+        loadAllowed,
+        mergedThumbnailUrl,
+        optimisticThumbnailUrl,
+        previewUrl,
+        serverThumbnailPath,
+        setOptimisticFromUpload,
+    ]);
+
     let inner: React.ReactNode = null;
     let gate: React.ReactNode = null;
 
@@ -608,6 +807,19 @@ export default function ContentCardThumbnail({
         } else if (signedFailed) {
             inner = <FileTypeSkeleton ext={ext || undefined} />;
             gate = <ThumbReadyGate contentId={contentId} loadAllowed={loadAllowed} ready />;
+        } else if (mergedThumbnailUrl) {
+            inner = (
+                <LinkPreviewImageOnly src={mergedThumbnailUrl} onReady={notifyOnce} />
+            );
+        } else if (awaitingCachedThumbnailUrl) {
+            inner = <LinkPreviewLoading />;
+            gate = (
+                <ThumbReadyGate
+                    contentId={contentId}
+                    loadAllowed={loadAllowed}
+                    ready={!thumbnailUrlLoading}
+                />
+            );
         } else if (signedLoading && !signedUrl) {
             inner = <LinkPreviewLoading />;
         } else if (showRasterImage && previewUrl) {
@@ -615,7 +827,13 @@ export default function ContentCardThumbnail({
                 <LinkPreviewImageOnly src={previewUrl} onReady={notifyOnce} />
             );
         } else if (showPdfThumb && previewUrl) {
-            inner = <PdfFirstPageThumbnailInner url={previewUrl} onReady={notifyOnce} />;
+            inner = (
+                <PdfFirstPageThumbnailInner
+                    url={previewUrl}
+                    onReady={notifyOnce}
+                    thumbCapture={pdfThumbCaptureOpts}
+                />
+            );
         } else if (showDocxThumb && previewUrl) {
             inner = <DocxCardThumb url={previewUrl} onReady={notifyOnce} />;
         } else if (showExcelThumb && previewUrl) {
