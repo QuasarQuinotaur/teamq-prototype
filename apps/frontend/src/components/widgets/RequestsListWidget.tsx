@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tabs.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { Badge } from "@/elements/badge.tsx";
 import {
     ListTodoIcon,
@@ -157,9 +158,11 @@ function ListSection({
             {loading ? (
                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : items.length === 0 ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                    <p className="text-sm">No requests found.</p>
-                </div>
+                <EmptyResultsState
+                    className="flex-1 py-12"
+                    title="No requests"
+                    description="Nothing in this list yet. Try another tab or check back later."
+                />
             ) : (
                 items.map((req) => {
                     let v = variant;

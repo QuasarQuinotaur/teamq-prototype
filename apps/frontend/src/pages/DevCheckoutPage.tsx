@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Content } from "db";
 import { Button } from "@/elements/buttons/button.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { notifyContentCheckoutSync } from "@/lib/content-checkout-sync.ts";
 
 const apiBase = import.meta.env.VITE_BACKEND_URL;
@@ -114,7 +115,10 @@ export default function DevCheckoutPage() {
             </div>
 
             {!loading && rows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No checked-out documents.</p>
+                <EmptyResultsState
+                    title="No checked-out documents"
+                    description="All documents in the dev list are checked in."
+                />
             ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
                     <table className="w-full min-w-[32rem] text-sm">

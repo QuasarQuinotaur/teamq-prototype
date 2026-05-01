@@ -161,6 +161,24 @@ class ContentRepository {
         });
     }
 
+    /** Minimal row for batch signed URLs — same tutorial visibility as {@link getById}. */
+    async getByIdsForEmployee(ids: number[], employeeId: number) {
+        const unique = [...new Set(ids)].filter(
+            (id) => Number.isInteger(id) && id > 0,
+        );
+        if (unique.length === 0) return [];
+        return prisma.content.findMany({
+            where: {
+                id: { in: unique },
+                OR: [
+                    { isTutorial: false },
+                    { isTutorial: true, ownerId: employeeId },
+                ],
+            },
+            select: { id: true, filePath: true, thumbnailPath: true },
+        });
+    }
+
     async getByOwner(ownerId: number) {
         return prisma.content.findMany({
             where: {

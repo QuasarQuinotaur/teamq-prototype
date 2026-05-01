@@ -7,6 +7,7 @@ import { addDays, isValid, parseISO, startOfDay } from "date-fns";
 import Fuse from "fuse.js";
 import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import DocumentViewer from "@/components/DocumentViewer.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import {
   ServiceRequestCard,
   type ServiceRequestLinkedDocument,
@@ -423,20 +424,17 @@ export default function ServiceRequestsPage() {
         ) : error ? (
           <p className="text-center text-destructive">{error}</p>
         ) : requests!.length === 0 ? (
-          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-16 text-center">
-            <p className="text-lg font-medium text-foreground">No service requests</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              There are no service requests yet. When requests are created, they will appear
-              here.
-            </p>
-          </div>
+          <EmptyResultsState
+            className="mx-auto w-full max-w-2xl flex-1 px-6"
+            title="No service requests"
+            description="There are no service requests yet. When requests are created, they will appear here."
+          />
         ) : queryResults.length === 0 ? (
-          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-16 text-center">
-            <p className="text-lg font-medium text-foreground">No matching requests</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Try adjusting search, filters, or sort.
-            </p>
-          </div>
+          <EmptyResultsState
+            className="mx-auto w-full max-w-2xl flex-1 px-6"
+            title="No matching requests"
+            description="Try adjusting search, filters, or sort."
+          />
         ) : (
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 pt-2">
             {yourTasks.length > 0 ? (

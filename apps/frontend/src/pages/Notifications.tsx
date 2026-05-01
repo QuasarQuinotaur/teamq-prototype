@@ -24,6 +24,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/DropdownMenu.tsx";
 import { cn } from "@/lib/utils.ts";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 
 type NotificationItem = {
@@ -654,9 +655,14 @@ export default function Notifications() {
       ) : errorMessage ? (
         <p className="text-destructive">{errorMessage}</p>
       ) : processed.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {isFiltered ? "No notifications match the current filters." : "No notifications."}
-        </p>
+        <EmptyResultsState
+          title={isFiltered ? "No results" : "No notifications"}
+          description={
+            isFiltered
+              ? "Try changing filters or search to see more."
+              : "You’re all caught up. New alerts will show up here."
+          }
+        />
       ) : (
         <SelectMarqueeLayer
           enabled={selectMode}

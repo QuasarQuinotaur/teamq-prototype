@@ -53,6 +53,10 @@ type EntryPageProps<T> = {
     queryProps: QueryProps<T>;
     /** When set alongside an empty `entries` list, grid view shows this many skeleton cards instead of the grid. */
     gridSkeletonCount?: number | null;
+    /** When set with `gridSkeletonCount`, each grid placeholder is rendered by this (otherwise ContentCardSkeleton). */
+    gridSkeletonCell?: (index: number) => React.ReactNode;
+    /** Accessible label for the grid skeleton region (e.g. "Loading employees"). */
+    gridSkeletonAriaLabel?: string;
     /** If specified, will list entries that are favorited to show in a special category*/
     favoritedEntries?: CardEntry[];
     /** When set, shows “N …” above the grid (and list), e.g. documents or employees. */
@@ -73,6 +77,8 @@ type EntryPageProps<T> = {
     toolbarCenterSlot?: React.ReactNode;
     /** When lengths sum to `entries.length`, `CardGrid` batches thumbnail reveal per chunk. */
     thumbnailChunkSizes?: number[];
+    /** Same as `thumbnailChunkSizes` but for the favorites grid when `showFavoritesSection`. */
+    favoritesThumbnailChunkSizes?: number[];
     /** Grid infinite scroll + list prefetch for paginated catalogs. */
     catalogInfiniteScroll?: {
         hasMore: boolean;
@@ -88,6 +94,8 @@ export default function EntryPage<T extends object>({
                                                         extraToolbarElements,
                                                         queryProps,
                                                         gridSkeletonCount,
+                                                        gridSkeletonCell,
+                                                        gridSkeletonAriaLabel,
                                                         favoritedEntries,
                                                         displayedEntryLabels,
                                                         showFavoritesSection = false,
@@ -98,6 +106,7 @@ export default function EntryPage<T extends object>({
                                                         toolbarLeadingSlot,
                                                         toolbarCenterSlot,
                                                         thumbnailChunkSizes,
+                                                        favoritesThumbnailChunkSizes,
                                                         catalogInfiniteScroll,
                                                         catalogHasMore,
                                                         ...entryProps
@@ -335,15 +344,21 @@ export default function EntryPage<T extends object>({
         gridSkeletonCount,
     ]);
 
-    function createCardGrid(gridEntries: CardEntry[]) {
+    function createCardGrid(gridEntries: CardEntry[], favoritesChunks?: number[]) {
+        const favSum = favoritesChunks?.reduce((acc, n) => acc + n, 0) ?? 0;
+        const useFavoritesInnerChunks =
+            Boolean(favoritesChunks?.length) && favSum === gridEntries.length;
+        const effectiveChunkSizes = useFavoritesInnerChunks
+            ? favoritesChunks
+            : mainGridUsesInnerThumbnailBatches
+              ? thumbnailChunkSizes
+              : undefined;
         return (
             <CardGrid
                 {...cardGridProps}
                 {...restEntryProps}
                 entries={gridEntries}
-                thumbnailChunkSizes={
-                    mainGridUsesInnerThumbnailBatches ? thumbnailChunkSizes : undefined
-                }
+                thumbnailChunkSizes={effectiveChunkSizes}
                 isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
             />
         );
@@ -407,10 +422,14 @@ export default function EntryPage<T extends object>({
                         <div
                             className={CARD_GRID_LAYOUT_CLASS}
                             aria-busy="true"
-                            aria-label="Loading documents"
+                            aria-label={gridSkeletonAriaLabel ?? "Loading documents"}
                         >
                             {Array.from({ length: gridSkeletonCount }, (_, i) => (
-                                <ContentCardSkeleton key={i} />
+                                <React.Fragment key={i}>
+                                    {gridSkeletonCell != null
+                                        ? gridSkeletonCell(i)
+                                        : <ContentCardSkeleton />}
+                                </React.Fragment>
                             ))}
                         </div>
                     )
@@ -424,7 +443,10 @@ export default function EntryPage<T extends object>({
                                         batchKey={favoritesBatchKey}
                                         expectedContentIds={favoritesExpectedIds}
                                     >
-                                        {createCardGrid(favoritedEntries ?? [])}
+                                        {createCardGrid(
+                                            favoritedEntries ?? [],
+                                            favoritesThumbnailChunkSizes,
+                                        )}
                                     </ThumbnailBatchProvider>
                                 )}
                             </section>

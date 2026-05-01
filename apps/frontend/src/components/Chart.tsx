@@ -149,12 +149,26 @@ function ChartTooltipContent({
   >) {
   const { config } = useChart()
 
+  /** ComposedChart often stacks Area + Line on the same dataKey; Recharts then emits duplicate tooltip rows. */
+  const dedupedPayload = React.useMemo(() => {
+    if (!payload?.length) return []
+    const withoutNone = payload.filter((item) => item.type !== "none")
+    const seenDataKeys = new Set<string>()
+    return withoutNone.filter((item) => {
+      if (item.dataKey == null) return true
+      const k = String(item.dataKey)
+      if (seenDataKeys.has(k)) return false
+      seenDataKeys.add(k)
+      return true
+    })
+  }, [payload])
+
   const tooltipLabel = React.useMemo(() => {
-    if (hideLabel || !payload?.length) {
+    if (hideLabel || !dedupedPayload.length) {
       return null
     }
 
-    const [item] = payload
+    const [item] = dedupedPayload
     const key = `${labelKey ?? item?.dataKey ?? item?.name ?? "value"}`
     const itemConfig = getPayloadConfigFromPayload(config, item, key)
     const value =
@@ -183,25 +197,25 @@ function ChartTooltipContent({
     labelClassName,
     config,
     labelKey,
+    dedupedPayload,
   ])
 
-  if (!active || !payload?.length) {
+  if (!active || !dedupedPayload.length) {
     return null
   }
 
-  const nestLabel = payload.length === 1 && indicator !== "dot"
+  const nestLabel = dedupedPayload.length === 1 && indicator !== "dot"
 
   return (
     <div
       className={cn(
-        "grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
+        "grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
         className
       )}
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload
-          .filter((item) => item.type !== "none")
+        {dedupedPayload
           .map((item, index) => {
             const key = `${nameKey ?? item.name ?? item.dataKey ?? "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
@@ -245,18 +259,18 @@ function ChartTooltipContent({
                     )}
                     <div
                       className={cn(
-                        "flex flex-1 justify-between leading-none",
+                        "flex min-w-0 flex-1 items-center justify-between gap-4 leading-none",
                         nestLabel ? "items-end" : "items-center"
                       )}
                     >
-                      <div className="grid gap-1.5">
+                      <div className="min-w-0 grid gap-1.5">
                         {nestLabel ? tooltipLabel : null}
                         <span className="text-muted-foreground">
                           {itemConfig?.label ?? item.name}
                         </span>
                       </div>
                       {item.value != null && (
-                        <span className="font-mono font-medium text-foreground tabular-nums">
+                        <span className="shrink-0 font-mono font-medium text-foreground tabular-nums">
                           {typeof item.value === "number"
                             ? item.value.toLocaleString()
                             : String(item.value)}

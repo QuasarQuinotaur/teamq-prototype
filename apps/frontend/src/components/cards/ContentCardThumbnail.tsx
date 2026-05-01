@@ -11,6 +11,7 @@ import DocxCardThumb from "@/components/cards/DocxCardThumb.tsx";
 import ExcelCardThumb from "@/components/cards/ExcelCardThumb.tsx";
 import { FileTypeSkeleton } from "@/components/cards/FileThumbnailSkeletons.tsx";
 import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
+import { requestBatchedSignedUrl } from "@/lib/signedUrlBatcher.ts";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -74,7 +75,11 @@ function sleep(ms: number) {
     });
 }
 
-function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
+function useSignedDownloadUrl(
+    contentId: number | undefined,
+    enabled: boolean,
+    revision: string,
+) {
     const [url, setUrl] = React.useState<string | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [failed, setFailed] = React.useState(false);
@@ -86,8 +91,6 @@ function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
         setLoading(true);
         setFailed(false);
 
-        const endpoint = `${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/file-url`;
-
         void (async () => {
             for (let attempt = 0; attempt < FILE_URL_RETRY_DELAYS_MS.length; attempt++) {
                 if (cancelled) return;
@@ -97,19 +100,10 @@ function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
                 if (cancelled) return;
 
                 try {
-                    const r = await fetch(endpoint, { credentials: "include" });
-                    const retryable =
-                        !r.ok && (r.status >= 500 || r.status === 429 || r.status === 408);
-                    if (retryable && attempt < FILE_URL_RETRY_DELAYS_MS.length - 1) {
-                        continue;
-                    }
-                    if (!r.ok) {
-                        if (!cancelled) setFailed(true);
-                        return;
-                    }
-                    const body = (await r.json()) as { url?: string };
-                    if (!cancelled && body.url) {
-                        setUrl(body.url);
+                    const u = await requestBatchedSignedUrl(contentId, "file", revision);
+                    if (cancelled) return;
+                    if (u) {
+                        setUrl(u);
                         return;
                     }
                     if (!cancelled) setFailed(true);
@@ -127,12 +121,16 @@ function useSignedDownloadUrl(contentId: number | undefined, enabled: boolean) {
         return () => {
             cancelled = true;
         };
-    }, [contentId, enabled]);
+    }, [contentId, enabled, revision]);
 
     return { url, loading, failed };
 }
 
-function useSignedThumbnailUrl(contentId: number | undefined, enabled: boolean) {
+function useSignedThumbnailUrl(
+    contentId: number | undefined,
+    enabled: boolean,
+    revision: string,
+) {
     const [url, setUrl] = React.useState<string | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [failed, setFailed] = React.useState(false);
@@ -144,8 +142,6 @@ function useSignedThumbnailUrl(contentId: number | undefined, enabled: boolean) 
         setLoading(true);
         setFailed(false);
 
-        const endpoint = `${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/thumbnail-url`;
-
         void (async () => {
             for (let attempt = 0; attempt < FILE_URL_RETRY_DELAYS_MS.length; attempt++) {
                 if (cancelled) return;
@@ -155,19 +151,10 @@ function useSignedThumbnailUrl(contentId: number | undefined, enabled: boolean) 
                 if (cancelled) return;
 
                 try {
-                    const r = await fetch(endpoint, { credentials: "include" });
-                    const retryable =
-                        !r.ok && (r.status >= 500 || r.status === 429 || r.status === 408);
-                    if (retryable && attempt < FILE_URL_RETRY_DELAYS_MS.length - 1) {
-                        continue;
-                    }
-                    if (!r.ok) {
-                        if (!cancelled) setFailed(true);
-                        return;
-                    }
-                    const body = (await r.json()) as { url?: string };
-                    if (!cancelled && body.url) {
-                        setUrl(body.url);
+                    const u = await requestBatchedSignedUrl(contentId, "thumbnail", revision);
+                    if (cancelled) return;
+                    if (u) {
+                        setUrl(u);
                         return;
                     }
                     if (!cancelled) setFailed(true);
@@ -185,7 +172,7 @@ function useSignedThumbnailUrl(contentId: number | undefined, enabled: boolean) 
         return () => {
             cancelled = true;
         };
-    }, [contentId, enabled]);
+    }, [contentId, enabled, revision]);
 
     return { url, loading, failed };
 }
@@ -586,25 +573,34 @@ export default function ContentCardThumbnail({
     const isFile = isSupabasePath(entry.link);
     const httpKind = !isFile && entry.link ? directHttpFileKind(entry.link) : null;
 
-    const { url: signedUrl, loading: signedLoading, failed: signedFailed } = useSignedDownloadUrl(
-        entry.item.id,
-        loadAllowed && isFile && Boolean(entry.link),
-    );
-
     const { thumbnailPath: serverThumbnailPath, dateUpdatedISO } = getContentThumbnailMeta(entry.item);
+
+    const thumbnailCacheRevision = `${dateUpdatedISO}\u0000${serverThumbnailPath ?? ""}`;
 
     const thumbnailUrlFetchEnabled =
         loadAllowed && isFile && Boolean(entry.link) && Boolean(serverThumbnailPath);
-
-    const [optimisticThumbnailUrl, setOptimisticThumbnailUrl] = React.useState<string | null>(
-        null,
-    );
 
     const {
         url: signedThumbnailUrl,
         loading: thumbnailUrlLoading,
         failed: thumbnailUrlFailed,
-    } = useSignedThumbnailUrl(contentId, thumbnailUrlFetchEnabled);
+    } = useSignedThumbnailUrl(contentId, thumbnailUrlFetchEnabled, thumbnailCacheRevision);
+
+    const fileUrlEnabled =
+        loadAllowed &&
+        isFile &&
+        Boolean(entry.link) &&
+        (!Boolean(serverThumbnailPath) || thumbnailUrlFailed);
+
+    const { url: signedUrl, loading: signedLoading, failed: signedFailed } = useSignedDownloadUrl(
+        entry.item.id,
+        fileUrlEnabled,
+        dateUpdatedISO,
+    );
+
+    const [optimisticThumbnailUrl, setOptimisticThumbnailUrl] = React.useState<string | null>(
+        null,
+    );
 
     const mergedThumbnailUrl =
         optimisticThumbnailUrl ??

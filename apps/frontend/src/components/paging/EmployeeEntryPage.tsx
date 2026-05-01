@@ -5,6 +5,7 @@ import {useEffect, useState} from "react";
 import type {CardEntry} from "@/components/cards/Card.tsx";
 import type {Employee} from "db";
 import EmployeeCard from "@/components/cards/EmployeeCard.tsx";
+import EmployeeCardSkeleton from "@/components/cards/EmployeeCardSkeleton.tsx";
 import * as React from "react";
 import EntryPage from "@/components/paging/EntryPage.tsx";
 import FormAddButton from "@/components/forms/FormAddButton.tsx";
@@ -16,10 +17,10 @@ import FilterEmployeeFields, {type EmployeeFieldsFilter} from "@/components/pagi
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
 import useEmployeeSortFunction from "@/components/paging/hooks/employee-sort-function.tsx";
-import FilterDocumentFields from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import {EMPLOYEE_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import RoleDropdownButton from "./roles/RoleDropdownButton";
 
+const EMPLOYEE_GRID_SKELETON_SLOTS = 24;
 
 export default function EmployeeEntryPage() {
     const [entries, setEntries] = useState<CardEntry[]>([]);
@@ -118,10 +119,15 @@ export default function EmployeeEntryPage() {
         }
     }
 
+    const gridSkeletonCount =
+        loading && entries.length === 0 ? EMPLOYEE_GRID_SKELETON_SLOTS : null;
 
     return (
         <EntryPage
             entries={queryEntries}
+            gridSkeletonCount={gridSkeletonCount}
+            gridSkeletonCell={() => <EmployeeCardSkeleton />}
+            gridSkeletonAriaLabel="Loading employees"
             createOptionsElement={createOptionsElement}
             listColumnOptions={{ omitExpiration: true }}
             listEntriesPerPage={28}

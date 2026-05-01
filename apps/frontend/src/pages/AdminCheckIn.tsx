@@ -22,6 +22,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/dialog/AlertDialog.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { Search } from "lucide-react";
 
 const apiBase = import.meta.env.VITE_BACKEND_URL;
@@ -237,19 +238,15 @@ export default function AdminCheckIn() {
                     Loading…
                 </div>
             ) : rows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-                    <p className="text-sm font-medium">No checked-out documents</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        All documents are currently available.
-                    </p>
-                </div>
+                <EmptyResultsState
+                    title="No checked-out documents"
+                    description="All documents are currently available."
+                />
             ) : filteredRows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-                    <p className="text-sm font-medium">No results</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Try adjusting your search or filter.
-                    </p>
-                </div>
+                <EmptyResultsState
+                    title="No results"
+                    description="Try adjusting your search or filter."
+                />
             ) : (
                 <div className="overflow-hidden rounded-md border">
                     <Table>

@@ -734,8 +734,13 @@ function SortableItem({
                 isActive ? "opacity-0" : ""
             }`}
         >
-            {/* floating grip — only visible on hover */}
-            <div className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity" ref={menuRef}>
+            {/* floating grip — show on card hover; stay visible while menu is open so it does not vanish between grip and dropdown */}
+            <div
+                className={`absolute top-2 left-2 z-20 transition-opacity ${
+                    menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+                ref={menuRef}
+            >
                 <div
                     {...listeners}
                     onPointerDown={handleGripPointerDown}

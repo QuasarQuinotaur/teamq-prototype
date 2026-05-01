@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isSameDay } from "date-fns";
 import { Eye, PencilLine, Plus, Trash2 } from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "@/components/cards/Card.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { cn } from "@/lib/utils.ts";
 
 type ActivityApiEvent = {
@@ -78,12 +79,27 @@ const FILTER_OPTIONS: { key: ActivityFilter; label: string }[] = [
     { key: "deleted", label: "Deletes" },
 ];
 
-const EMPTY_MESSAGE: Record<ActivityFilter, string> = {
-    all: "No activity yet",
-    created: "No recent creations",
-    updated: "No recent updates",
-    accessed: "No recent views",
-    deleted: "No recent deletes",
+const EMPTY_COPY: Record<ActivityFilter, { title: string; description: string }> = {
+    all: {
+        title: "No activity yet",
+        description: "Events will appear when documents are created or changed.",
+    },
+    created: {
+        title: "No recent creations",
+        description: "Try another filter or check back later.",
+    },
+    updated: {
+        title: "No recent updates",
+        description: "Try another filter or check back later.",
+    },
+    accessed: {
+        title: "No recent views",
+        description: "Try another filter or check back later.",
+    },
+    deleted: {
+        title: "No recent deletes",
+        description: "Try another filter or check back later.",
+    },
 };
 
 /** Scroll viewport: capped height; extra rows scroll inside. */
@@ -170,9 +186,11 @@ export default function ActivityFeedWidget() {
                         Loading…
                     </div>
                 ) : display.length === 0 ? (
-                    <div className="flex max-h-[10rem] min-h-[8rem] items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                        {EMPTY_MESSAGE[filter]}
-                    </div>
+                    <EmptyResultsState
+                        className={cn("min-h-[8rem] py-10", LIST_MAX_H)}
+                        title={EMPTY_COPY[filter].title}
+                        description={EMPTY_COPY[filter].description}
+                    />
                 ) : (
                     <ul className={`space-y-0 ${LIST_SCROLL_CLASS}`} aria-label="Activity events">
                         {display.map((event, idx) => {

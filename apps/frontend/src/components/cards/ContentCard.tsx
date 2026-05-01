@@ -25,6 +25,7 @@ import ContentCardThumbnail, {
 import { useThumbnailBatch } from "@/components/cards/ThumbnailBatchContext.tsx";
 import useMainContext from "@/components/auth/hooks/main-context.tsx";
 import useJobNameMap from "@/hooks/useJobNameMap";
+import { requestBatchedSignedUrl } from "@/lib/signedUrlBatcher.ts";
 
 type ContentWithCheckout = Content & {
     isCheckedOut?: boolean;
@@ -39,15 +40,16 @@ type ContentWithCheckout = Content & {
 async function viewItem(link: string, item: object & { id: number }) {
     if (isSupabasePath(link)) {
         const id = (item as { id: number }).id;
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${id}/file-url`, {
-            credentials: "include",
-        });
-        if (!res.ok) {
-            console.error("Failed to get download URL");
-            return;
+        try {
+            const url = await requestBatchedSignedUrl(id, "file");
+            if (url) {
+                window.open(url, "_blank");
+                return;
+            }
+        } catch {
+            //
         }
-        const { url } = await res.json();
-        window.open(url, "_blank");
+        console.error("Failed to get download URL");
     } else {
         window.open(link, "_blank");
     }

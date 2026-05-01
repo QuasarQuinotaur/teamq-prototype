@@ -804,6 +804,120 @@ router.get("/currency", requiresAuth(), async (req, res) => {
     }
 });
 
+const BATCH_SIGNED_URLS_MAX_PER_LIST = 40;
+const BATCH_SIGNED_URLS_MAX_TOTAL = 60;
+const BATCH_SIGNED_URL_CONCURRENCY = 8;
+
+function parsePositiveIntIds(raw: unknown): number[] | null {
+    if (raw === undefined || raw === null) return [];
+    if (!Array.isArray(raw)) return null;
+    const out: number[] = [];
+    for (const x of raw) {
+        const n = typeof x === "number" ? x : Number(x);
+        if (!Number.isInteger(n) || n <= 0) return null;
+        out.push(n);
+    }
+    return out;
+}
+
+async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>) {
+    if (items.length === 0) return;
+    const cap = Math.max(1, concurrency);
+    let i = 0;
+    async function worker() {
+        while (true) {
+            const j = i++;
+            if (j >= items.length) return;
+            await fn(items[j]!);
+        }
+    }
+    const workers = Array.from(
+        { length: Math.min(cap, items.length) },
+        () => worker(),
+    );
+    await Promise.all(workers);
+}
+
+router.post("/batch-signed-urls", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const fileParsed = parsePositiveIntIds(req.body?.fileUrlForIds);
+        const thumbParsed = parsePositiveIntIds(req.body?.thumbnailUrlForIds);
+        if (fileParsed === null || thumbParsed === null) {
+            res.status(400).json({ error: "Invalid id list" });
+            return;
+        }
+
+        const fileUrlForIds = [...new Set(fileParsed)].slice(0, BATCH_SIGNED_URLS_MAX_PER_LIST);
+        const thumbnailUrlForIds = [...new Set(thumbParsed)].slice(
+            0,
+            BATCH_SIGNED_URLS_MAX_PER_LIST,
+        );
+        if (
+            fileUrlForIds.length + thumbnailUrlForIds.length >
+            BATCH_SIGNED_URLS_MAX_TOTAL
+        ) {
+            res.status(400).json({ error: "Too many ids in batch" });
+            return;
+        }
+
+        const allIds = [...new Set([...fileUrlForIds, ...thumbnailUrlForIds])];
+        const rows = await contentRepo.getByIdsForEmployee(allIds, employee.id);
+        const byId = new Map(rows.map((r) => [r.id, r] as const));
+
+        const fileUrlById: Record<string, string> = {};
+        const thumbnailUrlById: Record<string, string> = {};
+
+        type Job =
+            | { kind: "file"; id: number }
+            | { kind: "thumb"; id: number };
+
+        const jobs: Job[] = [];
+        for (const id of fileUrlForIds) {
+            const row = byId.get(id);
+            if (!row) continue;
+            const filePath = row.filePath?.trim();
+            if (!filePath) continue;
+            jobs.push({ kind: "file", id });
+        }
+        for (const id of thumbnailUrlForIds) {
+            const row = byId.get(id);
+            if (!row) continue;
+            const thumbPath = row.thumbnailPath?.trim();
+            if (!thumbPath) continue;
+            jobs.push({ kind: "thumb", id });
+        }
+
+        await runPool(jobs, BATCH_SIGNED_URL_CONCURRENCY, async (job) => {
+            const row = byId.get(job.id)!;
+            if (job.kind === "file") {
+                const filePath = row.filePath!.trim();
+                const url =
+                    filePath.startsWith("http://") || filePath.startsWith("https://")
+                        ? filePath
+                        : await getSignedUrl(filePath);
+                fileUrlById[String(job.id)] = url;
+            } else {
+                const thumbPath = row.thumbnailPath!.trim();
+                const url = await getSignedUrl(thumbPath, THUMB_SIGNED_EXPIRES_SEC);
+                thumbnailUrlById[String(job.id)] = url;
+            }
+        });
+
+        res.json({ fileUrlById, thumbnailUrlById });
+    } catch (err) {
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Failed to generate signed URLs",
+        });
+    }
+});
+
 router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     const employee = await getEmployeeFromRequest(req);

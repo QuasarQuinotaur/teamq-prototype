@@ -24,6 +24,7 @@ import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
 import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
 import { StarIcon } from "@phosphor-icons/react";
+import { THUMBNAIL_CHUNK_SIZE, toChunkSizes } from "@/lib/thumbnailChunks.ts";
 import {CONTENT_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import type {SortFields} from "@/components/forms/SortForm.tsx";
 import {DEFAULT_SORT_FIELDS, DEFAULT_SORT_FIELDS_RECENT} from "@/components/paging/hooks/sort-function.tsx";
@@ -547,7 +548,7 @@ export default function ContentEntryPage({
             );
             if (gen !== catalogResetGenRef.current) return;
             setEntries(mapped);
-            setThumbnailChunkSizes(mapped.length > 0 ? [mapped.length] : []);
+            setThumbnailChunkSizes(toChunkSizes(mapped.length, THUMBNAIL_CHUNK_SIZE));
             setCatalogHasMore(hasMore);
         } catch (err) {
             console.error(err);
@@ -616,7 +617,10 @@ export default function ContentEntryPage({
                 return [...prev, ...add];
             });
             if (mapped.length > 0) {
-                setThumbnailChunkSizes((prev) => [...prev, mapped.length]);
+                setThumbnailChunkSizes((prev) => [
+                    ...prev,
+                    ...toChunkSizes(mapped.length, THUMBNAIL_CHUNK_SIZE),
+                ]);
             }
             setCatalogHasMore(hasMore);
         } catch (err) {
@@ -1296,6 +1300,11 @@ export default function ContentEntryPage({
         );
     }, [favoritedList, employee, employeeMap]);
 
+    const favoritesThumbnailChunkSizes = useMemo(
+        () => toChunkSizes(favoritedQueryEntries.length, THUMBNAIL_CHUNK_SIZE),
+        [favoritedQueryEntries.length],
+    );
+
     const catalogInfiniteScrollProps = useMemo(
         () => ({
             hasMore: catalogHasMore,
@@ -1321,6 +1330,7 @@ export default function ContentEntryPage({
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
                 thumbnailChunkSizes={thumbnailChunkSizes}
+                favoritesThumbnailChunkSizes={favoritesThumbnailChunkSizes}
                 catalogInfiniteScroll={catalogInfiniteScrollProps}
                 catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}
@@ -1364,6 +1374,7 @@ export default function ContentEntryPage({
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
                 thumbnailChunkSizes={thumbnailChunkSizes}
+                favoritesThumbnailChunkSizes={favoritesThumbnailChunkSizes}
                 catalogInfiniteScroll={catalogInfiniteScrollProps}
                 catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}
@@ -1451,6 +1462,7 @@ export default function ContentEntryPage({
                 favoritedEntries={favoritedQueryEntries}
                 gridSkeletonCount={gridSkeletonCount}
                 thumbnailChunkSizes={thumbnailChunkSizes}
+                favoritesThumbnailChunkSizes={favoritesThumbnailChunkSizes}
                 catalogInfiniteScroll={catalogInfiniteScrollProps}
                 catalogHasMore={catalogHasMore}
                 createOptionsElement={createOptionsElement}

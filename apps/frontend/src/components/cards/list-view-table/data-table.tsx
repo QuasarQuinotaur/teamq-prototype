@@ -14,6 +14,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/Table.tsx"
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx"
 import { cn } from "@/lib/utils.ts"
 
 import type { CardEntry } from "@/components/cards/Card.tsx"
@@ -56,6 +57,15 @@ export function DataTable<TData, TValue>({
         getCoreRowModel: getCoreRowModel(),
     })
 
+    if (data.length === 0) {
+        return (
+            <EmptyResultsState
+                title="No results"
+                description="Try adjusting your search or filter."
+            />
+        )
+    }
+
     return (
         <div className="overflow-hidden rounded-md border">
             <Table className="bg-background">
@@ -78,13 +88,12 @@ export function DataTable<TData, TValue>({
                     ))}
                 </TableHeader>
                 <TableBody>
-                    {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row, index) => {
-                            const entry = row.original as CardEntry;
-                            const isTutorialRow =
-                                tutorialHighlightEntryId != null &&
-                                entry.item.id === tutorialHighlightEntryId;
-                            return (
+                    {table.getRowModel().rows.map((row, index) => {
+                        const entry = row.original as CardEntry;
+                        const isTutorialRow =
+                            tutorialHighlightEntryId != null &&
+                            entry.item.id === tutorialHighlightEntryId;
+                        return (
                             <TableRow
                                 key={row.id}
                                 {...(isTutorialRow ? { "data-tutorial-doc-card": "" as const } : {})}
@@ -133,15 +142,8 @@ export function DataTable<TData, TValue>({
                                     </TableCell>
                                 ))}
                             </TableRow>
-                            );
-                        })
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={columns.length} className="h-24 text-center">
-                                No results.
-                            </TableCell>
-                        </TableRow>
-                    )}
+                        );
+                    })}
                 </TableBody>
             </Table>
         </div>

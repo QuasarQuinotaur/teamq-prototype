@@ -9,6 +9,7 @@ import type {
 } from "@/components/cards/Card.tsx";
 import type {EntryProps} from "@/components/paging/EntryPage.tsx";
 import { ThumbnailBatchProvider } from "@/components/cards/ThumbnailBatchContext.tsx";
+import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { cn } from "@/lib/utils.ts";
 
 /** Min track ~0.7× the prior 22rem (~15.4rem →15.5rem); `min(100%,…)` keeps one column on narrow viewports. */
@@ -35,10 +36,13 @@ export default function CardGrid({
 }: CardGridProps & EntryProps) {
     if (!isLoading && entries.length === 0) {
         return (
-            <div className={CARD_GRID_LAYOUT_CLASS}>
-                No results found.
+            <div className="px-10">
+                <EmptyResultsState
+                    title="No results"
+                    description="Try adjusting your search or filter."
+                />
             </div>
-        )
+        );
     }
 
     function renderEntry(entry: CardEntry) {
