@@ -4,12 +4,14 @@ export type EmptyResultsStateProps = {
     title: string;
     description?: string;
     className?: string;
+    id?: string;
 };
 
 /** Dashed bordered empty state; matches the admin check-in “no results” treatment. */
-export function EmptyResultsState({ title, description, className }: EmptyResultsStateProps) {
+export function EmptyResultsState({ title, description, className, id }: EmptyResultsStateProps) {
     return (
         <div
+            id={id}
             className={cn(
                 "flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center",
                 className,

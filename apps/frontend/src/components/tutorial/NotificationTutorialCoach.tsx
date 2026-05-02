@@ -1,4 +1,4 @@
-import { useServiceRequestTutorial } from "@/components/tutorial/ServiceRequestTutorialContext.tsx";
+import { useNotificationTutorial } from "@/components/tutorial/NotificationTutorialContext.tsx";
 import { TutorialCompletionDialog } from "@/components/tutorial/TutorialCompletionDialog.tsx";
 import { TutorialIntroDialog } from "@/components/tutorial/TutorialIntroDialog.tsx";
 import { TutorialSidebarNavReplica } from "@/components/tutorial/TutorialSidebarNavReplica.tsx";
@@ -17,18 +17,19 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils.ts";
 
 const PADDING = 0;
 const CAPTION_Z = 100;
 const EXIT_Z = 200;
 
-const pathSrList = /^\/tutorial\/service-requests\/?$/;
+const pathNtList = /^\/tutorial\/notifications\/?$/;
 
-const SERVICE_REQUEST_TUTORIAL_INTRO_BULLETS = [
-  "Open Service requests from the sidebar",
-  "Search the list and start a new request (or a preset)",
-  "Use filter and sort to narrow what you see",
-  "See how tasks are grouped in the list",
+const INBOX_TUTORIAL_INTRO_BULLETS = [
+  "Open Inbox from the sidebar",
+  "Filter by read status, sort, and refresh the list",
+  "Use bulk select when you need many rows",
+  "Browse notifications and open a row for detail",
 ];
 
 type SpotlightBounds = {
@@ -39,38 +40,33 @@ type SpotlightBounds = {
 };
 
 const MAIN_STEP_IDS: Record<
-  | "sr_main_search"
-  | "sr_main_new"
-  | "sr_main_presets"
-  | "sr_main_filter"
-  | "sr_main_sort"
-  | "sr_main_list",
+  | "nt_main_status"
+  | "nt_main_sort"
+  | "nt_main_select"
+  | "nt_main_refresh"
+  | "nt_main_list",
   string
 > = {
-  sr_main_search: "tutorial-sr-search",
-  sr_main_new: "tutorial-sr-new-request",
-  sr_main_presets: "tutorial-sr-presets",
-  sr_main_filter: "tutorial-sr-filter",
-  sr_main_sort: "tutorial-sr-sort",
-  sr_main_list: "tutorial-sr-list-overview",
+  nt_main_status: "tutorial-inbox-status-filter",
+  nt_main_sort: "tutorial-inbox-sort",
+  nt_main_select: "tutorial-inbox-select",
+  nt_main_refresh: "tutorial-inbox-refresh",
+  nt_main_list: "tutorial-inbox-list-overview",
 };
 
 const MAIN_STEP_COPY: Record<keyof typeof MAIN_STEP_IDS, string> = {
-  sr_main_search:
-    "Search across requests by title, description, people, linked documents, id, status, and priority.",
-  sr_main_new:
-    "+ New Request starts a blank workflow. You’ll add stages, assignees, and due dates on the next screen.",
-  sr_main_presets:
-    "The chevron opens preset templates so you can start common pipelines with stages already drafted.",
-  sr_main_filter:
-    "Filter narrows the list by assignment, due-date presets, status, and priority—without leaving the page.",
-  sr_main_sort:
-    "Sort changes the order (for example by due date, priority, or title) for what you’re viewing now.",
-  sr_main_list:
-    "Requests appear below. “Your tasks” are ones where you’re assigned; “Other tasks” are the rest. Open a row to expand stages, check items off, or edit.",
+  nt_main_status:
+    "All, Unread, and Read narrow what appears in your inbox without deleting anything.",
+  nt_main_sort:
+    "Sort changes the order—for example newest first, oldest first, or by notification type.",
+  nt_main_select:
+    "Select turns on bulk mode so you can tap rows or drag to marquee-select many items.",
+  nt_main_refresh:
+    "Refresh pulls the latest notifications from the server while you stay on this page.",
+  nt_main_list:
+    "Each row shows type, a short preview, and when it arrived. Open a row for full detail; use the row menu for mark read, mark unread, or delete.",
 };
 
-/** Applies pointer-events recursively so descendants (inputs, links) don’t steal hits. */
 function setSubtreePointerEvents(root: HTMLElement, value: "" | "none"): void {
   root.style.pointerEvents = value;
   root.querySelectorAll<HTMLElement>("*").forEach((node) => {
@@ -78,7 +74,6 @@ function setSubtreePointerEvents(root: HTMLElement, value: "" | "none"): void {
   });
 }
 
-/** Block interaction on the spotlighted control; tour advances via Next so users don’t change filters/search mid-step. */
 function blockSpotlightSubtreePointerEvents(el: HTMLElement): void {
   setSubtreePointerEvents(el, "none");
 }
@@ -87,16 +82,14 @@ function clearSpotlightPointerBlocks(el: HTMLElement): void {
   setSubtreePointerEvents(el, "");
 }
 
-/** Cleans pointer-event blocks left on tutorial anchor ids. */
-function clearSrTutorialStyles() {
+function clearNtTutorialStyles() {
   for (const id of [
-    "tutorial-sr-main-nav",
-    "tutorial-sr-search",
-    "tutorial-sr-new-request",
-    "tutorial-sr-presets",
-    "tutorial-sr-filter",
-    "tutorial-sr-sort",
-    "tutorial-sr-list-overview",
+    "tutorial-inbox-main-nav",
+    "tutorial-inbox-status-filter",
+    "tutorial-inbox-sort",
+    "tutorial-inbox-select",
+    "tutorial-inbox-refresh",
+    "tutorial-inbox-list-overview",
   ]) {
     const el = document.getElementById(id);
     if (el instanceof HTMLElement) {
@@ -107,15 +100,15 @@ function clearSrTutorialStyles() {
   }
 }
 
-export function ServiceRequestTutorialCoach() {
-  const tutorial = useServiceRequestTutorial();
+export function NotificationTutorialCoach() {
+  const tutorial = useNotificationTutorial();
   const location = useLocation();
   const { setOpen } = useSidebar();
   const [rect, setRect] = useState<SpotlightBounds | null>(null);
   const scrollKeyRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
-    if (!tutorial?.routeIsSrTutorial) {
+    if (!tutorial?.routeIsNotificationsTutorial) {
       scrollKeyRef.current = null;
       setRect(null);
       return;
@@ -125,19 +118,19 @@ export function ServiceRequestTutorialCoach() {
     if (phase === "complete") {
       scrollKeyRef.current = null;
       setRect(null);
-      clearSrTutorialStyles();
+      clearNtTutorialStyles();
       return;
     }
-    const onList = pathSrList.test(location.pathname);
+    const onList = pathNtList.test(location.pathname);
 
     const mainPhase = phase in MAIN_STEP_IDS;
     const mainStepId = mainPhase
       ? MAIN_STEP_IDS[phase as keyof typeof MAIN_STEP_IDS]
       : null;
 
-    const sidebarSpotlight = phase === "sidebar_sr_nav";
+    const sidebarSpotlight = phase === "sidebar_inbox_nav";
     const targetSelector = sidebarSpotlight
-      ? "#tutorial-sr-main-nav"
+      ? "#tutorial-inbox-main-nav"
       : mainStepId && onList
         ? `#${mainStepId}`
         : null;
@@ -147,7 +140,7 @@ export function ServiceRequestTutorialCoach() {
     if (!activeSpotlight) {
       scrollKeyRef.current = null;
       setRect(null);
-      clearSrTutorialStyles();
+      clearNtTutorialStyles();
       return;
     }
 
@@ -159,11 +152,7 @@ export function ServiceRequestTutorialCoach() {
       }
 
       const key = `${phase}-${location.pathname}`;
-      if (
-        scrollKeyRef.current !== key &&
-        mainPhase &&
-        onList
-      ) {
+      if (scrollKeyRef.current !== key && mainPhase && onList) {
         el.scrollIntoView({
           behavior: "auto",
           block: "nearest",
@@ -211,32 +200,37 @@ export function ServiceRequestTutorialCoach() {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
       ro.disconnect();
-      clearSrTutorialStyles();
+      clearNtTutorialStyles();
     };
-  }, [tutorial?.routeIsSrTutorial, tutorial?.phase, location.pathname]);
+  }, [tutorial?.routeIsNotificationsTutorial, tutorial?.phase, location.pathname]);
 
   useLayoutEffect(() => {
-    if (!tutorial?.routeIsSrTutorial) return;
+    if (!tutorial?.routeIsNotificationsTutorial) return;
     if (tutorial.phase === "complete") return;
     if (
-      tutorial.phase === "sidebar_sr_nav" ||
-      (tutorial.phase.startsWith("sr_main_") && pathSrList.test(location.pathname))
+      tutorial.phase === "sidebar_inbox_nav" ||
+      (tutorial.phase.startsWith("nt_main_") && pathNtList.test(location.pathname))
     ) {
       setOpen(true);
     }
-  }, [tutorial?.routeIsSrTutorial, tutorial?.phase, location.pathname, setOpen]);
+  }, [
+    tutorial?.routeIsNotificationsTutorial,
+    tutorial?.phase,
+    location.pathname,
+    setOpen,
+  ]);
 
-  if (!tutorial?.routeIsSrTutorial || tutorial.phase === "inactive") {
+  if (!tutorial?.routeIsNotificationsTutorial || tutorial.phase === "inactive") {
     return null;
   }
 
   if (tutorial.phase === "complete") {
     return (
       <TutorialCompletionDialog
-        titleId="sr-tutorial-complete-title"
+        titleId="nt-tutorial-complete-title"
         title="Tutorial complete"
-        description="You’ve finished the service requests overview. You can run it again anytime from Tutorials."
-        onContinue={tutorial.acknowledgeServiceRequestTutorialComplete}
+        description="You’ve finished the inbox overview. You can run it again anytime from Tutorials."
+        onContinue={tutorial.acknowledgeNotificationTutorialComplete}
       />
     );
   }
@@ -265,9 +259,9 @@ export function ServiceRequestTutorialCoach() {
   if (tutorial.phase === "intro") {
     return (
       <TutorialIntroDialog
-        titleId="sr-tutorial-intro-title"
-        title="Service Requests Tutorial"
-        bullets={SERVICE_REQUEST_TUTORIAL_INTRO_BULLETS}
+        titleId="nt-tutorial-intro-title"
+        title="Inbox Tutorial"
+        bullets={INBOX_TUTORIAL_INTRO_BULLETS}
         dismissLabel="Cancel"
         onDismiss={tutorial.skipTutorial}
         onStart={tutorial.startTutorial}
@@ -277,24 +271,22 @@ export function ServiceRequestTutorialCoach() {
   }
 
   const mainPhase = tutorial.phase in MAIN_STEP_IDS;
-  const onList = pathSrList.test(location.pathname);
+  const onList = pathNtList.test(location.pathname);
   const mainCaption = mainPhase
     ? MAIN_STEP_COPY[tutorial.phase as keyof typeof MAIN_STEP_IDS]
     : null;
   const sidebarCaption =
-    tutorial.phase === "sidebar_sr_nav"
-      ? "Choose Service requests in the sidebar to open the list. The tour continues automatically on that page."
+    tutorial.phase === "sidebar_inbox_nav"
+      ? "Choose Inbox in the sidebar (bottom). The tour continues automatically on the notifications page."
       : null;
   const caption = sidebarCaption ?? mainCaption;
 
-  const isLastMain =
-    mainPhase && tutorial.phase === "sr_main_list";
+  const isLastMain = mainPhase && tutorial.phase === "nt_main_list";
 
-  /** Full scrim; spotlight target uses z-index; list steps block pointer events on the control. */
   const mainListSpotlight = mainPhase && onList && Boolean(mainCaption);
   const hasSpotlightCaption =
     Boolean(rect) &&
-    (tutorial.phase === "sidebar_sr_nav" || mainListSpotlight);
+    (tutorial.phase === "sidebar_inbox_nav" || mainListSpotlight);
 
   if (hasSpotlightCaption && rect) {
     return createPortal(
@@ -302,45 +294,94 @@ export function ServiceRequestTutorialCoach() {
         {exitButton}
         <TutorialDimOverlay onPointerDown={blockBackground} />
         <TutorialSidebarNavReplica
-          active={tutorial.phase === "sidebar_sr_nav" && Boolean(rect)}
-          targetId="tutorial-sr-main-nav"
+          active={tutorial.phase === "sidebar_inbox_nav" && Boolean(rect)}
+          targetId="tutorial-inbox-main-nav"
         />
         <div
-          className="fixed rounded-xl border border-border bg-popover px-4 py-3 text-sm text-popover-foreground shadow-lg"
+          className={cn(
+            "fixed rounded-xl border border-border bg-popover px-4 py-3 text-sm text-popover-foreground shadow-lg",
+            tutorial.phase === "sidebar_inbox_nav" && "pointer-events-none",
+          )}
           style={(() => {
             const captionWidth = Math.min(
               320,
               typeof window !== "undefined" ? window.innerWidth - 32 : 320,
             );
             const estHeight = mainPhase ? 140 : 88;
+            const vw =
+              typeof window !== "undefined" ? window.innerWidth : 1200;
+            const vh =
+              typeof window !== "undefined" ? window.innerHeight : 800;
+
+            if (tutorial.phase === "sidebar_inbox_nav") {
+              const gap = 12;
+              const minMargin = 16;
+              /** Sidebar step has no Next button; allow wrapped copy height. */
+              const sidebarCaptionEstH = 132;
+              const rectRight = rect.left + rect.width;
+              const spaceRight = vw - rectRight - gap - minMargin;
+              const fitsBeside = spaceRight >= 176;
+
+              if (fitsBeside) {
+                const maxWidth = Math.min(320, spaceRight);
+                const left = rectRight + gap;
+                let top =
+                  rect.top + rect.height / 2 - sidebarCaptionEstH / 2;
+                top = Math.max(
+                  minMargin,
+                  Math.min(top, vh - sidebarCaptionEstH - minMargin),
+                );
+                return {
+                  zIndex: CAPTION_Z,
+                  maxWidth,
+                  top,
+                  left,
+                };
+              }
+
+              // Too narrow to sit beside — park above the inbox so the footer button stays uncovered.
+              const maxWidth = Math.min(320, vw - 2 * minMargin);
+              const left = Math.max(
+                minMargin,
+                Math.min(rect.left, vw - maxWidth - minMargin),
+              );
+              let top = rect.top - sidebarCaptionEstH - gap;
+              top = Math.max(
+                minMargin,
+                Math.min(top, vh - sidebarCaptionEstH - minMargin),
+              );
+              return {
+                zIndex: CAPTION_Z,
+                maxWidth,
+                top,
+                left,
+              };
+            }
+
             return {
               zIndex: CAPTION_Z,
               maxWidth: captionWidth,
               top: Math.min(
                 rect.top + rect.height + 12,
-                typeof window !== "undefined"
-                  ? window.innerHeight - estHeight - 16
-                  : rect.top + rect.height + 12,
+                vh - estHeight - 16,
               ),
-              left: Math.min(
-                rect.left,
-                typeof window !== "undefined"
-                  ? window.innerWidth - captionWidth - 16
-                  : rect.left,
-              ),
+              left: Math.min(rect.left, vw - captionWidth - 16),
             };
           })()}
           role="tooltip"
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            if (tutorial.phase === "sidebar_inbox_nav") return;
+            e.stopPropagation();
+          }}
         >
           {caption ? <p className="mb-3 leading-snug">{caption}</p> : null}
-          {tutorial.phase === "sidebar_sr_nav" ? null : mainPhase ? (
+          {tutorial.phase === "sidebar_inbox_nav" ? null : mainPhase ? (
             <Button
               type="button"
               size="sm"
               className="w-full"
               onClick={() =>
-                isLastMain ? tutorial.completeTutorial() : tutorial.continueSrTutorial()
+                isLastMain ? tutorial.completeTutorial() : tutorial.continueNotificationTutorial()
               }
             >
               {isLastMain ? "Done" : "Next"}
@@ -353,7 +394,7 @@ export function ServiceRequestTutorialCoach() {
   }
 
   const waitingOnList =
-    mainPhase && !onList && tutorial.phase.startsWith("sr_main");
+    mainPhase && !onList && tutorial.phase.startsWith("nt_main");
 
   if (waitingOnList) {
     return createPortal(
@@ -374,7 +415,7 @@ export function ServiceRequestTutorialCoach() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <p className="leading-snug">
-            Open Service requests from the sidebar to see tooltips for each control.
+            Open Inbox from the sidebar to see tooltips for each control.
           </p>
         </div>
       </>,

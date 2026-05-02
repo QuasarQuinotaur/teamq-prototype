@@ -19,6 +19,7 @@ import {DEFAULT_SORT_FIELDS} from "@/components/paging/hooks/sort-function.tsx";
 import useEmployeeSortFunction from "@/components/paging/hooks/employee-sort-function.tsx";
 import {EMPLOYEE_SORT_BY_MAP} from "@/components/input/constants.tsx";
 import RoleDropdownButton from "./roles/RoleDropdownButton";
+import {toast} from "sonner";
 
 const EMPLOYEE_GRID_SKELETON_SLOTS = 24;
 
@@ -55,13 +56,20 @@ export default function EmployeeEntryPage() {
                 method: "DELETE",
                 credentials: "include",
             });
+            const data: { error?: string } = await res.json().catch(() => ({}));
             if (!res.ok) {
-                throw new Error("Delete failed");
+                toast.error(
+                    typeof data.error === "string" && data.error.trim()
+                        ? data.error
+                        : "Delete failed"
+                );
+                return;
             }
             setEntries((prev) => prev.filter(
                 (e) => e.item!.id !== entry.item.id));
         } catch (err) {
             console.error("Delete failed:", err);
+            toast.error("Delete failed");
         }
     }
 

@@ -17,7 +17,7 @@ import {
   PersonIcon,
   FilesIcon,
   ListBulletsIcon,
-  LifebuoyIcon,
+  BookOpenIcon,
 } from "@phosphor-icons/react"
 import {Button} from "@/elements/buttons/button.tsx";
 import {InboxIcon} from "lucide-react";
@@ -26,6 +26,7 @@ import axios from "axios"
 import { Link } from "react-router-dom";
 import useJobNameMap from "@/hooks/useJobNameMap"
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin"
+import useUnreadNotificationCount from "@/hooks/useUnreadNotificationCount"
 import type { Employee } from "db"
 
 
@@ -127,6 +128,7 @@ export function AppSidebar({
   const [employee, setEmployee] = useState<Employee | null>(null);
   const { jobNameMap, rolesLoading } = useJobNameMap();
   const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
+  const unreadNotificationCount = useUnreadNotificationCount();
   const navMain = React.useMemo(
     () =>
       data.navMain.map((item) => ({
@@ -216,9 +218,9 @@ export function AppSidebar({
           ]
         : []),
       {
-        title: "Help",
-        url: `${pathPrefix}/help`,
-        icon: <LifebuoyIcon />,
+        title: "Tutorials",
+        url: `${pathPrefix}/tutorials`,
+        icon: <BookOpenIcon />,
       },
   ];
 
@@ -255,8 +257,23 @@ export function AppSidebar({
           size="lg"
           className="w-full group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2"
         >
-          <Link to={`${pathPrefix}/notifications`}>
-            <InboxIcon />
+          <Link
+            id="tutorial-inbox-main-nav"
+            to={`${pathPrefix}/notifications`}
+            className="relative gap-2"
+            aria-label={
+              unreadNotificationCount > 0 ? "Inbox, unread notifications" : "Inbox"
+            }
+          >
+            <span className="relative inline-flex shrink-0">
+              <InboxIcon className="shrink-0" aria-hidden />
+              {unreadNotificationCount > 0 && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute top-0 right-0 flex size-[0.5625rem] translate-x-[2px] -translate-y-[2px] rounded-full bg-primary ring-2 ring-background"
+                />
+              )}
+            </span>
             <span className="group-data-[collapsible=icon]:sr-only">Inbox</span>
           </Link>
         </Button>

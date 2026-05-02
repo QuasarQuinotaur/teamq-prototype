@@ -12,6 +12,7 @@ import {
   ServiceRequestCard,
   type ServiceRequestLinkedDocument,
 } from "@/components/service-requests/ServiceRequests.tsx";
+import { ServiceRequestCardSkeleton } from "@/components/service-requests/ServiceRequestCardSkeleton.tsx";
 import SearchBar from "@/components/paging/toolbar/SearchBar.tsx";
 import FilterButton from "@/components/paging/toolbar/FilterButton.tsx";
 import SortButton from "@/components/paging/toolbar/SortButton.tsx";
@@ -46,6 +47,7 @@ import {
 import { Button } from "@/elements/buttons/button.tsx";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import { Separator } from "@/elements/separator.tsx";
+import { Skeleton } from "@/elements/skeleton.tsx";
 import type { Employee } from "db";
 
 function isAssignedToWorkflow(row: WorkflowListRow, userId: number): boolean {
@@ -168,6 +170,19 @@ function filenameForLinkedDoc(d: ServiceRequestLinkedDocument): string {
 
 function isServiceRequestsListPath(pathname: string): boolean {
   return /\/service-requests\/?$/.test(pathname);
+}
+
+/** Mirrors section headings (`text-xs` row + HelpHint control). */
+function ServiceRequestsSectionHeadingSkeleton({ barWidth }: { barWidth: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Skeleton className={`h-3 shrink-0 rounded-sm ${barWidth}`} aria-hidden />
+      <Skeleton
+        className="size-4 shrink-0 rounded-full border border-muted-foreground/35"
+        aria-hidden
+      />
+    </div>
+  );
 }
 
 export default function ServiceRequestsPage() {
@@ -346,15 +361,12 @@ export default function ServiceRequestsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center gap-3 px-4 pt-5 pb-5">
-        <SidebarTrigger className="-ml-1 shrink-0" />
-        <div id="tutorial-sr-search" className="min-w-0 max-w-[21rem] flex-1">
-          <SearchBar setFilter={setSearchPhrase} />
+        <SidebarTrigger className="-ml-1 shrink-0 bg-background" />
+        <div className="min-w-0 max-w-[21rem] flex-1">
+          <SearchBar id="tutorial-sr-search" setFilter={setSearchPhrase} />
         </div>
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <div
-            id="tutorial-sr-presets"
-            className="flex shrink-0 rounded-lg shadow-sm"
-          >
+          <div className="flex shrink-0 rounded-lg shadow-sm">
             <Link
               id="tutorial-sr-new-request"
               to={`${pathPrefix}/service-requests/new`}
@@ -366,6 +378,7 @@ export default function ServiceRequestsPage() {
               <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
+                  id="tutorial-sr-presets"
                   variant="default"
                   size="lg"
                   className="h-9 rounded-l-none rounded-r-lg border-0 px-2 shadow-sm bg-primary hover:bg-hanover-blue/90 focus-visible:z-10"
@@ -395,8 +408,9 @@ export default function ServiceRequestsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div id="tutorial-sr-filter">
+          <div>
             <FilterButton
+              triggerId="tutorial-sr-filter"
               emptyFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
               defaultFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
               fields={fieldsFilter}
@@ -404,8 +418,9 @@ export default function ServiceRequestsPage() {
               createFieldsElement={FilterServiceRequestFields}
             />
           </div>
-          <div id="tutorial-sr-sort">
+          <div>
             <SortButton
+              triggerId="tutorial-sr-sort"
               sortByMap={SERVICE_REQUEST_SORT_BY_MAP as Record<string, string>}
               defaultSortFields={DEFAULT_SORT_FIELDS}
               sortFields={sortFields}
@@ -415,22 +430,50 @@ export default function ServiceRequestsPage() {
         </div>
       </header>
 
-      <div
-        id="tutorial-sr-list-overview"
-        className="flex flex-1 flex-col gap-3 overflow-auto px-4 pb-8"
-      >
+      <div className="flex flex-1 flex-col gap-3 overflow-auto px-4 pb-8">
         {loading ? (
-          <p className="text-center text-muted-foreground">Loading…</p>
+          <div
+            className="mx-auto flex w-full max-w-2xl flex-col gap-8 pt-2"
+            aria-busy="true"
+            aria-label="Loading service requests"
+          >
+            <section className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <ServiceRequestsSectionHeadingSkeleton barWidth="w-[5.125rem]" />
+                <Separator />
+              </div>
+              <ul className="flex flex-col gap-2">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <li key={i} id={i === 0 ? "tutorial-sr-list-overview" : undefined}>
+                    <ServiceRequestCardSkeleton />
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <ServiceRequestsSectionHeadingSkeleton barWidth="w-[5.75rem]" />
+              <ul className="flex flex-col gap-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <li key={`other-${i}`}>
+                    <ServiceRequestCardSkeleton />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
         ) : error ? (
           <p className="text-center text-destructive">{error}</p>
         ) : requests!.length === 0 ? (
           <EmptyResultsState
+            id="tutorial-sr-list-overview"
             className="mx-auto w-full max-w-2xl flex-1 px-6"
             title="No service requests"
             description="There are no service requests yet. When requests are created, they will appear here."
           />
         ) : queryResults.length === 0 ? (
           <EmptyResultsState
+            id="tutorial-sr-list-overview"
             className="mx-auto w-full max-w-2xl flex-1 px-6"
             title="No matching requests"
             description="Try adjusting search, filters, or sort."
@@ -452,8 +495,11 @@ export default function ServiceRequestsPage() {
                   <Separator />
                 </div>
                 <ul className="flex flex-col gap-2">
-                  {yourTasks.map((req) => (
-                    <li key={req.id}>
+                  {yourTasks.map((req, i) => (
+                    <li
+                      key={req.id}
+                      id={i === 0 ? "tutorial-sr-list-overview" : undefined}
+                    >
                       <ServiceRequestCard
                         workflow={req}
                         currentUserId={meId!}
@@ -483,8 +529,15 @@ export default function ServiceRequestsPage() {
                   </HelpHint>
                 </div>
                 <ul className="flex flex-col gap-2">
-                  {allTasks.map((req) => (
-                    <li key={req.id}>
+                  {allTasks.map((req, i) => (
+                    <li
+                      key={req.id}
+                      id={
+                        i === 0 && yourTasks.length === 0
+                          ? "tutorial-sr-list-overview"
+                          : undefined
+                      }
+                    >
                       <ServiceRequestCard
                         workflow={req}
                         currentUserId={meId!}

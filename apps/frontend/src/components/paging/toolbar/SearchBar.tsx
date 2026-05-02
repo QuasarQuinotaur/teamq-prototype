@@ -16,13 +16,15 @@ import { cn } from "@/lib/utils.ts";
 export type SearchBarProps = {
     setFilter: (phrase: string) => void;
     className?: string;
+    id?: string;
 }
 export default function SearchBar({
                                       setFilter,
                                       className,
+                                      id,
 }: SearchBarProps) {
     return (
-        <InputGroup className={cn("bg-background", className)}>
+        <InputGroup id={id} className={cn("bg-background", className)}>
             <InputGroupInput
                 placeholder={"Search..."}
                 onChange={(e) => setFilter(e.target.value)}

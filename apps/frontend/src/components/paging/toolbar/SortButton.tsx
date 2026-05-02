@@ -7,8 +7,8 @@ import * as React from "react";
 import {useState} from "react";
 import SortForm, {type SortFormProps} from "@/components/forms/SortForm.tsx";
 
-export type SortButtonProps = SortFormProps
-export default function SortButton(props: SortButtonProps) {
+export type SortButtonProps = SortFormProps & { triggerId?: string }
+export default function SortButton({ triggerId, ...props }: SortButtonProps) {
     const [sortOpen, setSortOpen] = useState(false)
     return (
         <Popover
@@ -16,7 +16,7 @@ export default function SortButton(props: SortButtonProps) {
             onOpenChange={setSortOpen}
         >
             <PopoverTrigger>
-                <Button variant={"outline"}>
+                <Button variant={"outline"} id={triggerId}>
                     <ArrowsDownUpIcon/>
                 </Button>
             </PopoverTrigger>

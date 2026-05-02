@@ -1,4 +1,4 @@
-/** Session flag: user started service-request tutorial from Help (entry may be `/tutorial/dashboard`). */
+/** Session flag: user started service-request tutorial from Tutorials (entry may be `/tutorial/dashboard`). */
 export const SR_TUTORIAL_SESSION_KEY = "hanover-sr-tutorial";
 
 export function setServiceRequestTutorialSession(active: boolean): void {

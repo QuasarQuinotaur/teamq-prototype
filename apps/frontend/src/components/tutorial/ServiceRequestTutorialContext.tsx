@@ -27,7 +27,8 @@ export type ServiceRequestTutorialPhase =
   | "inactive"
   | "intro"
   | "sidebar_sr_nav"
-  | ServiceRequestTutorialMainStep;
+  | ServiceRequestTutorialMainStep
+  | "complete";
 
 type ServiceRequestTutorialContextValue = {
   routeIsSrTutorial: boolean;
@@ -35,6 +36,9 @@ type ServiceRequestTutorialContextValue = {
   startTutorial: () => void;
   skipTutorial: () => void;
   exitTutorial: () => void;
+  /** User pressed Done on the final spotlight step; opens completion dialog. */
+  completeTutorial: () => void;
+  acknowledgeServiceRequestTutorialComplete: () => void;
   /** Call when user lands on the service-requests list after sidebar step */
   notifySrListRouteEntered: () => void;
   /** Advance within main-page steps, or exit after the last step */
@@ -60,7 +64,8 @@ export function ServiceRequestTutorialProvider({
   const navigate = useNavigate();
   const [phase, setPhase] = useState<ServiceRequestTutorialPhase>("inactive");
 
-  const prevSrTutorialRef = useRef(routeIsSrTutorial);
+  /** Tracks last `routeIsSrTutorial` seen by the effect—not the mount value—so mounting already on `/tutorial/dashboard` still opens intro. */
+  const prevSrTutorialRef = useRef(false);
   useEffect(() => {
     const prev = prevSrTutorialRef.current;
     prevSrTutorialRef.current = routeIsSrTutorial;
@@ -73,10 +78,16 @@ export function ServiceRequestTutorialProvider({
     }
   }, [routeIsSrTutorial]);
 
-  const resetAndLeave = useCallback(() => {
+  const exitWithoutCompletion = useCallback(() => {
     setPhase("inactive");
     setServiceRequestTutorialSession(false);
-    navigate("/documents/help");
+    navigate("/documents/tutorials");
+  }, [navigate]);
+
+  const acknowledgeServiceRequestTutorialComplete = useCallback(() => {
+    setPhase("inactive");
+    setServiceRequestTutorialSession(false);
+    navigate("/documents/tutorials");
   }, [navigate]);
 
   const startTutorial = useCallback(() => {
@@ -84,12 +95,17 @@ export function ServiceRequestTutorialProvider({
   }, []);
 
   const skipTutorial = useCallback(() => {
-    resetAndLeave();
-  }, [resetAndLeave]);
+    exitWithoutCompletion();
+  }, [exitWithoutCompletion]);
 
   const exitTutorial = useCallback(() => {
-    resetAndLeave();
-  }, [resetAndLeave]);
+    exitWithoutCompletion();
+  }, [exitWithoutCompletion]);
+
+  const completeTutorial = useCallback(() => {
+    if (!routeIsSrTutorial) return;
+    setPhase("complete");
+  }, [routeIsSrTutorial]);
 
   const notifySrListRouteEntered = useCallback(() => {
     if (!routeIsSrTutorial) return;
@@ -114,6 +130,8 @@ export function ServiceRequestTutorialProvider({
       startTutorial,
       skipTutorial,
       exitTutorial,
+      completeTutorial,
+      acknowledgeServiceRequestTutorialComplete,
       notifySrListRouteEntered,
       continueSrTutorial,
     }),
@@ -123,6 +141,8 @@ export function ServiceRequestTutorialProvider({
       startTutorial,
       skipTutorial,
       exitTutorial,
+      completeTutorial,
+      acknowledgeServiceRequestTutorialComplete,
       notifySrListRouteEntered,
       continueSrTutorial,
     ],

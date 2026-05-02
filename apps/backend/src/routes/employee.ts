@@ -1,10 +1,24 @@
 import { Router } from "express";
 import pkg from "express-openid-connect";
 const { requiresAuth } = pkg;
-import { EmployeeRepository } from "../EmployeeRepository.ts";
+import {
+    EmployeeRepository,
+    EmployeeDeleteBlockedByAssignmentsError,
+} from "../EmployeeRepository.ts";
+import { getEmployeeFromRequest } from "../app.ts";
+import { getEmployeeIsAdmin } from "../util.ts";
 import { tryGetSignedUrl } from "../lib/supabase.ts";
-import {prisma} from "db";
+import { prisma } from "db";
 const employeeRepo = new EmployeeRepository();
+
+function isPrismaRecordNotFound(err: unknown): boolean {
+    return (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code: string }).code === "P2025"
+    );
+}
 
 const router = Router();
 
@@ -133,11 +147,30 @@ router.delete("/:id", requiresAuth(), async (req, res) => {
         res.status(400).json({ error: "Invalid id" });
         return;
     }
+    const actor = await getEmployeeFromRequest(req);
+    if (!actor) {
+        res.status(404).json({ error: "No linked employee account found" });
+        return;
+    }
+    if (!(await getEmployeeIsAdmin(actor))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+    }
     try {
-        await employeeRepo.delete(id);
+        await employeeRepo.deleteAsAdmin(id, actor.id);
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err instanceof Error ? err.message : "Delete failed" });
+        if (err instanceof EmployeeDeleteBlockedByAssignmentsError) {
+            res.status(409).json({ error: err.message, code: err.code });
+            return;
+        }
+        if (isPrismaRecordNotFound(err)) {
+            res.status(404).json({ error: "Employee not found" });
+            return;
+        }
+        res.status(500).json({
+            error: err instanceof Error ? err.message : "Delete failed",
+        });
     }
 });
 

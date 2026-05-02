@@ -7,10 +7,16 @@ import { TutorialCoach } from "@/components/tutorial/TutorialCoach.tsx";
 import { TutorialProvider } from "@/components/tutorial/TutorialContext.tsx";
 import { ServiceRequestTutorialProvider } from "@/components/tutorial/ServiceRequestTutorialContext.tsx";
 import { ServiceRequestTutorialCoach } from "@/components/tutorial/ServiceRequestTutorialCoach.tsx";
+import { NotificationTutorialProvider } from "@/components/tutorial/NotificationTutorialContext.tsx";
+import { NotificationTutorialCoach } from "@/components/tutorial/NotificationTutorialCoach.tsx";
 import {
   readServiceRequestTutorialSession,
   setServiceRequestTutorialSession,
 } from "@/components/tutorial/serviceRequestTutorialStorage.ts";
+import {
+  readInboxTutorialSession,
+  setInboxTutorialSession,
+} from "@/components/tutorial/inboxTutorialStorage.ts";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
@@ -85,6 +91,7 @@ export default function Documents() {
       p.startsWith("/tutorial/checked-out")
     ) {
       setServiceRequestTutorialSession(false);
+      setInboxTutorialSession(false);
     }
   }, [location.pathname]);
 
@@ -93,13 +100,13 @@ export default function Documents() {
   useApplySettings(mainContext.setTagsEnabled, mainContext.setView);
 
   const srTutorialSession = readServiceRequestTutorialSession();
+  const inboxTutorialSession = readInboxTutorialSession();
   const onDocumentTutorialPath =
     location.pathname.startsWith("/tutorial/all") ||
     location.pathname.startsWith("/tutorial/my-documents") ||
     location.pathname.startsWith("/tutorial/checked-out");
 
-  /** Help “Service requests tutorial” navigates here; only used for SR tour (do not rely on sessionStorage racing the first paint). */
-  const onSrTutorialEntryDashboard =
+  const onInboxTutorialEntryDashboard =
     location.pathname === "/tutorial/dashboard" ||
     location.pathname === "/tutorial/dashboard/";
 
@@ -107,35 +114,62 @@ export default function Documents() {
     location.pathname.startsWith("/tutorial") &&
     !onDocumentTutorialPath &&
     (location.pathname.startsWith("/tutorial/service-requests") ||
-      onSrTutorialEntryDashboard ||
       srTutorialSession);
 
+  const routeIsNotificationsTutorial =
+    location.pathname.startsWith("/tutorial") &&
+    !onDocumentTutorialPath &&
+    !routeIsSrTutorial &&
+    ((onInboxTutorialEntryDashboard && inboxTutorialSession) ||
+      /^\/tutorial\/notifications\/?$/.test(location.pathname));
+
   const routeIsDocumentTutorial =
-    location.pathname.startsWith("/tutorial") && !routeIsSrTutorial;
+    location.pathname.startsWith("/tutorial") &&
+    !routeIsSrTutorial &&
+    !routeIsNotificationsTutorial;
+
+  const prevDocTutorialRouteRef = useRef(false);
+  const docTutorialIntroFirstLoginRef = useRef(false);
+  let documentTutorialIntroFromFirstLogin = false;
+  if (routeIsDocumentTutorial) {
+    if (!prevDocTutorialRouteRef.current) {
+      docTutorialIntroFirstLoginRef.current = documentTutorialShown === false;
+    }
+    documentTutorialIntroFromFirstLogin = docTutorialIntroFirstLoginRef.current;
+  } else {
+    docTutorialIntroFirstLoginRef.current = false;
+  }
+  prevDocTutorialRouteRef.current = routeIsDocumentTutorial;
 
   const pathPrefix = location.pathname.startsWith("/tutorial") ? "/tutorial" : "/documents";
 
   return (
     <ServiceRequestTutorialProvider routeIsSrTutorial={routeIsSrTutorial}>
-      <TutorialProvider
-        routeIsTutorial={routeIsDocumentTutorial}
-        onDocumentTutorialMarkedOnServer={refetchTutorialEligibility}
+      <NotificationTutorialProvider
+        routeIsNotificationsTutorial={routeIsNotificationsTutorial}
       >
-        <div className="flex flex-col h-screen">
-          <Navbar/>
-          <NotificationPoller />
-          <SidebarProvider className="flex-1 min-h-0">
-            <AppSidebar pathPrefix={pathPrefix} />
-            <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                  <Outlet context={mainContext} />
-                </div>
-            </SidebarInset>
-            <ServiceRequestTutorialCoach />
-            <TutorialCoach />
-          </SidebarProvider>
-        </div>
-      </TutorialProvider>
+        <TutorialProvider
+          routeIsTutorial={routeIsDocumentTutorial}
+          documentTutorialIntroFromFirstLogin={documentTutorialIntroFromFirstLogin}
+          onDocumentTutorialMarkedOnServer={refetchTutorialEligibility}
+        >
+          <div className="flex flex-col h-screen">
+            <Navbar/>
+            <NotificationPoller />
+            <SidebarProvider className="flex-1 min-h-0">
+              <AppSidebar pathPrefix={pathPrefix} />
+              <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <Outlet context={mainContext} />
+                  </div>
+              </SidebarInset>
+              <ServiceRequestTutorialCoach />
+              <NotificationTutorialCoach />
+              <TutorialCoach />
+            </SidebarProvider>
+          </div>
+        </TutorialProvider>
+      </NotificationTutorialProvider>
     </ServiceRequestTutorialProvider>
   )
 }

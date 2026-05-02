@@ -17,9 +17,8 @@ export type TutorialPhase =
     | "form"
     /** After save: user clicks My content in the sidebar before we load the list. */
     | "sidebar_my_content"
-    /** On My content; list fetch must finish before spotlighting the new row. */
+    /** On My content; list fetch must finish before spotlighting the row menu. */
     | "my_content_loading"
-    | "my_content_see_doc"
     /** Open ⋯ and check out the tutorial document on My content. */
     | "my_content_checkout"
     /** After checkout; user clicks Checked out in the sidebar. */
@@ -27,20 +26,25 @@ export type TutorialPhase =
     /** On Checked out route; list fetch must finish. */
     | "checked_out_loading"
     | "checked_out_edit"
-    | "checked_out_delete";
+    | "checked_out_delete"
+    /** User finished the flow; show completion UI then return to Tutorials. */
+    | "complete";
 
 type TutorialContextValue = {
     routeIsTutorial: boolean;
+    /** First presentation after login (document tutorial auto-opens); intro uses Skip / Start vs Cancel / Start. */
+    introDismissLabel: "Skip" | "Cancel";
     phase: TutorialPhase;
     tutorialDocId: number | null;
     startTutorial: () => void;
     skipTutorial: () => void;
     exitTutorial: () => void;
+    /** After deleting the tutorial document; opens completion dialog (not used for X / Skip). */
+    acknowledgeDocumentTutorialComplete: () => void;
     notifyAddDialogOpen: (open: boolean) => void;
     notifyTutorialDocumentCreated: (contentId: number) => void;
     /** Call when My content list has loaded and includes the tutorial document id. */
     notifyTutorialMyContentListReady: () => void;
-    continueTutorialMyContentAfterSeeDoc: () => void;
     /** After successful check out of the tutorial document (still on My content). */
     notifyTutorialDocumentCheckedOut: () => void;
     /** Call when Checked out list has loaded and includes the tutorial document id. */
@@ -58,6 +62,8 @@ export function useTutorial(): TutorialContextValue | null {
 type TutorialProviderProps = {
     children: ReactNode;
     routeIsTutorial: boolean;
+    /** Captured when entering the document tutorial route; stable while refetch sets `documentTutorialShown`. */
+    documentTutorialIntroFromFirstLogin?: boolean;
     /** After `documentTutorialShown` is saved; syncs client so auto-redirect stops. */
     onDocumentTutorialMarkedOnServer?: () => void | Promise<void>;
 };
@@ -65,6 +71,7 @@ type TutorialProviderProps = {
 export function TutorialProvider({
     children,
     routeIsTutorial,
+    documentTutorialIntroFromFirstLogin = false,
     onDocumentTutorialMarkedOnServer,
 }: TutorialProviderProps) {
     const navigate = useNavigate();
@@ -128,10 +135,16 @@ export function TutorialProvider({
         }
     }, [routeIsTutorial, phase, location.pathname]);
 
-    const resetAndLeave = useCallback(() => {
+    const exitWithoutCompletion = useCallback(() => {
         setTutorialDocId(null);
         setPhase("inactive");
-        navigate("/documents");
+        navigate("/documents/tutorials");
+    }, [navigate]);
+
+    const acknowledgeDocumentTutorialComplete = useCallback(() => {
+        setTutorialDocId(null);
+        setPhase("inactive");
+        navigate("/documents/tutorials");
     }, [navigate]);
 
     const startTutorial = useCallback(() => {
@@ -139,12 +152,12 @@ export function TutorialProvider({
     }, []);
 
     const skipTutorial = useCallback(() => {
-        resetAndLeave();
-    }, [resetAndLeave]);
+        exitWithoutCompletion();
+    }, [exitWithoutCompletion]);
 
     const exitTutorial = useCallback(() => {
-        resetAndLeave();
-    }, [resetAndLeave]);
+        exitWithoutCompletion();
+    }, [exitWithoutCompletion]);
 
     const notifyAddDialogOpen = useCallback((open: boolean) => {
         if (!routeIsTutorial) return;
@@ -166,12 +179,7 @@ export function TutorialProvider({
 
     const notifyTutorialMyContentListReady = useCallback(() => {
         if (!routeIsTutorial) return;
-        setPhase((p) => (p === "my_content_loading" ? "my_content_see_doc" : p));
-    }, [routeIsTutorial]);
-
-    const continueTutorialMyContentAfterSeeDoc = useCallback(() => {
-        if (!routeIsTutorial) return;
-        setPhase("my_content_checkout");
+        setPhase((p) => (p === "my_content_loading" ? "my_content_checkout" : p));
     }, [routeIsTutorial]);
 
     const notifyTutorialDocumentCheckedOut = useCallback(() => {
@@ -192,21 +200,26 @@ export function TutorialProvider({
     }, [routeIsTutorial]);
 
     const finishTutorialAfterDelete = useCallback(() => {
-        resetAndLeave();
-    }, [resetAndLeave]);
+        if (!routeIsTutorial) return;
+        setPhase("complete");
+    }, [routeIsTutorial]);
+
+    const introDismissLabel: "Skip" | "Cancel" =
+        documentTutorialIntroFromFirstLogin ? "Skip" : "Cancel";
 
     const value = useMemo<TutorialContextValue>(
         () => ({
             routeIsTutorial,
+            introDismissLabel,
             phase,
             tutorialDocId,
             startTutorial,
             skipTutorial,
             exitTutorial,
+            acknowledgeDocumentTutorialComplete,
             notifyAddDialogOpen,
             notifyTutorialDocumentCreated,
             notifyTutorialMyContentListReady,
-            continueTutorialMyContentAfterSeeDoc,
             notifyTutorialDocumentCheckedOut,
             notifyTutorialCheckedOutListReady,
             advanceTutorialAfterEdit,
@@ -214,15 +227,16 @@ export function TutorialProvider({
         }),
         [
             routeIsTutorial,
+            introDismissLabel,
             phase,
             tutorialDocId,
             startTutorial,
             skipTutorial,
             exitTutorial,
+            acknowledgeDocumentTutorialComplete,
             notifyAddDialogOpen,
             notifyTutorialDocumentCreated,
             notifyTutorialMyContentListReady,
-            continueTutorialMyContentAfterSeeDoc,
             notifyTutorialDocumentCheckedOut,
             notifyTutorialCheckedOutListReady,
             advanceTutorialAfterEdit,

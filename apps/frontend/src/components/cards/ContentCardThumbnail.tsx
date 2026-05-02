@@ -420,7 +420,7 @@ function PdfFirstPageThumbnailInner({
                     file={url}
                     onLoadError={safeReady}
                     loading={
-                        <div className="mt-2 h-24 w-[85%] max-w-[200px] rounded-sm bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none" />
+                        <div className="mt-2 h-24 w-[85%] max-w-[200px] rounded-sm bg-muted-foreground/20 motion-safe:animate-[thumb-pulse_1.35s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/26 motion-reduce:animate-none" />
                     }
                     error={<PdfDocumentError onReady={safeReady} />}
                 >
@@ -442,7 +442,7 @@ function PdfFirstPageThumbnailInner({
 function LinkPreviewLoading() {
     return (
         <div
-            className="size-full bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none motion-reduce:opacity-90"
+            className="size-full bg-muted-foreground/20 motion-safe:animate-[thumb-pulse_1.35s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/26 motion-reduce:animate-none motion-reduce:opacity-90"
             aria-hidden
         />
     );

@@ -1,6 +1,8 @@
+import { useNotificationTutorial } from "@/components/tutorial/NotificationTutorialContext.tsx";
+import { useAppPathPrefix } from "@/hooks/useAppPathPrefix.ts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/elements/buttons/button.tsx";
 import { Megaphone } from "lucide-react";
 import SelectMarqueeLayer from "@/components/paging/SelectMarqueeLayer.tsx";
@@ -82,6 +84,7 @@ function NotificationRow({
   onMarkRead,
   onDelete,
   bulkActionLoading,
+  pathPrefix,
 }: {
   notification: NotificationItem;
   selectMode: boolean;
@@ -91,6 +94,7 @@ function NotificationRow({
   onMarkRead: (id: number) => void;
   onDelete: (id: number) => void;
   bulkActionLoading: boolean;
+  pathPrefix: "/documents" | "/tutorial";
 }) {
   const isRead = notification.dateRead != null;
   const navigate = useNavigate();
@@ -135,8 +139,7 @@ function NotificationRow({
     <div
       data-marquee-entry-id={notification.id}
       className={cn(
-        "group relative flex items-center border-b last:border-b-0 transition-colors hover:bg-muted/40",
-        isRead && !selected ? "bg-transparent" : "bg-card",
+        "group relative flex items-center border-b last:border-b-0 bg-card transition-colors hover:bg-muted/40",
         selected && "bg-primary/10",
         selectMode && "cursor-pointer select-none",
       )}
@@ -170,7 +173,7 @@ function NotificationRow({
         </div>
       ) : (
         <Link
-          to={`/documents/notifications/${notification.id}`}
+          to={`${pathPrefix}/notifications/${notification.id}`}
           className={cn(
             "flex min-w-0 flex-1 items-baseline gap-3 py-3 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
             isRead && "opacity-60",
@@ -190,7 +193,7 @@ function NotificationRow({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <MoreHorizontal className="size-4" />
                 <span className="sr-only">More options</span>
@@ -231,7 +234,14 @@ function NotificationRow({
 // Notifications page
 // ---------------------------------------------------------------------------
 
+function isTutorialNotificationsListPath(pathname: string): boolean {
+  return /^\/tutorial\/notifications\/?$/.test(pathname);
+}
+
 export default function Notifications() {
+  const location = useLocation();
+  const pathPrefix = useAppPathPrefix();
+  const ntTutorial = useNotificationTutorial();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -313,6 +323,14 @@ export default function Notifications() {
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!ntTutorial?.routeIsNotificationsTutorial) return;
+    if (!isTutorialNotificationsListPath(location.pathname)) return;
+    if (ntTutorial.phase === "sidebar_inbox_nav") {
+      ntTutorial.notifyInboxListRouteEntered();
+    }
+  }, [ntTutorial, location.pathname]);
 
   const handleMarkUnread = useCallback(async (id: number) => {
     try {
@@ -494,18 +512,20 @@ export default function Notifications() {
           )}
           {!selectMode && (
             <button
+              id="tutorial-inbox-select"
               type="button"
               onClick={() => setSelectMode(true)}
-              className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+              className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
             >
               Select
             </button>
           )}
           <button
+            id="tutorial-inbox-refresh"
             type="button"
             onClick={fetchNotifications}
             disabled={bulkActionLoading}
-            className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+            className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
           >
             Refresh
           </button>
@@ -515,7 +535,10 @@ export default function Notifications() {
       {/* Toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {/* Status tabs */}
-        <div className="flex rounded-md border p-0.5 text-sm">
+        <div
+          id="tutorial-inbox-status-filter"
+          className="flex rounded-md border bg-background p-0.5 text-sm"
+        >
           {(["all", "unread", "read"] as StatusFilter[]).map((s) => (
             <button
               key={s}
@@ -525,7 +548,7 @@ export default function Notifications() {
                 "rounded px-3 py-1 capitalize transition-colors",
                 statusFilter === s
                   ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground",
+                  : "bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
               {s}
@@ -537,9 +560,10 @@ export default function Notifications() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              id="tutorial-inbox-sort"
               type="button"
               className={cn(
-                "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted",
+                "flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted",
                 sortKey !== "newest" && "border-foreground/40 font-medium",
               )}
             >
@@ -568,7 +592,7 @@ export default function Notifications() {
           <button
             type="button"
             onClick={clearFilters}
-            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center gap-1 rounded-md border bg-background px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="size-3.5" />
             Clear
@@ -612,7 +636,7 @@ export default function Notifications() {
               type="button"
               disabled={selectedIds.size === 0 || bulkActionLoading}
               onClick={handleBulkMarkUnread}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
               <Mail className="size-3.5" />
               Mark unread
@@ -621,7 +645,7 @@ export default function Notifications() {
               type="button"
               disabled={selectedIds.size === 0 || bulkActionLoading}
               onClick={handleBulkMarkRead}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
               <MailOpen className="size-3.5" />
               Mark read
@@ -630,7 +654,7 @@ export default function Notifications() {
               type="button"
               disabled={selectedIds.size === 0 || bulkActionLoading}
               onClick={handleBulkDelete}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
             >
               <Trash2 className="size-3.5" />
               Delete
@@ -640,7 +664,7 @@ export default function Notifications() {
               type="button"
               onClick={exitSelectMode}
               disabled={bulkActionLoading}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1 rounded-md border bg-background px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
               <X className="size-3.5" />
               Cancel
@@ -670,7 +694,7 @@ export default function Notifications() {
           onCommit={onMarqueeSelect}
           className="rounded-md"
         >
-          <div className="rounded-md border">
+          <div id="tutorial-inbox-list-overview" className="rounded-md border">
             {processed.map((notification) => (
               <NotificationRow
                 key={notification.id}
@@ -682,6 +706,7 @@ export default function Notifications() {
                 onMarkRead={handleMarkRead}
                 onDelete={handleDelete}
                 bulkActionLoading={bulkActionLoading}
+                pathPrefix={pathPrefix}
               />
             ))}
           </div>

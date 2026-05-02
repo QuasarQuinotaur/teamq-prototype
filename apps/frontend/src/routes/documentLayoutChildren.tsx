@@ -17,7 +17,7 @@ import Settings from "@/pages/Settings.tsx";
 import Notifications from "@/pages/Notifications.tsx";
 import NotificationDetail from "@/pages/NotificationDetail.tsx";
 import RoleDocuments from "@/pages/RoleDocuments.tsx";
-import Help from "@/pages/Help.tsx";
+import Tutorials from "@/pages/Tutorials.tsx";
 import References from "@/pages/References";
 import Tools from "@/pages/Tools";
 import { RoleGuard } from "@/components/auth/RoleGuard";
@@ -102,8 +102,12 @@ export const documentLayoutChildren: RouteObject[] = [
         element: <Navigate to="/about" replace />,
     },
     {
+        path: "tutorials",
+        element: <Tutorials />,
+    },
+    {
         path: "help",
-        element: <Help />,
+        element: <Navigate to="../tutorials" replace />,
     },
     {
         path: "credits",

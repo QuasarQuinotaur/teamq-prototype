@@ -10,8 +10,11 @@ import {type FormState} from "@/components/forms/Form.tsx";
 import {Popover, PopoverContent, PopoverTrigger} from "@/elements/buttons/popover.tsx";
 
 
-export type FilterButtonProps<T> = FilterFormProps<T>
-export default function FilterButton<T extends object>(props: FilterButtonProps<T>) {
+export type FilterButtonProps<T> = FilterFormProps<T> & { triggerId?: string }
+export default function FilterButton<T extends object>({
+    triggerId,
+    ...props
+}: FilterButtonProps<T>) {
     const [filterOpen, setFilterOpen] = useState(false)
 
     return (
@@ -20,7 +23,7 @@ export default function FilterButton<T extends object>(props: FilterButtonProps<
             onOpenChange={setFilterOpen}
         >
             <PopoverTrigger>
-                <Button variant={"outline"}>
+                <Button variant={"outline"} id={triggerId}>
                     <FunnelSimpleIcon/>
                 </Button>
             </PopoverTrigger>

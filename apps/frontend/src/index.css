@@ -198,6 +198,16 @@ html[data-text-size="Large"] { font-size: 18px; }
   }
 }
 
+@keyframes thumb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.60;
+  }
+}
+
 @keyframes checkout-dots-bounce {
   0%,
   80%,

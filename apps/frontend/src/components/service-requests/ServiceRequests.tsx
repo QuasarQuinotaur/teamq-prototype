@@ -59,9 +59,15 @@ import {
 
 const apiBase = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-/** Visual size for stage check-off dots (header + vertical timeline); hit area stays tappable. */
-const stageDotHitClass = "flex h-8 w-8 shrink-0 items-center justify-center";
-const stageDotInnerClass = "size-5 rounded-full border-2";
+/** Header rollup / stage-dot hit area — shared with `ServiceRequestCardSkeleton`. */
+export const SERVICE_REQUEST_CARD_STAGE_DOT_HIT_CLASS =
+  "flex h-8 w-8 shrink-0 items-center justify-center";
+/** Inner ring — matches collapsed header indicator on `ServiceRequestCard`. */
+export const SERVICE_REQUEST_CARD_STAGE_DOT_INNER_CLASS =
+  "size-5 rounded-full border-2";
+
+const stageDotHitClass = SERVICE_REQUEST_CARD_STAGE_DOT_HIT_CLASS;
+const stageDotInnerClass = SERVICE_REQUEST_CARD_STAGE_DOT_INNER_CLASS;
 
 function formatDueDisplay(iso: string | null | undefined): string | null {
   if (!iso?.trim()) return null;
@@ -274,7 +280,7 @@ export function ServiceRequestCard({
                             onPointerDown={(e) => e.stopPropagation()}
                             className={cn(
                               stageDotHitClass,
-                              "rounded-full",
+                              "rounded-full bg-background",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                               "disabled:pointer-events-none disabled:opacity-40",
                             )}
@@ -322,7 +328,7 @@ export function ServiceRequestCard({
                         type="button"
                         aria-expanded={open}
                         className={cn(
-                          "flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-2 py-0 text-left outline-none",
+                          "flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md bg-background px-2 py-0 text-left outline-none",
                           "hover:bg-muted/40",
                           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                         )}
@@ -363,7 +369,7 @@ export function ServiceRequestCard({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="text-muted-foreground"
+                        className="bg-background text-muted-foreground"
                         aria-label="Request options"
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -489,7 +495,7 @@ export function ServiceRequestCard({
                                     onPointerDown={(e) => e.stopPropagation()}
                                     className={cn(
                                       stageDotHitClass,
-                                      "rounded-full transition-colors",
+                                      "rounded-full bg-background transition-colors",
                                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                                       "disabled:pointer-events-none disabled:opacity-40",
                                     )}

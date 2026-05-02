@@ -137,7 +137,7 @@ export default function ExcelCardThumb({ url, onReady }: ExcelCardThumbProps) {
         >
             {loading ? (
                 <div
-                    className="absolute inset-0 z-10 bg-muted-foreground/32 motion-safe:animate-[pulse_1.15s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/40 motion-reduce:animate-none"
+                    className="absolute inset-0 z-10 bg-muted-foreground/20 motion-safe:animate-[thumb-pulse_1.35s_cubic-bezier(0.4,0,0.6,1)_infinite] dark:bg-muted-foreground/26 motion-reduce:animate-none"
                     aria-hidden
                 />
             ) : null}

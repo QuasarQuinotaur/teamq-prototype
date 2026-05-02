@@ -803,17 +803,23 @@ export default function ContentEntryPage({
         !onlyMyCheckouts &&
         !hasActiveFilterOrSearch;
 
-    const tutorialHighlightEntryId = useMemo(() => {
+    const tutorialHighlightEntryId = useMemo((): number | null => {
         if (!tutorial?.routeIsTutorial || tutorial.tutorialDocId == null) {
             return null;
         }
-        if (
-            tutorial.phase === "my_content_see_doc"
-        ) {
-            return tutorial.tutorialDocId;
-        }
-        return null;
-    }, [tutorial]);
+        const id = tutorial.tutorialDocId;
+        const highlightTutorialDocumentRow =
+            tutorial.phase === "my_content_loading" ||
+            tutorial.phase === "my_content_checkout" ||
+            tutorial.phase === "checked_out_loading" ||
+            tutorial.phase === "checked_out_edit" ||
+            tutorial.phase === "checked_out_delete";
+        return highlightTutorialDocumentRow ? id : null;
+    }, [
+        tutorial?.routeIsTutorial,
+        tutorial?.phase,
+        tutorial?.tutorialDocId,
+    ]);
 
     const myContentTutorialRefetchDoneRef = useRef(false);
     useEffect(() => {
