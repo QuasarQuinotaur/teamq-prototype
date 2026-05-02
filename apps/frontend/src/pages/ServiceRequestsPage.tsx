@@ -49,6 +49,14 @@ import { HelpHint } from "@/elements/help-hint.tsx";
 import { Separator } from "@/elements/separator.tsx";
 import { Skeleton } from "@/elements/skeleton.tsx";
 import type { Employee } from "db";
+import * as React from "react";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuList,
+} from "@/components/NavigationMenu.tsx"
+import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
+import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 
 function isAssignedToWorkflow(row: WorkflowListRow, userId: number): boolean {
   return allEmployeeIdsFromWorkflow(row.stages).has(userId);
@@ -357,14 +365,95 @@ export default function ServiceRequestsPage() {
       />
     );
   }
+  const queryProps: QueryProps<ContentFieldsFilter> = {
+    searchBarProps: {
+      setFilter: setSearchPhrase
+    },
+    filterButtonProps: {
+      emptyFields: {},
+      defaultFields: defaultFieldsFilter,
+      fields: fieldsFilter,
+      setFields: setFieldsFilter,
+      createFieldsElement: FilterDocumentFields,
+      tagList: tagList,
+  //     triggerId="tutorial-sr-filter"
+  //     emptyFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+  // defaultFields={{ ...DEFAULT_SERVICE_REQUEST_FIELDS_FILTER }}
+  // fields={fieldsFilter}
+  // setFields={setFieldsFilter}
+  // createFieldsElement={FilterServiceRequestFields}
+    },
+    sortButtonProps: {
+      sortByMap: sortByMap,
+      defaultSortFields,
+      sortFields,
+      setSortFields,
+    }
+  }
+  const newRequest = (
+      <div className="flex shrink-0 rounded-lg shadow-sm">
+        <Link
+            id="tutorial-sr-new-request"
+            to={`${pathPrefix}/service-requests/new`}
+            className="inline-flex h-9 items-center justify-center rounded-l-lg border border-transparent bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          + New Request
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+                type="button"
+                id="tutorial-sr-presets"
+                variant="default"
+                size="lg"
+                className="h-9 rounded-l-none rounded-r-lg border-0 px-2 shadow-sm bg-primary hover:bg-hanover-blue/90 focus-visible:z-10"
+                aria-label="New request from a preset template"
+            >
+              <ChevronDown className="size-4 opacity-90" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[16rem]">
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Presets
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {WORKFLOW_CREATION_PRESET_ORDER.map((key) => {
+              const preset = WORKFLOW_CREATION_PRESETS[key];
+              return (
+                  <DropdownMenuItem key={key} asChild>
+                    <Link
+                        to={`${pathPrefix}/service-requests/new?template=${encodeURIComponent(key)}`}
+                        className="cursor-pointer"
+                    >
+                      {preset.label}
+                    </Link>
+                  </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+  )
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-muted/50 pt-2">
       <header className="flex h-16 shrink-0 items-center gap-3 px-4 pt-5 pb-5">
-        <SidebarTrigger className="-ml-1 shrink-0 bg-background" />
-        <div className="min-w-0 max-w-[21rem] flex-1">
-          <SearchBar id="tutorial-sr-search" setFilter={setSearchPhrase} />
-        </div>
+        <NavigationMenu className="flex max-w-[min(100%,24rem)] flex-none shrink-0 items-center justify-start">
+          <SidebarTrigger className="-ml-1 shrink-0" />
+          <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]"
+          />
+          <NavigationMenuList className="flex-none justify-start gap-2">
+            <NavigationMenuItem className={"flex flex-col gap-2"}>
+              <SearchBar id="tutorial-sr-search" className="w-full bg-background" setFilter={setSearchPhrase} />
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+
+        {/*<div className="min-w-0 flex-1">*/}
+        {/*  */}
+        {/*</div>*/}
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
           <div className="flex shrink-0 rounded-lg shadow-sm">
             <Link
