@@ -139,7 +139,7 @@ function NotificationRow({
     <div
       data-marquee-entry-id={notification.id}
       className={cn(
-        "group relative flex items-center first:rounded-t-lg border-b last:border-b-0 bg-card transition-colors hover:bg-muted/40",
+        "group relative flex items-center first:rounded-t-md last:rounded-b-md border-b last:border-b-0 bg-card transition-colors hover:bg-muted/40",
         selected && "bg-primary/10",
         selectMode && "cursor-pointer select-none",
       )}
