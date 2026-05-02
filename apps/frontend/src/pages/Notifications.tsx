@@ -139,7 +139,7 @@ function NotificationRow({
     <div
       data-marquee-entry-id={notification.id}
       className={cn(
-        "group relative flex items-center border-b last:border-b-0 bg-card transition-colors hover:bg-muted/40",
+        "group relative flex items-center first:rounded-t-lg border-b last:border-b-0 bg-card transition-colors hover:bg-muted/40",
         selected && "bg-primary/10",
         selectMode && "cursor-pointer select-none",
       )}
@@ -485,7 +485,7 @@ export default function Notifications() {
   const unreadCount = notifications.filter((n) => n.dateRead == null).length;
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-auto p-6">
+    <section className="flex bg-muted/50 min-h-0 flex-1 flex-col overflow-auto p-6">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
