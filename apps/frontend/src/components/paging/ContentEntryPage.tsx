@@ -85,6 +85,7 @@ function contentFiltersEqualToBaseline(
             c: [...(f.contentTypes ?? [])].sort(),
             j: [...(f.jobPositions ?? [])].sort(),
             d: [...(f.documentTypes ?? [])].sort(),
+            t: [...(f.tagIds ?? [])].sort(),
         });
     return pack(current) === pack(baseline);
 }
@@ -1004,7 +1005,6 @@ export default function ContentEntryPage({
                   key="select-all-filtered"
                   type="button"
                   variant="secondary"
-                  size="sm"
                   disabled={bulkActionLoading || entries.length === 0}
                   onClick={selectAllFiltered}
               >
@@ -1014,7 +1014,6 @@ export default function ContentEntryPage({
                   key="favorite-all"
                   type="button"
                   variant="secondary"
-                  size="sm"
                   disabled={bulkActionLoading || selectedIds.size === 0}
                   onClick={() => void bulkFavoriteSelected()}
               >
@@ -1025,7 +1024,6 @@ export default function ContentEntryPage({
                       key="check-all-in"
                       type="button"
                       variant="secondary"
-                      size="sm"
                       disabled={bulkActionLoading || selectedIds.size === 0}
                       onClick={() => void bulkCheckinSelected()}
                   >
@@ -1036,7 +1034,6 @@ export default function ContentEntryPage({
                       key="check-all-out"
                       type="button"
                       variant="secondary"
-                      size="sm"
                       disabled={bulkActionLoading || selectedIds.size === 0}
                       onClick={() => void bulkCheckoutSelected()}
                   >
@@ -1047,7 +1044,6 @@ export default function ContentEntryPage({
                   key="cancel-select"
                   type="button"
                   variant="outline"
-                  size="sm"
                   disabled={bulkActionLoading}
                   onClick={exitSelectMode}
               >
@@ -1059,7 +1055,6 @@ export default function ContentEntryPage({
                   key="select-entry"
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => setSelectMode(true)}
               >
                   Select
