@@ -239,6 +239,7 @@ export function createColumns(
         {
             accessorKey: "title",
             header: options?.headerName ?? "Title",
+            size: 400,
             cell: ({ row }) => (
                 <TitleCell
                     entry={row.original}
@@ -252,6 +253,7 @@ export function createColumns(
         cols.push({
             accessorKey: "link",
             header: "Email",
+            size: 200,
             cell: ({ row }) => (
                 <div className="text-muted-foreground truncate">
                     {row.original.link}
@@ -264,7 +266,7 @@ export function createColumns(
         cols.push({
             accessorKey: "owner",
             header: "Owner",
-            size: 60,
+            size: 100,
             cell: ({ row }) => <OwnerCell owner={row.original.owner} ownerImage={row.original.ownerImage} />,
         });
     }
@@ -273,6 +275,7 @@ export function createColumns(
         cols.push({
             accessorKey: "expirationDate",
             header: "Expiration",
+            size: 140,
             cell: ({ getValue }) => {
                 const value = getValue();
 
@@ -292,6 +295,7 @@ export function createColumns(
     cols.push({
         accessorKey: "badge",
         header: options?.headerType ?? "Type",
+        size: 120,
         cell: ({ row }) => {
             const badge = row.original.badge;
             if (!badge) return null;
