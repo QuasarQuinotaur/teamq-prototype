@@ -10,15 +10,15 @@ type TeamMember = {
 }
 
 const TEAM_MEMBERS: TeamMember[] = [
-    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png" },
-    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png" },
-    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png" },
-    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png" },
-    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png" },
-    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg" },
+    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "test1" },
+    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "test2" },
+    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "test3" },
+    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "test4" },
+    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png", quote: "test5" },
+    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "test6" },
     { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "Go Yankees!" },
-    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png" },
-    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png" },
+    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "test7" },
+    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "test8" },
 ]
 
 const ACCENT_COLORS = [

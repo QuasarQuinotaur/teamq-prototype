@@ -2,5 +2,10 @@ packages:
   - 'apps/*'
   - 'packages/*'
 allowBuilds:
+  '@iamjariwala/react-doc-viewer': true
   '@prisma/engines': false
+  browser-tabs-lock: true
+  canvas: true
+  esbuild: true
+  msw: true
   prisma: false
