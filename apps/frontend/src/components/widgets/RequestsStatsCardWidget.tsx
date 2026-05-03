@@ -1,7 +1,6 @@
-import { ListTodoIcon, CheckCircle2Icon, CalendarDaysIcon, AlertCircleIcon } from "lucide-react";
+import { ListTodoIcon, CheckCircle2Icon, CalendarDaysIcon, AlertCircleIcon, Loader2 } from "lucide-react";
 import {cn} from "@/lib/utils.ts";
 import {Link} from "react-router-dom"; // or keep in same file if you want
-import { Skeleton } from "@/elements/skeleton.tsx";
 
 const SERVICE_REQUESTS_PRESET_LINK = "/documents/service-requests";
 
@@ -55,19 +54,12 @@ function StatCard({
 export default function StatsCards({ counts, loading }: { counts: any; loading?: boolean }) {
     if (loading) {
         return (
-            <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                        key={i}
-                        className="flex min-h-0 items-center gap-2 rounded-lg border border-border px-3 py-2 shadow-sm"
-                    >
-                        <Skeleton className="size-8 shrink-0 rounded-md" />
-                        <div className="min-w-0 flex-1 space-y-2">
-                            <Skeleton className="h-6 w-8" />
-                            <Skeleton className="h-3 w-20" />
-                        </div>
-                    </div>
-                ))}
+            <div
+                className="grid h-full w-full place-items-center"
+                aria-busy="true"
+                aria-label="Loading"
+            >
+                <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
             </div>
         );
     }

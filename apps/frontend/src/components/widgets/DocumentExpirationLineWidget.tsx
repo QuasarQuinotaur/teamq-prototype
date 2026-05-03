@@ -14,6 +14,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/Chart.tsx";
+import { Loader2 } from "lucide-react";
 
 type ContentItem = {
     expirationDate: string;
@@ -81,8 +82,12 @@ export default function DocumentExpirationLineWidget({ items, loading }: Props) 
             </CardHeader>
             <CardContent className="min-h-0 flex-1 pb-2">
                 {loading ? (
-                    <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-                        Loading…
+                    <div
+                        className="flex h-[min(220px,40vh)] w-full items-center justify-center"
+                        aria-busy="true"
+                        aria-label="Loading"
+                    >
+                        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
                     </div>
                 ) : (
                     <ChartContainer
