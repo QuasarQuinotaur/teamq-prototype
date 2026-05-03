@@ -5,6 +5,7 @@ import "@iamjariwala/react-doc-viewer/dist/index.css";
 import { Button } from "@/elements/buttons/button.tsx";
 import { ArrowLeftIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
 import { DocumentAiSummaryMenu } from "@/components/DocumentAiSummaryMenu.tsx";
+const DownloadCallbackCtx = React.createContext<(() => void) | undefined>(undefined);
 
 export type DocumentPanePayload = {
     contentId: number;
@@ -22,17 +23,13 @@ type DocumentViewerProps = {
     /** Fullscreen-only: offer entering split workspace (document-like files). */
     canEnterSplit?: boolean;
     onEnterSplit?: () => void;
+    onDownload?: () => void;
 };
 
 /** Hoisted so DocViewer config identity is stable across memoized re-renders. */
-function NoRendererFallback({
-    document: doc,
-    fileName,
-}: {
-    document: IDocument | undefined;
-    fileName: string;
-}) {
+function NoRendererFallback({ document: doc, fileName }: { document: IDocument | undefined; fileName: string }) {
     const uri = doc?.uri ?? "";
+    const onDownload = React.useContext(DownloadCallbackCtx);
 
     React.useEffect(() => {
         if (!uri) return;
@@ -55,6 +52,7 @@ function NoRendererFallback({
                 if (cancelled) return;
                 const obj = URL.createObjectURL(blob);
                 triggerDownload(obj, true);
+                onDownload?.();
                 URL.revokeObjectURL(obj);
             } catch {
                 if (cancelled) return;
@@ -66,7 +64,7 @@ function NoRendererFallback({
         return () => {
             cancelled = true;
         };
-    }, [uri, fileName]);
+    }, [uri, fileName, onDownload]);
 
     if (!uri) return null;
 
@@ -84,7 +82,7 @@ const DOC_VIEWER_STATIC_CONFIG = {
  * Isolated from parent re-renders: only re-renders when `url` / `filename` change
  * so the sibling split pane updating does not re-run react-doc-viewer.
  */
-const DocumentCanvas = React.memo(function DocumentCanvas({ url, filename }: { url: string; filename: string }) {
+function DocumentCanvas({ url, filename, onDownload }: { url: string; filename: string; onDownload?: () => void }){
     const canvasRef = React.useRef<HTMLDivElement | null>(null);
 
     const documents = React.useMemo<IDocument[]>(
@@ -149,18 +147,20 @@ const DocumentCanvas = React.memo(function DocumentCanvas({ url, filename }: { u
     }, []);
 
     return (
-        <div ref={canvasRef} className="flex-1 min-h-0 w-full flex flex-col [&_#react-doc-viewer]:min-h-0 [&_#react-doc-viewer]:h-full">
-            <DocViewer
-                key={url}
-                documents={documents}
-                pluginRenderers={DocViewerRenderers}
-                config={DOC_VIEWER_STATIC_CONFIG}
-                className="flex-1 min-h-0 w-full border-0"
-                style={{ width: "100%", height: "100%", minHeight: 0 }}
-            />
-        </div>
+        <DownloadCallbackCtx.Provider value={onDownload}>
+            <div ref={canvasRef} className="flex-1 min-h-0 w-full flex flex-col [&_#react-doc-viewer]:min-h-0 [&_#react-doc-viewer]:h-full">
+                <DocViewer
+                    key={url}
+                    documents={documents}
+                    pluginRenderers={DocViewerRenderers}
+                    config={DOC_VIEWER_STATIC_CONFIG}
+                    className="flex-1 min-h-0 w-full border-0"
+                    style={{ width: "100%", height: "100%", minHeight: 0 }}
+                />
+            </div>
+        </DownloadCallbackCtx.Provider>
     );
-});
+}
 
 export { DocumentCanvas };
 
@@ -204,15 +204,7 @@ export const PaneDocumentViewer = React.memo(function PaneDocumentViewer({
     );
 }, (prev, next) => paneDocEqual(prev.doc, next.doc));
 
-export default function DocumentViewer({
-    contentId,
-    url,
-    filename,
-    title,
-    onClose,
-    canEnterSplit = false,
-    onEnterSplit,
-}: DocumentViewerProps) {
+export default function DocumentViewer({ contentId, url, filename, title, onClose, canEnterSplit = false, onEnterSplit, onDownload }: DocumentViewerProps) {
     const [summaryToolbarSlot, setSummaryToolbarSlot] = React.useState<HTMLDivElement | null>(null);
 
     return (
@@ -240,7 +232,7 @@ export default function DocumentViewer({
                 </div>
             </div>
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                <DocumentCanvas url={url} filename={filename} />
+                <DocumentCanvas url={url} filename={filename} onDownload={onDownload} />
                 <DocumentAiSummaryMenu contentId={contentId} toolbarSlot={summaryToolbarSlot} />
             </div>
         </div>

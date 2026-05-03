@@ -315,7 +315,7 @@ export default function ContentEntryPage({
     const fetchViewerState = useCallback(async (entry: CardEntry): Promise<ViewerState | null> => {
         const id = entry.item.id;
         // fixed
-        const res = await fetch(`${apiBase}/api/content/${id}/download`, {
+        const res = await fetch(`${apiBase}/api/content/${id}/file-url`, {
             credentials: "include",
         });
         if (!res.ok) return null;
@@ -1455,6 +1455,11 @@ export default function ContentEntryPage({
                 onClose={closeFullscreen}
                 canEnterSplit={canEnterSplit}
                 onEnterSplit={canEnterSplit ? enterSplitFromFullscreen : undefined}
+                onDownload={() => {
+                    fetch(`${apiBase}/api/content/${fullscreenDoc.contentId}/download`, {
+                        credentials: "include",
+                    });
+                }}
             />
         );
     }

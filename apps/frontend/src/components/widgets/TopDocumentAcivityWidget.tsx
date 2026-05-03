@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, Download, FileText, Loader2 } from "lucide-react";
+import { Eye, FileText, Loader2 } from "lucide-react";
 
 type Document = {
     id: number;
@@ -107,7 +107,6 @@ export default function TopDocumentActivityWidget({ limit = 5, onInitialLoadComp
                         {/* Right side */}
                         <div className="flex gap-4 text-sm text-gray-600">
                             <span><Eye className="w-4 h-4" /> {doc.viewCount}</span>
-                            <span><Download className="w-4 h-4" /> {doc.downloadCount}</span>
                         </div>
                     </div>
                 ))}

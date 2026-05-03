@@ -14,6 +14,9 @@ async function main() {
     console.log(`Reset ${result.count} documents`);
 }
 
+//use
+//cd packages/db && npx tsx --env-file=../../.env prisma/reset-count.ts
+
 main()
     .catch(console.error)
     .finally(() => prisma.$disconnect());
