@@ -31,7 +31,7 @@ export default function Settings() {
   const { setTagsEnabled, setView } = useMainContext();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>("TEST");
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_BACKEND_URL}/api/settings`, {
@@ -61,6 +61,16 @@ export default function Settings() {
     setSettings((prev) => ({ ...prev, theme: value as ThemeId }));
   }, []);
 
+  const applySettings = (useSettings: SettingsState) => {
+    applyTheme(useSettings.theme);
+    applyTextSize(useSettings.textSize as SizeValue);
+    applyIconSize(useSettings.iconSize as SizeValue);
+    setTagsEnabled(useSettings.tagsEnabled);
+    const view = useSettings.listEnabled ? "List" : "Grid";
+    storeView(view);
+    setView(view);
+  }
+
   const handleSave = () => {
     setError(null);
     fetch(`${import.meta.env.VITE_BACKEND_URL}/api/settings`, {
@@ -71,19 +81,17 @@ export default function Settings() {
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to save settings");
-        applyTheme(settings.theme);
-        applyTextSize(settings.textSize as SizeValue);
-        applyIconSize(settings.iconSize as SizeValue);
-        setTagsEnabled(settings.tagsEnabled);
-        const view = settings.listEnabled ? "List" : "Grid";
-        storeView(view);
-        setView(view);
+        applySettings(settings)
       })
       .catch((err) => {
         console.error(err);
         setError("Could not save settings. Please try again.");
       });
   };
+
+  useEffect(() => {
+    handleSave()
+  }, [settings])
 
   if (loading) {
     return (
@@ -108,10 +116,11 @@ export default function Settings() {
           <p className="text-muted-foreground text-sm mt-0.5">
             Manage your personal preferences.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={handleSave}>Save Changes</Button>
+          {error && (
+            <p className="text-sm text-destructive">
+                {error}
+            </p>
+          )}
         </div>
       </div>
 
