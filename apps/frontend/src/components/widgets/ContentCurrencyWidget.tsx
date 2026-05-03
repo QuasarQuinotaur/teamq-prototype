@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FileText, Loader2 } from "lucide-react";
 
 type Content = {
     id: number;
@@ -8,9 +8,16 @@ type Content = {
     dateUpdated?: string | null;
 };
 
-export default function ContentCurrencyWidget() {
+type Props = {
+    onInitialLoadComplete?: () => void;
+};
+
+export default function ContentCurrencyWidget({ onInitialLoadComplete }: Props) {
     const [docs, setDocs] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
+    const initialCompleteReported = useRef(false);
+    const onInitialLoadCompleteRef = useRef(onInitialLoadComplete);
+    onInitialLoadCompleteRef.current = onInitialLoadComplete;
 
     useEffect(() => {
         const fetchDocs = async () => {
@@ -25,13 +32,15 @@ export default function ContentCurrencyWidget() {
                 console.error("Failed to fetch content", err);
             } finally {
                 setLoading(false);
+                if (!initialCompleteReported.current) {
+                    initialCompleteReported.current = true;
+                    onInitialLoadCompleteRef.current?.();
+                }
             }
         };
 
         fetchDocs();
     }, []);
-
-    // helper
     const now = new Date();
     const getDaysSince = (date: string) =>
         (now.getTime() - new Date(date).getTime()) /
@@ -41,9 +50,6 @@ export default function ContentCurrencyWidget() {
     let current = 0;
     let review = 0;
     let outdated = 0;
-
-    console.log("Docs:")
-    console.log(docs);
 
     docs.forEach((doc) => {
         const days = getDaysSince(doc.dateUpdated || doc.dateAdded);
@@ -57,21 +63,15 @@ export default function ContentCurrencyWidget() {
     const pct = (n: number) =>
         total ? Math.round((n / total) * 100) : 0;
 
-    // skeleton
+    // loading
     if (loading) {
         return (
-            <div className="p-4 space-y-4">
-                <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="space-y-1">
-                        <div className="flex justify-between">
-                            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                            <div className="h-4 w-10 bg-gray-200 rounded animate-pulse" />
-                        </div>
-                        <div className="h-1.5 w-full bg-gray-200 rounded animate-pulse" />
-                    </div>
-                ))}
+            <div
+                className="flex min-h-[200px] items-center justify-center p-4"
+                aria-busy="true"
+                aria-label="Loading"
+            >
+                <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
             </div>
         );
     }

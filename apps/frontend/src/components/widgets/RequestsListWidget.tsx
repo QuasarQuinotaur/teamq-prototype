@@ -5,10 +5,10 @@ import {
     ListTodoIcon,
     AlertCircleIcon,
     CalendarDaysIcon,
+    Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils.ts";
-import { Skeleton } from "@/elements/skeleton.tsx";
 import { parseISO, isValid, startOfDay } from "date-fns";
 import type { WorkflowListRow } from "@/components/service-requests/workflowTypes.ts";
 
@@ -132,7 +132,7 @@ function CountBadge({ loading, count }: { loading: boolean; count: number }) {
     if (loading) {
         return (
             <Badge variant="secondary" className="min-w-8 justify-center px-1.5">
-                <Skeleton className="mx-auto h-3.5 w-4" />
+                <Loader2 className="mx-auto size-3.5 animate-spin" aria-hidden />
             </Badge>
         );
     }
@@ -156,7 +156,13 @@ function ListSection({
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-1.5">
             {loading ? (
-                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+                <div
+                    className="flex flex-1 items-center justify-center py-12"
+                    aria-busy="true"
+                    aria-label="Loading"
+                >
+                    <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+                </div>
             ) : items.length === 0 ? (
                 <EmptyResultsState
                     className="flex-1 py-12"
@@ -224,16 +230,5 @@ function RequestListRow({
                 </span>
             )}
         </Link>
-    );
-}
-
-// --- SKELETON ---
-function SkeletonRow() {
-    return (
-        <div className="flex animate-pulse items-center gap-3 rounded-lg border border-l-4 px-4 py-2.5">
-            <div className="h-4 w-4 bg-muted rounded" />
-            <div className="h-4 flex-1 bg-muted rounded" />
-            <div className="h-4 w-20 bg-muted rounded" />
-        </div>
     );
 }
