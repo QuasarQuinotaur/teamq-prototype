@@ -27,7 +27,7 @@ import { Navigate, type RouteObject } from "react-router-dom";
 export const documentLayoutChildren: RouteObject[] = [
     {
         index: true,
-        element: <Dashboard />,
+        element: <Navigate to="dashboard" replace />,
     },
     {
         path: "dashboard",
