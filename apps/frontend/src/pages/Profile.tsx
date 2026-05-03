@@ -4,8 +4,8 @@ import {Avatar} from "radix-ui";
 import EmployeeProfileCard from "@/components/cards/EmployeeProfileCard.tsx";
 
 export default function Profile(){
-
     const [employee, setEmployee] = useState<Employee | null>(null);
+    const [updateEmployee, setUpdateEmployee] = useState(false)
 
     useEffect(() => {
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
@@ -17,10 +17,15 @@ export default function Profile(){
             })
             .then((data: Employee) => {
                 setEmployee(data);
+                setUpdateEmployee(false);
                 return fetchProfilePhoto();
             })
             .catch(err => console.error(err));
-    }, []);
+    }, [updateEmployee]);
+
+    function refetchEmployee() {
+        setUpdateEmployee(true)
+    }
 
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -83,6 +88,7 @@ export default function Profile(){
                 <EmployeeProfileCard
                     employee={employee}
                     onUploadClick={() => fileInputRef.current?.click()}
+                    refetchEmployee={refetchEmployee}
                 />
             )}
 

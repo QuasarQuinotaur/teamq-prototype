@@ -80,13 +80,17 @@ export type FormState = {
     };
     /** Tutorial: dialog open state (add-document). */
     onTutorialDialogOpenChange?: (open: boolean) => void;
+    /** Hides options that only show for admins if not admin */
+    hideAdminOptions?: boolean
 }
 export type FormFieldsProps<T> = {
     fields: T,
     // Changes fields key to new value
     setKey: <K extends keyof T>(key: K, value: T[K]) => void;
     /** List of all active tags. */
-    tagList?: Tag[]
+    tagList?: Tag[];
+    /** If admin options should be hidden */
+    hideAdminOptions?: boolean;
 }
 export type CreateFieldsElement<T> = (props: FormFieldsProps<T>) => React.ReactNode
 
@@ -230,6 +234,7 @@ export default function Form<T extends object>({
                                 {createFieldsElement({
                                     fields,
                                     setKey,
+                                    hideAdminOptions: state.hideAdminOptions
                                 })}
                             </FieldGroup>
                         </FieldSet>

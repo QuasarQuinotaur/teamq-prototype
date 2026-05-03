@@ -368,6 +368,7 @@ export default function EntryPage<T extends object>({
             <CardGrid
                 {...cardGridProps}
                 {...restEntryProps}
+                selectMode={selectMode}
                 entries={gridEntries}
                 thumbnailChunkSizes={effectiveChunkSizes}
                 isLoading={gridSkeletonCount != null && gridSkeletonCount > 0}
@@ -414,6 +415,7 @@ export default function EntryPage<T extends object>({
         return (
             <CardList
                 {...restEntryProps}
+                selectMode={selectMode}
                 entries={listEntries}
                 onRowClick={onListRowClick}
                 listColumnOptions={listColumnOptions}
