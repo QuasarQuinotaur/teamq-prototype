@@ -238,6 +238,15 @@ html[data-text-size="Large"] { font-size: 18px; }
     "Yantramanav Variable", "Yantramanav", sans-serif;
 }
 
+:root:where([data-theme="kylie"]) {
+  --app-font-heading:
+          "Libre Baskerville Variable", "Libre Baskerville", baskerville, "Baskerville Old Face",
+          "Goudy Old Style", "Palatino Linotype", palatino, "Times New Roman", serif;
+  --app-font-sans:
+          "Helserif", "Helserif Std", "Helserif Std Book", "IBM Plex Serif", "Times New Roman",
+          times, serif;
+}
+
 
 :root:where([data-theme="dark"]) {
   --destructive: #f14445;
