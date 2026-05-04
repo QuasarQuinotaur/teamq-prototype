@@ -7,7 +7,7 @@ type TeamMember = {
     name: string
     position: string
     image?: string
-    quote?: string
+    quote?: string | element
 }
 
 /** Hover or keyboard-focus on the avatar to swap photo ↔ quote (omit `quote` or blank = photo only). */
@@ -15,7 +15,11 @@ const TEAM_MEMBERS: TeamMember[] = [
     { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "Happy Star Wars Day" },
     { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "According to all known laws of aviation, there is no way a bee should be able to fly." },
     { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
-    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "" },
+    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: <iframe
+            src="https://tenor.com/embed/25993381"
+            className="h-full w-full border-0"
+            allowFullScreen
+        /> },
     { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "" },
     { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "" },
     { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "That's baseball, Suzyn." },
@@ -135,7 +139,7 @@ function MemberAvatarStatic({ member }: { member: TeamMember }) {
 }
 
 function MemberCard({ member }: { member: TeamMember }) {
-    const quote = member.quote?.trim() ?? ""
+    const quote = member.quote ?? ""
 
     return (
         <CardContainer className="items-center overflow-visible pb-6 text-center w-full">
