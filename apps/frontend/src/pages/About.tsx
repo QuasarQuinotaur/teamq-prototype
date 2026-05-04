@@ -1,6 +1,6 @@
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
-import React, { useState } from 'react'
+import React from "react"
 
 type TeamMember = {
     name: string
@@ -9,22 +9,36 @@ type TeamMember = {
     quote?: string
 }
 
+/** Hover or keyboard-focus on the avatar to swap photo ↔ quote (omit `quote` or blank = photo only). */
 const TEAM_MEMBERS: TeamMember[] = [
-    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "test1" },
-    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "test2" },
-    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "test3" },
-    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "test4" },
-    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png", quote: "test5" },
-    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "test6" },
-    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "Go Yankees!" },
-    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "We are not always what we seem, and hardly ever what we dream." },
-    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "The best code is the code you never had to write." },
+    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "" },
+    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "" },
+    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
+    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "" },
+    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "" },
+    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "" },
+    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "" },
+    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "" },
+    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "" },
 ]
 
 const ACCENT_COLORS = [
     "bg-rose-500", "bg-violet-500", "bg-blue-500", "bg-emerald-500",
     "bg-amber-500", "bg-sky-500", "bg-pink-500", "bg-teal-500", "bg-indigo-500",
 ]
+
+const AVATAR_SLOT_STATIC =
+    "size-32 shrink-0 rounded-full border-4 border-background shadow-md"
+
+/** Matches circle for square `size-32` (8rem); interpolates smoothly to `rounded-xl` unlike `rounded-full` (~9999px). */
+const AVATAR_RADIUS_COLLAPSED = "rounded-[4rem]"
+
+/** Width + radius only (height stays fixed). */
+const AVATAR_EXPAND =
+    "hover:w-56 hover:rounded-xl focus-visible:w-56 focus-visible:rounded-xl"
+
+const QUOTE_SURFACE =
+    "bg-zinc-950 text-zinc-100 [scrollbar-color:rgba(255,255,255,0.25)_transparent]"
 
 function initials(name: string): string {
     const parts = name.trim().split(/\s+/)
@@ -38,28 +52,98 @@ function accentColor(name: string): string {
     return ACCENT_COLORS[Math.abs(hash) % ACCENT_COLORS.length]
 }
 
-function MemberCard({ member }: { member: TeamMember }) {
-    const avatarFrame = "h-28 w-28 rounded-full border-4 border-background shadow-md object-cover"
-    const [isVisible, setIsVisible] = useState<boolean>(false)
-    return (
-        <CardContainer className="items-center pb-6 text-center w-full">
-            {isVisible && <div className="text-center w-full">{member.quote}</div>}
-            <div className="flex justify-center pt-4">
-                {member.image ? (
-                    <img src={member.image} onClick={() => setIsVisible(!isVisible)} alt={member.name} className={avatarFrame} />
-                ) : (
-                    <div
-                        className={cn(
-                            "flex items-center justify-center text-4xl font-semibold text-white",
-                            avatarFrame,
-                            accentColor(member.name),
-                        )}
-                        aria-hidden
-                    >
-                        {initials(member.name)}
-                    </div>
-                )}
+/** Quote (and photo fade) waits `delay-[300ms]` so copy appears once expand `duration-300` finishes. */
+function MemberAvatarWithQuote({ member, quote }: { member: TeamMember; quote: string }) {
+    const radiusPhoto = cn(
+        AVATAR_RADIUS_COLLAPSED,
+        "transition-[border-radius] duration-300 ease-in-out group-hover:rounded-xl group-focus-visible:rounded-xl",
+    )
 
+    const photo = member.image ? (
+        <img src={member.image} alt="" className={cn("size-full object-cover", radiusPhoto)} aria-hidden />
+    ) : (
+        <div
+            className={cn(
+                "flex size-full items-center justify-center text-4xl font-semibold text-white",
+                radiusPhoto,
+                accentColor(member.name),
+            )}
+            aria-hidden
+        >
+            {initials(member.name)}
+        </div>
+    )
+
+    return (
+        <button
+            type="button"
+            className={cn(
+                "group relative z-0 shrink-0 overflow-hidden border-4 border-background shadow-md",
+                AVATAR_RADIUS_COLLAPSED,
+                "size-32",
+                AVATAR_EXPAND,
+                "ring-offset-background",
+                "transition-[width,border-radius,box-shadow] duration-300 ease-in-out",
+                "hover:z-20 hover:shadow-lg focus-visible:z-20 focus-visible:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            )}
+            aria-label={`${member.name}: ${quote}`}
+        >
+            <span
+                className={cn(
+                    "pointer-events-none absolute inset-0 opacity-100 transition-opacity duration-150 ease-out delay-0",
+                    "group-hover:opacity-0 group-hover:duration-200 group-hover:delay-[300ms]",
+                    "group-focus-visible:opacity-0 group-focus-visible:duration-200 group-focus-visible:delay-[300ms]",
+                )}
+            >
+                {photo}
+            </span>
+            <span
+                className={cn(
+                    "pointer-events-none absolute inset-0 flex items-center justify-center px-3 py-3 opacity-0 transition-opacity duration-150 ease-out delay-0",
+                    "group-hover:opacity-100 group-hover:duration-200 group-hover:delay-[300ms]",
+                    "group-focus-visible:opacity-100 group-focus-visible:duration-200 group-focus-visible:delay-[300ms]",
+                    QUOTE_SURFACE,
+                )}
+            >
+                <span className="max-h-full w-full overflow-y-auto overscroll-contain text-center text-base leading-snug [scrollbar-width:thin]">
+                    <span aria-hidden className="text-zinc-500 not-italic">&ldquo;</span>
+                    <span className="italic">{quote}</span>
+                    <span aria-hidden className="text-zinc-500 not-italic">&rdquo;</span>
+                </span>
+            </span>
+        </button>
+    )
+}
+
+function MemberAvatarStatic({ member }: { member: TeamMember }) {
+    if (member.image) {
+        return <img src={member.image} alt={member.name} className={cn(AVATAR_SLOT_STATIC, "object-cover")} />
+    }
+    return (
+        <div
+            className={cn(
+                "flex items-center justify-center text-4xl font-semibold text-white",
+                AVATAR_SLOT_STATIC,
+                accentColor(member.name),
+            )}
+            aria-hidden
+        >
+            {initials(member.name)}
+        </div>
+    )
+}
+
+function MemberCard({ member }: { member: TeamMember }) {
+    const quote = member.quote?.trim() ?? ""
+
+    return (
+        <CardContainer className="items-center overflow-visible pb-6 text-center w-full">
+            <div className="flex justify-center pt-4">
+                {quote ? (
+                    <MemberAvatarWithQuote member={member} quote={quote} />
+                ) : (
+                    <MemberAvatarStatic member={member} />
+                )}
             </div>
             <CardHeader className="text-center items-center w-full px-4">
                 <CardTitle className="text-center w-full">{member.name}</CardTitle>
