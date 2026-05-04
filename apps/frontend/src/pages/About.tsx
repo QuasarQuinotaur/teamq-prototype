@@ -1,23 +1,24 @@
-import { LandingHomeLogoLink } from "@/components/LandingHomeLogoLink"
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
 import { cn } from "@/lib/utils.ts"
+import React, { useState } from 'react'
 
 type TeamMember = {
     name: string
     position: string
     image?: string
+    quote?: string
 }
 
 const TEAM_MEMBERS: TeamMember[] = [
-    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png" },
-    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png" },
-    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png" },
-    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png" },
-    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png" },
-    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg" },
-    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png" },
-    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png" },
-    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png" },
+    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "test1" },
+    { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "test2" },
+    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "test3" },
+    { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "test4" },
+    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)" , image: "/team/norahanderson.png", quote: "test5" },
+    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "test6" },
+    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "Go Yankees!" },
+    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "test7" },
+    { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "test8" },
 ]
 
 const ACCENT_COLORS = [
@@ -39,12 +40,13 @@ function accentColor(name: string): string {
 
 function MemberCard({ member }: { member: TeamMember }) {
     const avatarFrame = "h-28 w-28 rounded-full border-4 border-background shadow-md object-cover"
-
+    const [isVisible, setIsVisible] = useState<boolean>(false)
     return (
         <CardContainer className="items-center pb-6 text-center w-full">
+            {isVisible && <div className="text-center w-full">{member.quote}</div>}
             <div className="flex justify-center pt-4">
                 {member.image ? (
-                    <img src={member.image} alt={member.name} className={avatarFrame} />
+                    <img src={member.image} onClick={() => setIsVisible(!isVisible)} alt={member.name} className={avatarFrame} />
                 ) : (
                     <div
                         className={cn(
@@ -57,6 +59,7 @@ function MemberCard({ member }: { member: TeamMember }) {
                         {initials(member.name)}
                     </div>
                 )}
+
             </div>
             <CardHeader className="text-center items-center w-full px-4">
                 <CardTitle className="text-center w-full">{member.name}</CardTitle>
@@ -68,8 +71,7 @@ function MemberCard({ member }: { member: TeamMember }) {
 
 export default function About() {
     return (
-        <div className="min-h-0 w-full">
-            <LandingHomeLogoLink />
+        <div className="overflow-y-auto h-full">
             <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
 
                 <div className="space-y-1 text-center">
