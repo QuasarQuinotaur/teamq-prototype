@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SettingsForm from "@/components/forms/SettingsForm.tsx";
 import { applyTheme, THEME_IDS, type ThemeId, applyTextSize, applyIconSize, type SizeValue, storeView } from "@/lib/theme.ts";
 import { Button } from "@/elements/buttons/button.tsx";
@@ -13,6 +13,9 @@ type SettingsState = {
   tagsEnabled: boolean;
   listEnabled: boolean;
 };
+
+const SAVE_SETTINGS_ERROR =
+  "Could not save settings. Please try again.";
 
 const DEFAULT_SETTINGS: SettingsState = {
   theme: "hanover blue",
@@ -31,7 +34,22 @@ export default function Settings() {
   const { setTagsEnabled, setView } = useMainContext();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>("TEST");
+  const [error, setError] = useState<string | null>(null);
+  /** Avoid PUTting placeholder defaults before GET completes (same bug as autosave-on-mount). */
+  const skipAutosaveOnceAfterHydrate = useRef(true);
+
+  const applySettings = useCallback(
+    (useSettings: SettingsState) => {
+      applyTheme(useSettings.theme);
+      applyTextSize(useSettings.textSize as SizeValue);
+      applyIconSize(useSettings.iconSize as SizeValue);
+      setTagsEnabled(useSettings.tagsEnabled);
+      const view = useSettings.listEnabled ? "List" : "Grid";
+      storeView(view);
+      setView(view);
+    },
+    [setTagsEnabled, setView],
+  );
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_BACKEND_URL}/api/settings`, {
@@ -42,36 +60,29 @@ export default function Settings() {
         return res.json() as Promise<UserSettings>;
       })
       .then((data) => {
-        setSettings({
+        const loaded: SettingsState = {
           theme: normalizeTheme(data.theme),
           iconSize: data.iconSize,
           textSize: data.textSize,
           tagsEnabled: data.tagsEnabled,
           listEnabled: data.listEnabled,
-        });
+        };
+        setSettings(loaded);
+        applySettings(loaded);
       })
       .catch((err) => {
         console.error(err);
         setError("Could not load settings. Using defaults.");
+        applySettings(DEFAULT_SETTINGS);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [applySettings]);
 
   const onThemeChange = useCallback((value: string) => {
     setSettings((prev) => ({ ...prev, theme: value as ThemeId }));
   }, []);
 
-  const applySettings = (useSettings: SettingsState) => {
-    applyTheme(useSettings.theme);
-    applyTextSize(useSettings.textSize as SizeValue);
-    applyIconSize(useSettings.iconSize as SizeValue);
-    setTagsEnabled(useSettings.tagsEnabled);
-    const view = useSettings.listEnabled ? "List" : "Grid";
-    storeView(view);
-    setView(view);
-  }
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     setError(null);
     fetch(`${import.meta.env.VITE_BACKEND_URL}/api/settings`, {
       method: "PUT",
@@ -81,17 +92,22 @@ export default function Settings() {
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to save settings");
-        applySettings(settings)
+        applySettings(settings);
       })
       .catch((err) => {
         console.error(err);
-        setError("Could not save settings. Please try again.");
+        setError(SAVE_SETTINGS_ERROR);
       });
-  };
+  }, [settings, applySettings]);
 
   useEffect(() => {
-    handleSave()
-  }, [settings])
+    if (loading) return;
+    if (skipAutosaveOnceAfterHydrate.current) {
+      skipAutosaveOnceAfterHydrate.current = false;
+      return;
+    }
+    handleSave();
+  }, [settings, loading, handleSave]);
 
   if (loading) {
     return (
@@ -109,8 +125,8 @@ export default function Settings() {
             <h1 className="text-2xl font-semibold">Settings</h1>
             <HelpHint contentClassName="max-w-sm">
               Personal preferences for your account: theme, text and icon size, tags on
-              cards, and the default documents view (grid or list). Save Changes stores
-              them on the server and applies them in this browser.
+              cards, and the default documents view (grid or list). Changes save
+              automatically when you adjust them.
             </HelpHint>
           </div>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -118,12 +134,21 @@ export default function Settings() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button
-              onClick={handleSave}
-              className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-          >Save Changes
-          </Button>
+          {error && (
+            <>
+              <p className="text-sm text-destructive">{error}</p>
+              {error === SAVE_SETTINGS_ERROR && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSave}
+                  className="shrink-0"
+                >
+                  Retry
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
 

@@ -148,6 +148,7 @@ type WorkflowStageSectionProps = {
   employees: AssignEmployeeOption[];
   contents: LinkContentOption[];
   disabled: boolean;
+  showTitleInput: boolean;
   showRemoveButton: boolean;
   duePopoverKey: string | null;
   updateStage: (key: string, patch: Partial<StageDraft>) => void;
@@ -160,6 +161,7 @@ const WorkflowStageSection = React.memo(function WorkflowStageSection({
   employees,
   contents,
   disabled,
+  showTitleInput,
   showRemoveButton,
   duePopoverKey,
   updateStage,
@@ -217,23 +219,25 @@ const WorkflowStageSection = React.memo(function WorkflowStageSection({
 
   return (
     <section
-      className="flex flex-col gap-6 rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
+      className="flex flex-col gap-6 rounded-xl border border-border/80 bg-card p-4 shadow-md"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-8">
-        <div className="min-w-0 flex-1">
-          <Label htmlFor={`sr-stage-title-${stage.key}`} className="sr-only">
-            Stage title
-          </Label>
-          <Textarea
-            id={`sr-stage-title-${stage.key}`}
-            value={stage.title}
-            onChange={onTitleChange}
-            placeholder="Untitled stage"
-            disabled={disabled}
-            rows={2}
-            className="min-h-[52px] w-full resize-y border-0 bg-transparent p-0 text-lg font-semibold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0"
-          />
-        </div>
+        {showTitleInput ? (
+          <div className="min-w-0 flex-1">
+            <Label htmlFor={`sr-stage-title-${stage.key}`} className="sr-only">
+              Stage title
+            </Label>
+            <Textarea
+              id={`sr-stage-title-${stage.key}`}
+              value={stage.title}
+              onChange={onTitleChange}
+              placeholder="Untitled stage"
+              disabled={disabled}
+              rows={2}
+              className="min-h-[64px] w-full resize-y border-0 bg-transparent p-0 text-2xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 md:text-[1.75rem]"
+            />
+          </div>
+        ) : null}
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:max-w-sm">
           <Label htmlFor={`sr-assignees-${stage.key}`}>Assign to</Label>
           <div className="flex items-center gap-2">
@@ -706,6 +710,7 @@ export function ServiceRequestEditor({ mode, requestId }: ServiceRequestEditorPr
                 employees={employees}
                 contents={contents}
                 disabled={disabled}
+                showTitleInput={stages.length > 1}
                 showRemoveButton={mode === "create" && stages.length > 1}
                 duePopoverKey={duePopoverKey}
                 updateStage={updateStage}
