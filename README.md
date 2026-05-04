@@ -1,4 +1,36 @@
-# Project Setup and Contribution Guide
+# Team Q: Quasar Quinotaurs
+
+## Special Features
+1. Confetti
+2. List/Grid View
+3. Themes
+4. Notification set-up
+5. Settings
+6. Split-screen
+7. AI Summary
+8. Recents Table
+9. Adaptive Card Sizing
+
+## Credits
+Ben Reinherz - Assistant Lead SWE Frontend
+
+Daniel Gomes - Assistant Lead SWE Backend
+
+Norah Anderson - Full-time SWE Frontend
+
+Ali Tariq - Full-time SWE Backend
+
+Ben Santana - Lead Software Engineer
+
+Theron Boozer - SCRUM Master
+
+Kylie Welcher - Project Manager
+
+Abyshek Sukumar - Product Owner 
+
+Rashi Roselin - Documentation Lead
+
+## Project Setup and Contribution Guide
 
 Welcome to the repository! Follow these instructions to get your local environment running and to understand our branching strategy.
 ---
@@ -79,32 +111,3 @@ Once your work is complete and tested, merge it back into the `dev` branch:
 8.  **Commit your merge** `git commit -m "merge: YOUR-FEATURE-NAME"`
 9.  **Push the updated dev branch:** `git push origin dev`
 
-## Special Features
-1. Confetti
-2. List/Grid View
-3. Themes
-4. Notification set-up
-5. Settings
-6. Split-screen
-7. AI Summary
-8. Recents Table
-9. Adaptive Card Sizing
-
-## Credits
-Ben Reinherz - Assistant Lead SWE Frontend
-
-Daniel Gomes - Assistant Lead SWE Backend
-
-Norah Anderson - Full-time SWE Frontend
-
-Ali Tariq - Full-time SWE Backend
-
-Ben Santana - Lead Software Engineer
-
-Theron Boozer - SCRUM Master
-
-Kylie Welcher - Project Manager
-
-Abyshek Sukumar - Product Owner 
-
-Rashi Roselin - Documentation Lead
