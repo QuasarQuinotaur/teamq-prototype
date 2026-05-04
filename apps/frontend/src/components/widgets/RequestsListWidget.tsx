@@ -52,11 +52,11 @@ function dueListVariant(
 function taskBorderAccent(variant: "overdue" | "week" | "todo"): string {
     switch (variant) {
         case "overdue":
-            return "border-l-red-500";
+            return "border-l-danger";
         case "week":
-            return "border-l-amber-400";
+            return "border-l-warning";
         default:
-            return "border-l-primary";
+            return "border-l-success";
     }
 }
 
@@ -214,10 +214,10 @@ function RequestListRow({
                     className={cn(
                         "text-xs",
                         variant === "overdue"
-                            ? "text-red-500"
+                            ? "text-danger"
                             : variant === "week"
-                                ? "text-amber-500"
-                                : "text-primary"
+                                ? "text-warning"
+                                : "text-success"
                     )}
                 >
                     {formatDue(due)}

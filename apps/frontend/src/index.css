@@ -52,6 +52,10 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --color-hanover-blue: var(--hanover-blue);
   --spacing-navbar-height: 4rem;
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-update: var(--update);
 }
 
 /*--------Theme Variants---------*/
@@ -61,14 +65,24 @@
   --theme-background-accent: #EEEEEE;
   --theme-foreground-accent: #003150;
   --theme-highlight: #0069A8FF;
+
+  --theme-success: #22c55e;
+  --theme-warning: #facc15;
+  --theme-danger:  #ef4444;
+  --theme-update: #689ae5;
 }
 
 &:where([data-theme="times"]) {
   --theme-background: #faf8f5;
   --theme-foreground: #292524;
   --theme-background-accent: #e7e5e4;
-  --theme-foreground-accent: #151515;
+  --theme-foreground-accent: #1e1a17;
   --theme-highlight: #5a5a5a;
+
+  --theme-success: #82b293;
+  --theme-warning: #cbb667;
+  --theme-danger: #c56262;
+  --theme-update: #728db6;
 }
 
 &:where([data-theme="dark"]) {
@@ -77,30 +91,59 @@
   --theme-background-accent: #1d2736;
   --theme-foreground-accent: #3882c3;
   --theme-highlight: #55aee8;
+
+  --theme-success: #107535;
+  --theme-warning: #c99905;
+  --theme-danger: #a41818;
+  --theme-update: #48699b;
 }
 
 &:where([data-theme="quasar"]) {
-  --theme-background: #421536;
-  --theme-foreground: #ebbbe2;
-  --theme-background-accent: #66174e;
-  --theme-foreground-accent: #A63A82;
-  --theme-highlight: #C25DA9;
+  --theme-background: #e170c7;
+  --theme-foreground: #421536;
+  --theme-background-accent: #ebbbe2;
+  --theme-foreground-accent: #66174e;
+  --theme-highlight: #ea9ad7;
+
+  --theme-success: #ee91c9;
+  --theme-warning: #d55ba7;
+  --theme-danger: #f10dbb;
+  --theme-update: #e834db;
 }
 
+/*&:where([data-theme="quasar"]) {*/
+/*  --theme-background: #421536;*/
+/*  --theme-foreground: #ebbbe2;*/
+/*  --theme-background-accent: #66174e;*/
+/*  --theme-foreground-accent: #A63A82;*/
+/*  --theme-highlight: #C25DA9;*/
+/*}*/
+
+
 &:where([data-theme="retro"]) {
-  --theme-background: #f4f4f3;
-  --theme-foreground: #288AA5;
-  --theme-background-accent: #efefef;
-  --theme-foreground-accent: #05456f;
-  --theme-highlight: #F96635;
+  --theme-background: #fdf3c7;
+  --theme-foreground: #54a498 ;
+  --theme-background-accent: #fffdf3;
+  --theme-foreground-accent: #b3dcc4;
+  --theme-highlight: #f59052;
+
+  --theme-success: #86c29c;
+  --theme-warning: #f5e194;
+  --theme-danger: #f67f7f;
+  --theme-update: #9bdad0;
 }
 
 &:where([data-theme="kylie"]) {
-  --theme-background: #ba65a4;
-  --theme-foreground: #5d1343;
-  --theme-background-accent: #d290bd;
-  --theme-foreground-accent: #7e205f;
-  --theme-highlight: #f5e0f0;
+  --theme-background: #ffb4c8;
+  --theme-foreground: #a92a4c;
+  --theme-background-accent: #fce1e9;
+  --theme-foreground-accent: #dc83a1;
+  --theme-highlight: #ffe9ee;
+
+  --theme-success: #ff8eb8;
+  --theme-warning: #ff5f8f;
+  --theme-danger: #8c2b53;
+  --theme-update: #f8c9d9;
 }
 
 &:where([data-theme="tritanomoly"]) {
@@ -109,7 +152,13 @@
   --theme-background-accent: #b0bab2;
   --theme-foreground-accent: #354F52;
   --theme-highlight: #80b5a7;
+
+  --theme-success: #7be183;
+  --theme-warning: #3dcace;
+  --theme-danger: #2f348c;
+  --theme-update: #efea8d;
 }
+
 
 /* --- Text size ------------------------------------------------------------ */
 html[data-text-size="Small"] { font-size: 14px; }
@@ -160,6 +209,13 @@ html[data-text-size="Large"] { font-size: 18px; }
   --sidebar-border: var(--theme-background);
   --sidebar-ring: var(--theme-foreground);
   --hanover-blue: var(--theme-foreground-accent);
+
+  /* ---------- Semantic status colors ---------- */
+  --success: var(--theme-success);
+  --warning: var(--theme-warning);
+  --danger:  var(--theme-danger);
+  --update: var(--theme-update);
+
 }
 
 /*
@@ -383,4 +439,15 @@ html[data-text-size="Large"] { font-size: 18px; }
 .rbc-toolbar button:focus {
   outline: none;
   ring: 2px solid #e5e7eb;
+}
+
+.rbc-show-more {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.rbc-show-more:hover {
+  color: var(--danger);
+  opacity: 0.7;
+  text-decoration: underline;
 }

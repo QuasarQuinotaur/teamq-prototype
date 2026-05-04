@@ -78,28 +78,28 @@ export default function StatsCards({ counts, loading }: { counts: any; loading?:
                 label="To do"
                 value={counts.todo}
                 icon={ListTodoIcon}
-                accent="bg-muted text-slate-500"
+                accent="bg-muted text-update"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=todo`}
             />
             <StatCard
                 label="Done"
                 value={counts.done}
                 icon={CheckCircle2Icon}
-                accent="bg-muted text-emerald-500"
+                accent="bg-muted text-success"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=done`}
             />
             <StatCard
                 label="Due this week"
                 value={counts.dueWeek}
                 icon={CalendarDaysIcon}
-                accent="bg-muted text-amber-500"
+                accent="bg-muted text-warning"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=week`}
             />
             <StatCard
                 label="Overdue"
                 value={counts.overdue}
                 icon={AlertCircleIcon}
-                accent="bg-muted text-red-500"
+                accent="bg-muted text-danger"
                 to={`${SERVICE_REQUESTS_PRESET_LINK}?preset=overdue`}
             />
         </div>

@@ -61,10 +61,11 @@ const TYPE_ICON: Record<
 };
 
 const TYPE_ICON_BG: Record<string, string> = {
-    created: "bg-green-500/15 text-green-700 dark:text-green-400",
-    updated: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-    accessed: "bg-yellow-500/15 text-yellow-800 dark:text-yellow-400",
-    deleted: "bg-red-500/15 text-red-700 dark:text-red-400",
+    created: "bg-success/15 text-success",
+    updated: "bg-update/15 text-update",
+    accessed: "bg-warning/15 text-warning",
+    deleted: "bg-danger/15 text-danger",
+
 };
 
 const FETCH_LIMIT = 80;

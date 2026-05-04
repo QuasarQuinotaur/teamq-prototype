@@ -28,6 +28,9 @@ import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpiratio
 import DocumentExpirationCalendarWidget from "@/components/widgets/DocumentExpirationAndReviewCalendarWidget.tsx";
 import TopDocumentActivityWidget from "@/components/widgets/TopDocumentAcivityWidget.tsx";
 import ContentCurrencyWidget from "@/components/widgets/ContentCurrencyWidget.tsx";
+import CalcWidget from "@/components/widgets/CalcWidget";
+import ClockWidget from "@/components/widgets/ClockWidget";
+import NotePadWidget from "@/components/widgets/NotePadWidget";
 import { HelpHint } from "@/elements/help-hint.tsx";
 import { Skeleton } from "@/elements/skeleton.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
@@ -74,6 +77,12 @@ const WIDGET_INFO_TEXT: Record<string, string> = {
         "Lists recent library activity—documents added, updated, viewed, or deleted—with who did what and when. Filter by event type.",
     gif:
         "Displays an animated GIF from the URL you chose when adding the widget, or a default embed if no GIF URL is set.",
+    calc:
+        "Displays a calculator.",
+    clock:
+        "Displays a clock and stopwatch.",
+    notepad:
+        "Displays a useable notepad."
 };
 
 const DEFAULT_WIDGET_INFO =
@@ -177,6 +186,9 @@ export default function Dashboard() {
         { type: "topDocumentActivity", label: "Top Document Activity (Leaderboard) " },
         { type: "activityChart", label: "User Activity (Chart)" },
         { type: "activityFeed", label: "Activity Feed (List)" },
+        { type: "calc", label: "Calculator Widget" },
+        { type: "clock", label: "Clock/StopWatch Widget" },
+        { type: "notepad", label: "Note Pad Widget" },
         { type: "gif", label: "GIF" },
     ];
 
@@ -351,6 +363,9 @@ export default function Dashboard() {
             expirationCalendar: 3,
             activityFeed: 2,
             gif: 1,
+            calc: 1,
+            clock: 1,
+            notepad: 1,
         };
 
         setWidgets(prev => [
@@ -548,6 +563,39 @@ export default function Dashboard() {
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
                                                     Add GIF (Small)
+                                                </button>
+                                            ) : w.type === "calc" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget("calc", 1);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add Calculator
+                                                </button>
+                                            ) : w.type === "clock" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget("clock", 1);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add Clock/Stopwatch
+                                                </button>
+                                            ) : w.type === "notepad" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        addWidget("notepad", 1);
+                                                        setShowAddModal(false);
+                                                        setOpenPreview(null);
+                                                    }}
+                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                >
+                                                    Add Note Pad
                                                 </button>
                                             ) : w.type === "expirationLine" ? (
                                                 <button
@@ -825,6 +873,9 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         case "activityFeed": inner = <ActivityFeedWidget />; break;
         case "contentCurrency": inner = <ContentCurrencyWidget />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
+        case "calc": inner = <CalcWidget />; break;
+        case "clock": inner = <ClockWidget />; break;
+        case "notepad": inner = <NotePadWidget />; break;
         default:         inner = <div>Unknown widget</div>;
     }
 

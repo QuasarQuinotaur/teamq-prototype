@@ -75,6 +75,8 @@ const SKELETON_GRID_SLOTS = 25;
 
 const apiBase = import.meta.env.VITE_BACKEND_URL;
 
+
+
 /** True when filter panel matches the page baseline (no extra narrowing vs default). */
 function contentFiltersEqualToBaseline(
     current: ContentFieldsFilter,

@@ -48,8 +48,8 @@ function variant(due: Date, today: Date, weekEnd: Date) {
 }
 
 function border(variant: string) {
-    if (variant === "overdue") return "border-l-red-500";
-    if (variant === "week") return "border-l-amber-400";
+    if (variant === "overdue") return "border-danger";
+    if (variant === "week") return "border-l-warning";
     return "border-l-primary";
 }
 
@@ -157,7 +157,7 @@ function DayColumn({ day, tasks, today, weekEnd }) {
                 {/* header */}
                 <div className="text-center text-xs">
                     <div className="text-muted-foreground">{format(day, "EEE")}</div>
-                    <div className={cn("font-semibold", isSameDay(day, today) && "text-blue-500")}>
+                    <div className={cn("font-semibold", isSameDay(day, today) && "text-danger")}>
                         {format(day, "d")}
                     </div>
                 </div>

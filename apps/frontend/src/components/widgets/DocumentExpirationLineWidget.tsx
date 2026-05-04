@@ -22,7 +22,7 @@ type ContentItem = {
 const chartConfig = {
     count: {
         label: "Documents expiring",
-        color: "#2563eb",
+        color: "var(--primary-foreground)",
     },
 } satisfies ChartConfig;
 
@@ -36,7 +36,7 @@ type Props = {
     loading?: boolean;
 };
 
-const LINE = "#2563eb";
+const LINE = "var(--primary)";
 
 export default function DocumentExpirationLineWidget({ items, loading }: Props) {
     const gradId = useId().replace(/:/g, "");
@@ -122,14 +122,14 @@ export default function DocumentExpirationLineWidget({ items, loading }: Props) 
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={6}
-                                tick={{ fontSize: 10 }}
+                                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                                 interval={4}
                             />
                             <YAxis
                                 tickLine={false}
                                 axisLine={false}
                                 allowDecimals={false}
-                                tick={{ fontSize: 11 }}
+                                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                                 width={32}
                             />
                             <ChartTooltip

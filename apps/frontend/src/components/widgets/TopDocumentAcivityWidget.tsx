@@ -91,7 +91,7 @@ export default function TopDocumentActivityWidget({limit = 5}: Props) {
     return (
         <>
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-gray-400" />
+                <FileText className="w-5 h-5 text-primary" />
                 Top Document Activity
             </h2>
 
@@ -105,7 +105,7 @@ export default function TopDocumentActivityWidget({limit = 5}: Props) {
                     >
                         {/* Left side */}
                         <div className="flex items-center gap-2 overflow-hidden">
-                            <span className="w-6 text-sm text-gray-500">
+                            <span className="w-6 text-sm text-primary">
                                 #{index + 1}
                             </span>
                             <span className="truncate max-w-[180px]">
@@ -114,8 +114,11 @@ export default function TopDocumentActivityWidget({limit = 5}: Props) {
                         </div>
 
                         {/* Right side */}
-                        <div className="flex gap-4 text-sm text-gray-600">
-                            <span><Eye className="w-4 h-4" /> {doc.viewCount}</span>
+                        <div className="flex gap-4">
+                            <div className="flex flex-col items-center text-primary text-sm">
+                                <Eye className="w-4 h-4" />
+                                <span>{doc.viewCount}</span>
+                            </div>
                         </div>
                     </div>
                 ))}
