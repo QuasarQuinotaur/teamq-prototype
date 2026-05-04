@@ -1,4 +1,5 @@
 import { CardContainer, CardHeader, CardTitle, CardDescription } from "@/components/cards/Card.tsx"
+import { LandingHomeLogoLink } from "@/components/LandingHomeLogoLink.tsx"
 import { cn } from "@/lib/utils.ts"
 import React from "react"
 
@@ -155,7 +156,8 @@ function MemberCard({ member }: { member: TeamMember }) {
 
 export default function About() {
     return (
-        <div className="overflow-y-auto h-full">
+        <div className="h-full min-h-0 w-full overflow-y-auto">
+            <LandingHomeLogoLink />
             <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
 
                 <div className="space-y-1 text-center">

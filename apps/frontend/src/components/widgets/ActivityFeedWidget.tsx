@@ -65,7 +65,6 @@ const TYPE_ICON_BG: Record<string, string> = {
     updated: "bg-update/15 text-update",
     accessed: "bg-warning/15 text-warning",
     deleted: "bg-danger/15 text-danger",
-
 };
 
 const FETCH_LIMIT = 80;
