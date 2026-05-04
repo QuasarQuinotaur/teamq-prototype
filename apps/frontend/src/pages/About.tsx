@@ -43,6 +43,7 @@ function MemberCard({ member }: { member: TeamMember }) {
     const [isVisible, setIsVisible] = useState<boolean>(false)
     return (
         <CardContainer className="items-center pb-6 text-center w-full">
+            {isVisible && <div className="text-center w-full">{member.quote}</div>}
             <div className="flex justify-center pt-4">
                 {member.image ? (
                     <img src={member.image} onClick={() => setIsVisible(!isVisible)} alt={member.name} className={avatarFrame} />
@@ -58,7 +59,7 @@ function MemberCard({ member }: { member: TeamMember }) {
                         {initials(member.name)}
                     </div>
                 )}
-                {isVisible && <div>{member.quote}</div>}
+
             </div>
             <CardHeader className="text-center items-center w-full px-4">
                 <CardTitle className="text-center w-full">{member.name}</CardTitle>
