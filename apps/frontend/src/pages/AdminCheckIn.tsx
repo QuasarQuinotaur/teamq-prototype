@@ -162,7 +162,7 @@ export default function AdminCheckIn() {
                         placeholder="Search by title or employee…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-8"
+                        className="pl-8 bg-background"
                     />
                 </div>
 

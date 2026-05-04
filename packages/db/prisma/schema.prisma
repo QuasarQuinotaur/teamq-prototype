@@ -9,107 +9,107 @@ datasource db {
 }
 
 model Employee {
-  id                Int                 @id @default(autoincrement())
-  auth0Id           String?             @unique
-  email             String              @unique
-  firstName         String
-  lastName          String
-  dateOfBirth       DateTime
-  jobPosition       String
+  id          Int      @id @default(autoincrement())
+  auth0Id     String?  @unique
+  email       String   @unique
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  jobPosition String
   /** Set true after the guided document tutorial has been presented (auto or Help). */
-  documentTutorialShown Boolean @default(false)
-  userPhoto         UserPhoto?
+  documentTutorialShown Boolean    @default(false)
+  userPhoto             UserPhoto?
 
-  contentsOwned     Content[]           @relation("ownedContents") // relationship list
-  contentsFavorited Content[]           @relation("Favorites")// implicit many to many (dont need to make table yippee)
+  contentsOwned     Content[] @relation("ownedContents") // relationship list
+  contentsFavorited Content[] @relation("Favorites") // implicit many to many (dont need to make table yippee)
 
-  createdWorkflows  ServiceRequestWorkflow[]    @relation("OwnedWorkflows")
-  assignedStages    ServiceRequestStage[]       @relation("StageAssignees")
+  createdWorkflows ServiceRequestWorkflow[] @relation("OwnedWorkflows")
+  assignedStages   ServiceRequestStage[]    @relation("StageAssignees")
 
   notifications     Notification[]      @relation("NotificationEmployees")
   contentChecked    Content[]           @relation("CheckedOutContent")
   tagsCreated       Tag[]
-  contentReviews     ContentReview[]
+  contentReviews    ContentReview[]
   RecentContentView RecentContentView[]
 
   // added user setting the employee
-  userSettings      UserSettings?
+  userSettings UserSettings?
 
   deletedContentLogs DeletedContentLog[]
-  activityLogs      ActivityLog[]
+  activityLogs       ActivityLog[]
 }
 
 model Content {
-  id                          Int                 @id @default(autoincrement())
-  title                       String
-  filePath                    String? // path in Supabase bucket
+  id       Int     @id @default(autoincrement())
+  title    String
+  filePath String? // path in Supabase bucket
   /** Client-generated preview image path in Storage (same bucket conventions as filePath). */
-  thumbnailPath               String?
-  fileSize                    Int?
-  jobPositions                String[]
-  contentType                 String
-  dateAdded                   DateTime            @default(now())
-  dateUpdated                 DateTime            @updatedAt
-  reviews                     ContentReview[]
-  expirationDate              DateTime
-  employeesFavorited          Employee[]            @relation("Favorites") // one content can have many favorites from dif people
-  
-  ownerId                     Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
-  owner                       Employee              @relation("ownedContents", fields: [ownerId], references: [id])
-  serviceRequestStages        ServiceRequestStage[] @relation("StageContents")
-  notifications               Notification[]        @relation("NotificationContents")
+  thumbnailPath      String?
+  fileSize           Int?
+  jobPositions       String[]
+  contentType        String
+  dateAdded          DateTime        @default(now())
+  dateUpdated        DateTime        @updatedAt
+  reviews            ContentReview[]
+  expirationDate     DateTime
+  employeesFavorited Employee[]      @relation("Favorites") // one content can have many favorites from dif people
 
-  isCheckedOut                Boolean             @default(false)
-  checkedOutOn                DateTime?
-  checkedOutById              Int?
-  checkedOutBy                Employee?           @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
-  
+  ownerId              Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
+  owner                Employee              @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequestStages ServiceRequestStage[] @relation("StageContents")
+  notifications        Notification[]        @relation("NotificationContents")
+
+  isCheckedOut   Boolean   @default(false)
+  checkedOutOn   DateTime?
+  checkedOutById Int?
+  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+
   tags                        ContentTag[]
-  aiSummary                   String?             @db.Text
-  hasBeenNotifiedExpiringSoon Boolean             @default(false)
-  hasBeenNotifiedOfExpiration Boolean             @default(false)
+  aiSummary                   String?      @db.Text
+  hasBeenNotifiedExpiringSoon Boolean      @default(false)
+  hasBeenNotifiedOfExpiration Boolean      @default(false)
 
-  dateReview                  DateTime?
-  RecentContentView           RecentContentView[]
-  
+  dateReview        DateTime?
+  RecentContentView RecentContentView[]
+
   viewCount     Int @default(0)
   downloadCount Int @default(0)
 
   isTutorial Boolean @default(false)
-  
-  activityLogs                ActivityLog[]
 
- @@index([isTutorial, ownerId])
- @@index([ownerId])
- @@index([contentType])
- @@index([expirationDate])
- @@index([isCheckedOut, checkedOutOn])
+  activityLogs ActivityLog[]
+
+  @@index([isTutorial, ownerId])
+  @@index([ownerId])
+  @@index([contentType])
+  @@index([expirationDate])
+  @@index([isCheckedOut, checkedOutOn])
 }
 
 model ServiceRequestWorkflow {
-  id          Int      @id @default(autoincrement())
-  dateCreated DateTime @default(now())
+  id          Int                   @id @default(autoincrement())
+  dateCreated DateTime              @default(now())
   title       String?
   ownerId     Int
-  owner       Employee @relation("OwnedWorkflows", fields: [ownerId], references: [id])
+  owner       Employee              @relation("OwnedWorkflows", fields: [ownerId], references: [id])
   stages      ServiceRequestStage[]
 
   @@index([ownerId])
 }
 
 model ServiceRequestStage {
-  id          Int                     @id @default(autoincrement())
+  id          Int                    @id @default(autoincrement())
   workflowId  Int
   stageOrder  Int
-  dateCreated DateTime                @default(now())
+  dateCreated DateTime               @default(now())
   dateDue     DateTime?
   description String?
   priority    String?
-  status      String                  @default("to-do")
+  status      String                 @default("to-do")
   title       String?
-  workflow    ServiceRequestWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  contents    Content[]               @relation("StageContents")
-  employees   Employee[]              @relation("StageAssignees")
+  workflow    ServiceRequestWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  contents    Content[]              @relation("StageContents")
+  employees   Employee[]             @relation("StageAssignees")
 
   @@unique([workflowId, stageOrder])
   @@index([workflowId])
@@ -207,13 +207,13 @@ model RecentContentView {
 }
 
 model Role {
-    id                  Int                 @id @default(autoincrement())
-    key                 String              @unique
-    name                String              
+  id   Int    @id @default(autoincrement())
+  key  String @unique
+  name String
 
-    // 0 or less - Employee
-    // 1+ - Admin
-    permissionLevel     Int                 @default(0)
+  // 0 or less - Employee
+  // 1+ - Admin
+  permissionLevel Int @default(0)
 }
 
 model DeletedContentLog {
@@ -241,3 +241,5 @@ model ActivityLog {
   employee Employee @relation(fields: [employeeId], references: [id])
   content  Content? @relation(fields: [contentId], references: [id])
 }
+
+//

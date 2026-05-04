@@ -237,7 +237,8 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                     <button
                         onClick={() => setFilter("all")}
                         className={`px-3 py-1 rounded-md text-sm border ${
-                            filter === "all" ? "bg-gray-900 text-white" : "bg-white"
+                            filter === "all" ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
                         }`}
                     >
                         All
@@ -246,7 +247,8 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                     <button
                         onClick={() => setFilter("exp")}
                         className={`px-3 py-1 rounded-md text-sm border ${
-                            filter === "exp" ? "bg-gray-900 text-white" : "bg-white"
+                            filter === "exp" ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-muted"
                         }`}
                     >
                         Expirations
@@ -255,7 +257,8 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                     <button
                         onClick={() => setFilter("review")}
                         className={`px-3 py-1 rounded-md text-sm border ${
-                            filter === "review" ? "bg-gray-900 text-white" : "bg-white"
+                            filter === "review" ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-muted"
                         }`}
                     >
                         Reviews
@@ -291,17 +294,17 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                     dayMaxRows={3}
 
                     eventPropGetter={(event: any) => {
-                        let borderColor = "#EF4444"; // expiration default
+                        let borderColor = "var(--danger)"; // expiration default
 
                         if (event.type === "review") {
-                            borderColor = "#FACC15"; // review = yellow
+                            borderColor = "var(--warning)"; // review = yellow
                         }
 
                         return {
                             title: "",
                             style: {
                                 backgroundColor: "white",
-                                color: "#111827",
+                                color: "var(--foreground)",
                                 border: "1px solid #E5E7EB",
                                 borderLeft: `4px solid ${borderColor}`,
                                 borderRadius: "8px",
@@ -364,7 +367,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                                     style={{
                                         border: "1px solid #E5E7EB",
                                         borderLeft: `4px solid ${
-                                            event.type === "review" ? "#FACC15" : "#EF4444"
+                                            event.type === "review" ? "var(--warning)" : "var(--danger)"
                                         }`,
                                     }}
                                 >

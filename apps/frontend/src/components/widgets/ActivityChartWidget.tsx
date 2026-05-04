@@ -25,11 +25,11 @@ type Range = "Day" | "Week" | "Month" | "Year";
 const chartConfig = {
     count: {
         label: "Events",
-        color: "#2563eb",
+        color: "var(--primary-foreground)",
     },
 } satisfies ChartConfig;
 
-const LINE = "#2563eb";
+const LINE = "var(--primary-foreground)";
 
 function xAxisInterval(pointCount: number): number {
     if (pointCount <= 8) return 0;
@@ -197,45 +197,35 @@ export default function ActivityChartWidget({ onInitialLoadComplete }: ActivityC
                             margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
                         >
                             <defs>
-                                <linearGradient
-                                    id={gradId}
-                                    x1="0"
-                                    y1="0"
-                                    x2="0"
-                                    y2="1"
-                                >
-                                    <stop
-                                        offset="0%"
-                                        stopColor={LINE}
-                                        stopOpacity={0.35}
-                                    />
-                                    <stop
-                                        offset="100%"
-                                        stopColor={LINE}
-                                        stopOpacity={0.02}
-                                    />
+                                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+                                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                            <CartesianGrid
+                                vertical={false}
+                                stroke="var(--border)"
+                                strokeDasharray="3 3"
+                            />
                             <XAxis
                                 dataKey="label"
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={6}
-                                tick={{ fontSize: 10 }}
+                                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                                 interval={axisInterval}
                             />
                             <YAxis
                                 tickLine={false}
                                 axisLine={false}
                                 allowDecimals={false}
-                                tick={{ fontSize: 11 }}
+                                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                                 width={32}
                             />
                             <ChartTooltip
                                 content={<ChartTooltipContent />}
                                 cursor={{
-                                    stroke: "hsl(var(--border))",
+                                    stroke: "var(--border)",
                                     strokeWidth: 1,
                                 }}
                             />
@@ -248,10 +238,10 @@ export default function ActivityChartWidget({ onInitialLoadComplete }: ActivityC
                             <Line
                                 type="monotone"
                                 dataKey="count"
-                                stroke={LINE}
+                                stroke="var(--primary)"
                                 strokeWidth={2}
                                 dot={false}
-                                activeDot={{ r: 4, fill: LINE }}
+                                activeDot={{ r: 4, fill: "var(--primary)" }}
                             />
                         </ComposedChart>
                     </ChartContainer>

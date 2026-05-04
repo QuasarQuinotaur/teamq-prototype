@@ -23,10 +23,10 @@ export default function PieChartWidget({ counts, loading }: { counts: any; loadi
     }
 
     const data = [
-        { name: "Done", value: counts.done, color: "#22C55E" },
-        { name: "Overdue", value: counts.overdue, color: "#EF4444" },
-        { name: "Due this week", value: counts.dueWeek, color: "#FACC15" },
-        { name: "Upcoming", value: counts.todo, color: "#5B8DB8" },
+        { name: "Done", value: counts.done, color: "var(--success)" },
+        { name: "Overdue", value: counts.overdue, color: "var(--danger)" },
+        { name: "Due this week", value: counts.dueWeek, color: "var(--warning)" },
+        { name: "Upcoming", value: counts.todo, color: "var(--update)" },
     ]
 
     const total = data.reduce((acc, item) => acc + item.value, 0)

@@ -116,11 +116,14 @@ export default function Settings() {
           <p className="text-muted-foreground text-sm mt-0.5">
             Manage your personal preferences.
           </p>
-          {error && (
-            <p className="text-sm text-destructive">
-                {error}
-            </p>
-          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button
+              onClick={handleSave}
+              className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+          >Save Changes
+          </Button>
         </div>
       </div>
 
