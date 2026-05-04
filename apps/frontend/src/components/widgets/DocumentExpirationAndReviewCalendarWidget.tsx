@@ -266,7 +266,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                 </div>
             </div>
 
-            <div className="w-full pt-5" style={{ height: "700px" }}>
+            <div className="w-full pt-5" style={{ height: "800px" }}>
                 <Calendar
                     localizer={localizer}
                     events={filteredEvents}

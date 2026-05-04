@@ -646,7 +646,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add Calculator
+                                                    Add Calculator (Small)
                                                 </button>
                                             ) : w.type === "clock" ? (
                                                 <button
@@ -657,7 +657,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add Clock/Stopwatch
+                                                    Add Clock/Stopwatch (Small)
                                                 </button>
                                             ) : w.type === "notepad" ? (
                                                 <button
@@ -668,7 +668,7 @@ export default function Dashboard() {
                                                     }}
                                                     className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
                                                 >
-                                                    Add Note Pad
+                                                    Add Note Pad (Small)
                                                 </button>
                                             ) : w.type === "expirationLine" ? (
                                                 <button

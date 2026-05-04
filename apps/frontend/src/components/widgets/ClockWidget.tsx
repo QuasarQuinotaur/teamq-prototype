@@ -28,8 +28,6 @@ const TIMEZONES = [
     "Asia/Singapore",
     "Asia/Dubai",
     "Asia/Kolkata",
-
-    //thars enough lol
 ];
 
 function formatTime(date: Date, tz: string) {
@@ -46,45 +44,78 @@ function formatLabel(tz: string) {
 }
 
 export default function ClockWidget() {
-    const [timezone, setTimezone] = useState(
-        Intl.DateTimeFormat().resolvedOptions().timeZone
-    );
+    // timezone
+    const [timezone, setTimezone] = useState(() => {
+        return (
+            localStorage.getItem("clock-timezone") ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+        );
+    });
 
+    useEffect(() => {
+        localStorage.setItem("clock-timezone", timezone);
+    }, [timezone]);
+
+    // cock
     const [now, setNow] = useState(new Date());
-
-    const [running, setRunning] = useState(false);
-    const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
         const t = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(t);
     }, []);
 
-    useEffect(() => {
-        let t: any;
-        if (running) {
-            t = setInterval(() => setElapsed((e) => e + 10), 10);
-        }
-        return () => clearInterval(t);
-    }, [running]);
-
     const clock = useMemo(() => formatTime(now, timezone), [now, timezone]);
+    //stop that watch
+    const [running, setRunning] = useState(false);
+    const [startTime, setStartTime] = useState<number | null>(null);
+    const [accumulated, setAccumulated] = useState(0);
+    const [tick, setTick] = useState(Date.now());
+
+    useEffect(() => {
+        const t = setInterval(() => setTick(Date.now()), 50);
+        return () => clearInterval(t);
+    }, []);
+
+    const elapsed =
+        running && startTime
+            ? accumulated + (tick - startTime)
+            : accumulated;
 
     const ms = elapsed % 1000;
     const seconds = Math.floor(elapsed / 1000) % 60;
     const minutes = Math.floor(elapsed / 60000);
 
+    function toggle() {
+        if (running) {
+            // pause
+            if (startTime) {
+                setAccumulated(accumulated + (Date.now() - startTime));
+            }
+            setStartTime(null);
+            setRunning(false);
+        } else {
+            // start
+            setStartTime(Date.now());
+            setRunning(true);
+        }
+    }
+
+    function reset() {
+        setRunning(false);
+        setStartTime(null);
+        setAccumulated(0);
+    }
+
     return (
         <div className="flex flex-col h-full min-h-[420px] p-5 border rounded-lg bg-background">
 
-
+            {/* clock */}
             <div className="mb-3">
                 <div className="text-sm text-muted-foreground">
                     World Clock
                 </div>
             </div>
 
-            {/* cock*/}
             <div className="flex-1 flex flex-col justify-center items-start">
                 <div className="text-4xl font-bold tracking-tight">
                     {clock}
@@ -119,17 +150,14 @@ export default function ClockWidget() {
 
                 <div className="flex gap-2 mt-3">
                     <button
-                        onClick={() => setRunning((r) => !r)}
+                        onClick={toggle}
                         className="px-3 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition"
                     >
                         {running ? "Pause" : "Start"}
                     </button>
 
                     <button
-                        onClick={() => {
-                            setElapsed(0);
-                            setRunning(false);
-                        }}
+                        onClick={reset}
                         className="px-3 py-1 rounded-md border hover:bg-muted transition"
                     >
                         Reset
