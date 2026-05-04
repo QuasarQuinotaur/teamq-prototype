@@ -107,7 +107,7 @@ function ComboboxContent({
         align={align}
         alignOffset={alignOffset}
         anchor={anchor}
-        className="isolate z-[100]"
+        className="isolate z-[300]"
         onWheel={(e) => {
           e.stopPropagation();
           const isScrollingDown = e.deltaY > 0;
