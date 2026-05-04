@@ -17,8 +17,8 @@ const TEAM_MEMBERS: TeamMember[] = [
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "" },
     { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "" },
     { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "" },
-    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "" },
-    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "" },
+    { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "That's baseball, Suzyn." },
+    { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "We are not always what we seem, and hardly ever what we dream." },
     { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "" },
 ]
 
