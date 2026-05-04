@@ -10,6 +10,9 @@
 7. AI Summary
 8. Recents Table
 9. Adaptive Card Sizing
+10. AI Autotagging
+11. Multistage Workflow
+12. Widgets
 
 ## Credits
 Ben Reinherz - Assistant Lead SWE Frontend
