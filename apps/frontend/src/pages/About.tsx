@@ -17,7 +17,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "If a picture is worth a thousand words, then a gif of a duck shaking its ass is worth a million." },
     { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "Stay focused and secure the bag -DJ Khaled" },
-    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "" },
+    { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "Knowledge without action is wastefulness and action without knowledge is foolishness." },
     { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "That's baseball, Suzyn." },
     { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "We are not always what we seem, and hardly ever what we dream." },
     { name: "Abyshek Sukumar",  position: "Product Owner", image: "/team/abysheksukumar.png", quote: "404: Motivation not found" },
