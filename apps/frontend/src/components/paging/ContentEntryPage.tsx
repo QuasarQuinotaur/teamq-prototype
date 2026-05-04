@@ -21,7 +21,15 @@ import { isDocumentLikeFilename } from "@/lib/document-kind.ts";
 import type {FormOfTypeProps} from "@/components/forms/FormOfType.tsx";
 import FilterDocumentFields, {type ContentFieldsFilter} from "@/components/paging/toolbar/FilterDocumentFields.tsx";
 import type {QueryProps} from "@/components/paging/toolbar/Toolbar.tsx";
-import { DropdownMenuCheckboxItem } from "@/components/DropdownMenu.tsx";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/DropdownMenu.tsx";
 import { Loader2 } from "lucide-react";
 import { StarIcon } from "@phosphor-icons/react";
 import { THUMBNAIL_CHUNK_SIZE, toChunkSizes } from "@/lib/thumbnailChunks.ts";
@@ -38,6 +46,7 @@ import type { ViewSelectorButtonProps } from "@/components/paging/toolbar/ViewSe
 import { cn, isSupabasePath } from "@/lib/utils.ts";
 import ContentDetailsOption from "@/components/paging/details/ContentDetailsOption.tsx";
 import TagsOption from "@/components/paging/tags/TagsOption.tsx";
+import TagElement from "@/components/paging/tags/TagElement.tsx";
 import useGetEmployeeIsAdmin from "@/hooks/useGetEmployeeIsAdmin";
 import ContentReviewsOption from "./review/ContentReviewsOption";
 import { useTutorial } from "@/components/tutorial/TutorialContext.tsx";
@@ -87,6 +96,7 @@ function contentFiltersEqualToBaseline(
             c: [...(f.contentTypes ?? [])].sort(),
             j: [...(f.jobPositions ?? [])].sort(),
             d: [...(f.documentTypes ?? [])].sort(),
+            t: [...(f.tagIds ?? [])].sort(),
         });
     return pack(current) === pack(baseline);
 }
@@ -105,6 +115,17 @@ type ContentWithCheckout = Content & {
 type ContentListRow = Content & {
     tags?: { tag: Tag }[];
 };
+
+function mergeTagOntoContentListRow(row: ContentListRow, tag: Tag): ContentListRow {
+    const existing = row.tags ?? [];
+    if (existing.some((ct) => ct.tag.id === tag.id)) {
+        return row;
+    }
+    return {
+        ...row,
+        tags: [...existing, { tag }],
+    };
+}
 
 const CATALOG_INITIAL_LIMIT = 30;
 const CATALOG_PAGE_LIMIT = 20;
@@ -211,6 +232,7 @@ export default function ContentEntryPage({
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
     const tutorial = useTutorial();
+    const { view, setView } = useMainContext();
     const [entries, setEntries] = useState<CardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [catalogHasMore, setCatalogHasMore] = useState(false);
@@ -737,8 +759,11 @@ export default function ContentEntryPage({
             let anyOk = false;
             for (const id of selectedIds) {
                 const raw = entries.find((e) => e.item.id === id);
-                if (!raw) continue;
-                const item = raw.item as ContentWithCheckout;
+                const item = (raw?.item ??
+                    favoritedList.find((f) => f.id === id)) as
+                    | ContentWithCheckout
+                    | undefined;
+                if (!item) continue;
                 const canModify =
                     item.jobPositions.includes(employee.jobPosition) ||
                     getEmployeeIsAdmin(employee);
@@ -756,7 +781,14 @@ export default function ContentEntryPage({
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, employee, entries, exitSelectMode, getEmployeeIsAdmin]);
+    }, [
+        selectedIds,
+        employee,
+        entries,
+        favoritedList,
+        exitSelectMode,
+        getEmployeeIsAdmin,
+    ]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
@@ -778,6 +810,63 @@ export default function ContentEntryPage({
         }
     }, [selectedIds, employee, exitSelectMode]);
 
+    const bulkAddTagToSelected = useCallback(
+        async (tagId: number) => {
+            if (selectedIds.size === 0) return;
+            const tagMeta = tagList.find((t) => t.id === tagId);
+            if (!tagMeta) {
+                console.warn("[bulk tag] tag not in library", tagId);
+                return;
+            }
+            setBulkActionLoading(true);
+            try {
+                const succeededIds = new Set<number>();
+                for (const cid of selectedIds) {
+                    const res = await fetch(
+                        `${apiBase}/api/content/${cid}/tags/${tagId}`,
+                        { method: "POST", credentials: "include" },
+                    );
+                    if (res.ok || res.status === 409) {
+                        succeededIds.add(cid);
+                    } else {
+                        console.warn(
+                            "[bulk tag] failed",
+                            cid,
+                            tagId,
+                            res.status,
+                        );
+                    }
+                }
+                if (succeededIds.size > 0) {
+                    setEntries((prev) =>
+                        prev.map((e) => {
+                            if (!succeededIds.has(e.item.id)) return e;
+                            const nextContent = mergeTagOntoContentListRow(
+                                e.item as ContentListRow,
+                                tagMeta,
+                            );
+                            return getContentEntryFromRow(
+                                nextContent,
+                                employeeRef.current,
+                                employeeMapRef.current,
+                            );
+                        }),
+                    );
+                    setFavoritedList((prev) =>
+                        prev.map((f) => {
+                            if (!succeededIds.has(f.id)) return f;
+                            return mergeTagOntoContentListRow(f, tagMeta);
+                        }),
+                    );
+                }
+            } finally {
+                setBulkActionLoading(false);
+                exitSelectMode();
+            }
+        },
+        [selectedIds, exitSelectMode, tagList],
+    );
+
     const selectAllFiltered = useCallback(() => {
         if (bulkActionLoading) return;
         setSelectedIds((prev) => {
@@ -785,9 +874,12 @@ export default function ContentEntryPage({
             for (const ent of entries) {
                 next.add(ent.item.id);
             }
+            for (const f of favoritedList) {
+                next.add(f.id);
+            }
             return next;
         });
-    }, [bulkActionLoading, entries]);
+    }, [bulkActionLoading, entries, favoritedList]);
 
     const closeFullscreen = useCallback(() => {
         setFullscreenDoc(null);
@@ -1006,7 +1098,6 @@ export default function ContentEntryPage({
                   key="select-all-filtered"
                   type="button"
                   variant="secondary"
-                  size="sm"
                   disabled={bulkActionLoading || entries.length === 0}
                   onClick={selectAllFiltered}
               >
@@ -1016,18 +1107,51 @@ export default function ContentEntryPage({
                   key="favorite-all"
                   type="button"
                   variant="secondary"
-                  size="sm"
                   disabled={bulkActionLoading || selectedIds.size === 0}
                   onClick={() => void bulkFavoriteSelected()}
               >
                   Favorite all
               </Button>,
+              <DropdownMenu key="bulk-add-tags">
+                  <DropdownMenuTrigger asChild>
+                      <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={
+                              bulkActionLoading ||
+                              selectedIds.size === 0 ||
+                              tagList.length === 0
+                          }
+                      >
+                          Add tags
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                      align="end"
+                      className="w-72 max-h-[min(320px,50vh)] overflow-y-auto"
+                  >
+                      <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                          Apply tag to {selectedIds.size} selected
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {tagList.map((tag) => (
+                          <DropdownMenuItem
+                              key={tag.id}
+                              className="cursor-pointer"
+                              onSelect={() =>
+                                  void bulkAddTagToSelected(tag.id)
+                              }
+                          >
+                              <TagElement tag={tag} />
+                          </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuContent>
+              </DropdownMenu>,
               onlyMyCheckouts ? (
                   <Button
                       key="check-all-in"
                       type="button"
                       variant="secondary"
-                      size="sm"
                       disabled={bulkActionLoading || selectedIds.size === 0}
                       onClick={() => void bulkCheckinSelected()}
                   >
@@ -1038,7 +1162,6 @@ export default function ContentEntryPage({
                       key="check-all-out"
                       type="button"
                       variant="secondary"
-                      size="sm"
                       disabled={bulkActionLoading || selectedIds.size === 0}
                       onClick={() => void bulkCheckoutSelected()}
                   >
@@ -1049,7 +1172,6 @@ export default function ContentEntryPage({
                   key="cancel-select"
                   type="button"
                   variant="outline"
-                  size="sm"
                   disabled={bulkActionLoading}
                   onClick={exitSelectMode}
               >
@@ -1061,7 +1183,6 @@ export default function ContentEntryPage({
                   key="select-entry"
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => setSelectMode(true)}
               >
                   Select
@@ -1322,7 +1443,6 @@ export default function ContentEntryPage({
         [catalogHasMore, loadingMore, loadMoreCatalog],
     );
 
-    const { view, setView } = useMainContext();
     const viewSelectorButtonProps: ViewSelectorButtonProps = { view, setView };
 
     const embeddedContentClassName =

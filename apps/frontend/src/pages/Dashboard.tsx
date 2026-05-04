@@ -21,7 +21,7 @@ import RequestsWidget from "@/components/widgets/RequestsListWidget.tsx";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { addDays, startOfDay } from "date-fns";
-import { Plus, GripVertical, Trash2, ChevronDown, Info } from "lucide-react";
+import { Plus, GripVertical, Trash2, ChevronDown, Info, Loader2 } from "lucide-react";
 import PieChartWidget from "@/components/widgets/PieChartWidget.tsx";
 import GifWidget from "@/components/widgets/GifWidget.tsx";
 import DocumentExpirationLineWidget from "@/components/widgets/DocumentExpirationLineWidget.tsx";
@@ -32,7 +32,6 @@ import CalcWidget from "@/components/widgets/CalcWidget";
 import ClockWidget from "@/components/widgets/ClockWidget";
 import NotePadWidget from "@/components/widgets/NotePadWidget";
 import { HelpHint } from "@/elements/help-hint.tsx";
-import { Skeleton } from "@/elements/skeleton.tsx";
 import type { WorkflowPayload } from "@/components/service-requests/workflowTypes.ts";
 import {
     allEmployeeIdsFromWorkflow,
@@ -41,6 +40,7 @@ import {
 } from "@/components/service-requests/workflowTypes.ts";
 import ActivityChartWidget from "@/components/widgets/ActivityChartWidget.tsx";
 import ActivityFeedWidget from "@/components/widgets/ActivityFeedWidget.tsx";
+import { cn } from "@/lib/utils.ts";
 
 type Widget = {
     id: string;
@@ -53,6 +53,15 @@ type Widget = {
 type ServiceRequestRow = WorkflowListRow;
 
 const base = `${import.meta.env.VITE_BACKEND_URL}/api`;
+
+/** Widget types that fetch their own data after mount; dashboard waits for each instance before reveal. */
+const DASHBOARD_SELF_ASYNC_WIDGET_TYPES = new Set([
+    "expirationCalendar",
+    "topDocumentActivity",
+    "activityChart",
+    "activityFeed",
+    "contentCurrency",
+]);
 
 const WIDGET_INFO_TEXT: Record<string, string> = {
     progressStatsCard:
@@ -217,6 +226,47 @@ export default function Dashboard() {
         if (oi === -1 || ni === -1) return widgets;
         return arrayMove(widgets, oi, ni);
     }, [widgets, activeId, overId]);
+
+    const asyncWidgetSignature = useMemo(
+        () =>
+            displayWidgets
+                .filter((w) => DASHBOARD_SELF_ASYNC_WIDGET_TYPES.has(w.type))
+                .map((w) => w.id)
+                .sort()
+                .join("|"),
+        [displayWidgets]
+    );
+
+    const asyncWidgetIds = useMemo(
+        () =>
+            displayWidgets.filter((w) =>
+                DASHBOARD_SELF_ASYNC_WIDGET_TYPES.has(w.type)
+            ),
+        [displayWidgets]
+    );
+
+    const [readyAsyncWidgetIds, setReadyAsyncWidgetIds] = useState(
+        () => new Set<string>()
+    );
+
+    useEffect(() => {
+        setReadyAsyncWidgetIds(new Set());
+    }, [asyncWidgetSignature]);
+
+    const markAsyncWidgetReady = useCallback((id: string) => {
+        setReadyAsyncWidgetIds((prev) => {
+            if (prev.has(id)) return prev;
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+    }, []);
+
+    const allAsyncWidgetsReady =
+        asyncWidgetIds.length === 0 ||
+        asyncWidgetIds.every((w) => readyAsyncWidgetIds.has(w.id));
+
+    const showDashboardContent = !loading && allAsyncWidgetsReady;
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [openPreview, setOpenPreview] = useState<string | null>(null);
@@ -384,21 +434,18 @@ export default function Dashboard() {
     }
 
     return (
-        <>
-            <div className="grid grid-cols-3 items-center px-6 py-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="grid shrink-0 grid-cols-3 items-center px-6 py-4">
                 <div />
                 <div className="flex items-center justify-center gap-2 min-w-0">
-                    {loading ? (
-                        <Skeleton
-                            className="h-8 w-[min(280px,85vw)] shrink-0"
-                            aria-hidden
-                        />
-                    ) : (
+                    {showDashboardContent ? (
                         <h1 className="text-2xl font-heading text-center truncate">
                             {userFirstName
                                 ? `Hello, ${userFirstName}`
                                 : "Hello, there"}
                         </h1>
+                    ) : (
+                        <div className="h-8 min-w-[1px]" aria-hidden />
                     )}
                 </div>
                 <div className="flex justify-end">
@@ -411,7 +458,19 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <div className="min-h-screen*2 overflow-y-auto">
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                {!showDashboardContent && (
+                    <div
+                        className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+                        aria-busy="true"
+                    >
+                        <Loader2
+                            className="size-6 animate-spin text-muted-foreground"
+                            aria-label="Loading dashboard"
+                        />
+                    </div>
+                )}
+                <div className="relative min-h-0 flex-1 overflow-y-auto">
                 <DndContext
                     sensors={sensors}
                     collisionDetection={customCollision}
@@ -421,7 +480,15 @@ export default function Dashboard() {
                     onDragCancel={handleDragCancel}
                 >
                     <SortableContext items={displayWidgets.map(w => w.id)} strategy={rectSortingStrategy}>
-                        <div className="flex flex-wrap gap-4 px-6 pb-6 items-stretch min-h-0">
+                        <div
+                            className={cn(
+                                "flex flex-wrap gap-4 px-6 pb-6 items-stretch min-h-0",
+                                !showDashboardContent &&
+                                    "pointer-events-none absolute -left-[10000px] top-0 w-[min(1680px,200vw)] opacity-0 select-none",
+                                showDashboardContent && "relative transition-opacity duration-500 ease-out"
+                            )}
+                            aria-hidden={!showDashboardContent}
+                        >
                             {displayWidgets.map(widget => (
                                 <SortableItem
                                     key={widget.id}
@@ -453,6 +520,11 @@ export default function Dashboard() {
                                             contentForExpiration: contentItems,
                                         }}
                                         url={widget.url}
+                                        onSelfAsyncReady={
+                                            DASHBOARD_SELF_ASYNC_WIDGET_TYPES.has(widget.type)
+                                                ? () => markAsyncWidgetReady(widget.id)
+                                                : undefined
+                                        }
                                     />
                                 </SortableItem>
                             ))}
@@ -481,6 +553,7 @@ export default function Dashboard() {
                         ) : null}
                     </DragOverlay>
                 </DndContext>
+                </div>
             </div>
 
             {showAddModal && (
@@ -691,7 +764,7 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
 
@@ -849,7 +922,17 @@ function SortableItem({
 }
 
 
-function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: string }) {
+function WidgetRenderer({
+    type,
+    data,
+    url,
+    onSelfAsyncReady,
+}: {
+    type: string;
+    data: any;
+    url?: string;
+    onSelfAsyncReady?: () => void;
+}) {
 
     let inner: React.ReactNode;
     switch (type) {
@@ -866,12 +949,13 @@ function WidgetRenderer({ type, data, url }: { type: string; data: any; url?: st
         case "expirationCalendar": inner = (
             <DocumentExpirationCalendarWidget
                 onOpenDocument={() => {}}
+                onInitialLoadComplete={onSelfAsyncReady}
             />
         ); break;
-        case "topDocumentActivity": inner = <TopDocumentActivityWidget/>; break;
-        case "activityChart": inner = <ActivityChartWidget/>; break;
-        case "activityFeed": inner = <ActivityFeedWidget />; break;
-        case "contentCurrency": inner = <ContentCurrencyWidget />; break;
+        case "topDocumentActivity": inner = <TopDocumentActivityWidget onInitialLoadComplete={onSelfAsyncReady} />; break;
+        case "activityChart": inner = <ActivityChartWidget onInitialLoadComplete={onSelfAsyncReady} />; break;
+        case "activityFeed": inner = <ActivityFeedWidget onInitialLoadComplete={onSelfAsyncReady} />; break;
+        case "contentCurrency": inner = <ContentCurrencyWidget onInitialLoadComplete={onSelfAsyncReady} />; break;
         case "gif":      inner = <GifWidget url={url} />; break;
         case "calc": inner = <CalcWidget />; break;
         case "clock": inner = <ClockWidget />; break;

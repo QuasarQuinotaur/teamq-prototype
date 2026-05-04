@@ -240,7 +240,7 @@ const WorkflowStageSection = React.memo(function WorkflowStageSection({
             <div className="min-w-0 flex-1">
               <AssignEmployeesCombobox
                 employees={employees}
-                value={stage.assigneeIds}
+                employeeIds={stage.assigneeIds}
                 onValueChange={onAssigneesChange}
                 disabled={disabled}
                 placeholder="Select employees…"

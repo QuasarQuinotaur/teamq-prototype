@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Eye, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Eye, FileText, Loader2 } from "lucide-react";
 
 type Document = {
     id: number;
@@ -15,11 +15,15 @@ type DocumentStats = {
 
 type Props = {
     limit?: number;
+    onInitialLoadComplete?: () => void;
 };
 
-export default function TopDocumentActivityWidget({limit = 5}: Props) {
+export default function TopDocumentActivityWidget({ limit = 5, onInitialLoadComplete }: Props) {
     const [data, setData] = useState<DocumentStats[]>([]);
     const [loading, setLoading] = useState(true);
+    const initialCompleteReported = useRef(false);
+    const onInitialLoadCompleteRef = useRef(onInitialLoadComplete);
+    onInitialLoadCompleteRef.current = onInitialLoadComplete;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -27,8 +31,6 @@ export default function TopDocumentActivityWidget({limit = 5}: Props) {
                 // 1. Get all documents
                 const docsRes = await fetch("/api/content");
                 const docs: Document[] = await docsRes.json();
-
-                console.log(docs);
 
                 // 2. Fetch stats for each document
                 const statsPromises = docs.map(async (doc) => {
@@ -55,35 +57,24 @@ export default function TopDocumentActivityWidget({limit = 5}: Props) {
                 console.error("Failed to fetch document activity", err);
             } finally {
                 setLoading(false);
+                if (!initialCompleteReported.current) {
+                    initialCompleteReported.current = true;
+                    onInitialLoadCompleteRef.current?.();
+                }
             }
         };
 
         fetchData();
-    }, []);
+    }, [limit]);
 
     if (loading) {
         return (
-            <div className="p-4 space-y-3">
-                {/* header skeleton */}
-                <div className="h-5 w-40 bg-gray-200 rounded" />
-
-                {/* list skeleton */}
-                {[...Array(5)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="flex justify-between items-center p-2 rounded-lg"
-                    >
-                        <div className="flex items-center gap-2 w-full">
-                            <div className="w-6 h-4 bg-gray-200 rounded" />
-                            <div className="h-4 w-40 bg-gray-200 rounded" />
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="h-4 w-8 bg-gray-200 rounded" />
-                            <div className="h-4 w-8 bg-gray-200 rounded" />
-                        </div>
-                    </div>
-                ))}
+            <div
+                className="flex min-h-[200px] items-center justify-center p-4"
+                aria-busy="true"
+                aria-label="Loading"
+            >
+                <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
             </div>
         );
     }

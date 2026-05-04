@@ -161,7 +161,7 @@ export default function Announcements() {
               <Label htmlFor="ann-recipients">Recipients</Label>
               <AssignEmployeesCombobox
                 employees={employees}
-                value={assigneeIds}
+                employeeIds={assigneeIds}
                 onValueChange={setAssigneeIds}
                 disabled={disabled}
                 placeholder="Select employees…"

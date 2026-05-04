@@ -1,29 +1,23 @@
 "use client"
 
 import { Pie, PieChart, Cell } from "recharts"
+import { Loader2 } from "lucide-react"
 
 import {
     CardContent,
     CardHeader,
     CardTitle,
 } from "@/components/cards/Card.tsx"
-import { Skeleton } from "@/elements/skeleton.tsx"
 
 export default function PieChartWidget({ counts, loading }: { counts: any; loading?: boolean }) {
     if (loading) {
         return (
-            <div className="flex h-full flex-col">
-                <CardHeader className="pb-2">
-                    <Skeleton className="h-6 w-40" />
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col items-center justify-center gap-4 pb-4">
-                    <Skeleton className="size-[220px] shrink-0 rounded-full" />
-                    <div className="flex flex-wrap justify-center gap-4">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <Skeleton key={i} className="h-4 w-24" />
-                        ))}
-                    </div>
-                </CardContent>
+            <div
+                className="flex h-full min-h-[200px] flex-col items-center justify-center"
+                aria-busy="true"
+                aria-label="Loading"
+            >
+                <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
             </div>
         );
     }

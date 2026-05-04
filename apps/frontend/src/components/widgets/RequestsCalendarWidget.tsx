@@ -6,7 +6,7 @@ import {
     startOfDay,
     startOfWeek,
 } from "date-fns";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Loader2 } from "lucide-react";
 import { Button } from "@/elements/buttons/button.tsx";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils.ts";
@@ -196,14 +196,12 @@ function DayColumn({ day, tasks, today, weekEnd }) {
 // --- SKELETON ---
 function WeekSkeleton() {
     return (
-        <div className="flex flex-1 border rounded-lg">
-            {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex-1 p-2 animate-pulse">
-                    <div className="h-4 w-6 bg-muted mx-auto mb-2 rounded" />
-                    <div className="h-3 bg-muted rounded mb-1" />
-                    <div className="h-3 bg-muted rounded" />
-                </div>
-            ))}
+        <div
+            className="flex min-h-[12rem] flex-1 items-center justify-center rounded-lg border"
+            aria-busy="true"
+            aria-label="Loading"
+        >
+            <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
         </div>
     );
 }

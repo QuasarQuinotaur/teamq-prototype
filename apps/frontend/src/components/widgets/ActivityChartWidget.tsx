@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
     Area,
     CartesianGrid,
@@ -14,6 +14,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/Chart.tsx";
+import { Loader2 } from "lucide-react";
 
 type ActivityEvent = {
     timestamp: string;
@@ -37,11 +38,18 @@ function xAxisInterval(pointCount: number): number {
     return Math.max(0, Math.floor(pointCount / 6));
 }
 
-export default function ActivityChartWidget() {
+type ActivityChartWidgetProps = {
+    onInitialLoadComplete?: () => void;
+};
+
+export default function ActivityChartWidget({ onInitialLoadComplete }: ActivityChartWidgetProps) {
     const gradId = useId().replace(/:/g, "");
     const [data, setData] = useState<{ label: string; count: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState<Range>("Week");
+    const initialCompleteReported = useRef(false);
+    const onInitialLoadCompleteRef = useRef(onInitialLoadComplete);
+    onInitialLoadCompleteRef.current = onInitialLoadComplete;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -129,6 +137,10 @@ export default function ActivityChartWidget() {
                 console.error("chart error", err);
             } finally {
                 setLoading(false);
+                if (!initialCompleteReported.current) {
+                    initialCompleteReported.current = true;
+                    onInitialLoadCompleteRef.current?.();
+                }
             }
         };
 
@@ -167,8 +179,12 @@ export default function ActivityChartWidget() {
             </CardHeader>
             <CardContent className="min-h-0 flex-1 pb-2">
                 {loading ? (
-                    <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-                        Loading…
+                    <div
+                        className="flex h-[min(220px,40vh)] w-full items-center justify-center"
+                        aria-busy="true"
+                        aria-label="Loading"
+                    >
+                        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
                     </div>
                 ) : (
                     <ChartContainer

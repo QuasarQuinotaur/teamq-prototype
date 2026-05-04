@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isSameDay } from "date-fns";
-import { Eye, PencilLine, Plus, Trash2 } from "lucide-react";
+import { Eye, PencilLine, Plus, Trash2, Loader2 } from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "@/components/cards/Card.tsx";
 import { EmptyResultsState } from "@/components/EmptyResultsState.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -107,10 +107,17 @@ const EMPTY_COPY: Record<ActivityFilter, { title: string; description: string }>
 const LIST_MAX_H = "max-h-[min(360px,calc(55vh-8rem))]";
 const LIST_SCROLL_CLASS = `${LIST_MAX_H} overflow-y-auto overscroll-y-contain pr-1`;
 
-export default function ActivityFeedWidget() {
+type ActivityFeedWidgetProps = {
+    onInitialLoadComplete?: () => void;
+};
+
+export default function ActivityFeedWidget({ onInitialLoadComplete }: ActivityFeedWidgetProps) {
     const [events, setEvents] = useState<ActivityApiEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<ActivityFilter>("all");
+    const initialCompleteReported = useRef(false);
+    const onInitialLoadCompleteRef = useRef(onInitialLoadComplete);
+    onInitialLoadCompleteRef.current = onInitialLoadComplete;
 
     useEffect(() => {
         const load = async () => {
@@ -141,6 +148,10 @@ export default function ActivityFeedWidget() {
                 setEvents([]);
             } finally {
                 setLoading(false);
+                if (!initialCompleteReported.current) {
+                    initialCompleteReported.current = true;
+                    onInitialLoadCompleteRef.current?.();
+                }
             }
         };
         load();
@@ -182,9 +193,14 @@ export default function ActivityFeedWidget() {
             <CardContent className="pb-0 pt-0">
                 {loading ? (
                     <div
-                        className={`flex min-h-[9rem] items-center justify-center text-sm text-muted-foreground ${LIST_MAX_H}`}
+                        className={cn(
+                            "flex min-h-[9rem] items-center justify-center py-6",
+                            LIST_MAX_H
+                        )}
+                        aria-busy="true"
+                        aria-label="Loading"
                     >
-                        Loading…
+                        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
                     </div>
                 ) : display.length === 0 ? (
                     <EmptyResultsState

@@ -1,6 +1,11 @@
 import { UserXIcon } from "lucide-react";
+import { Button } from "@/elements/buttons/button";
 
 export default function NotRegistered() {
+  const handleLogout = () => {
+    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/logout`;
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-800">
       <div className="flex flex-col items-center p-8 bg-white rounded-xl shadow-sm border border-gray-200">
@@ -13,6 +18,9 @@ export default function NotRegistered() {
           Your account is not associated with any employee in the system. Please
           contact your administrator to get access.
         </p>
+        <Button className="mt-6" variant="destructive" onClick={handleLogout}>
+          Sign out
+        </Button>
       </div>
     </div>
   );

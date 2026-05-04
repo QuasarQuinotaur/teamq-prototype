@@ -33,7 +33,11 @@ function TitleCell({
     renderTitleCell?: (entry: CardEntry) => React.ReactNode;
 }) {
     const titleContent = renderTitleCell ? renderTitleCell(entry) : entry.title;
-    return <div className="min-w-0 truncate">{titleContent}</div>;
+    return (
+        <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0 truncate">{titleContent}</div>
+        </div>
+    );
 }
 
 function TagsCell({ entry }: { entry: CardEntry }) {
@@ -142,9 +146,21 @@ function DocumentActionsMenuCell({
 }
 
 export type CreateColumnsOptions = {
+    headerName?: string;
+    headerType?: string;
     renderTitleCell?: (entry: CardEntry) => React.ReactNode;
+    /** When true, shows an image in the title cell. */
+    showImage?: boolean;
+    /** When true, shows an email column. */
+    showEmail?: boolean;
     /** When true, hides the expiration column (documents-only). */
     omitExpiration?: boolean;
+    /** When true, hides the type icon column. */
+    omitTypeIcon?: boolean;
+    /** When true, hides the owner column. */
+    omitOwner?: boolean;
+    /** When true, hides the tags column. */
+    omitTags?: boolean;
     selectMode?: boolean;
     isEntrySelected?: (entry: CardEntry) => boolean;
     onToggleEntrySelect?: (entry: CardEntry) => void;
@@ -183,24 +199,47 @@ export function createColumns(
     }
 
     // File type icon column
-    cols.push({
-        id: "type-icon",
-        header: "",
-        size: 36,
-        cell: ({ row }) => {
-            const entry = row.original;
-            return (
-                <div className="flex items-center justify-center">
-                    <ContentTypeIcon badge={entry.badge} link={entry.link} />
-                </div>
-            );
-        },
-    });
+    if (!options?.omitTypeIcon) {
+        cols.push({
+            id: "type-icon",
+            header: "",
+            size: 36,
+            cell: ({ row }) => {
+                const entry = row.original;
+                return (
+                    <div className="flex items-center justify-center">
+                        <ContentTypeIcon badge={entry.badge} link={entry.link} />
+                    </div>
+                );
+            },
+        });
+    }
+
+    // Image column (e.g. employee profile picture)
+    if (options?.showImage) {
+        cols.push({
+            id: "image",
+            header: "",
+            size: 48,
+            cell: ({ row }) => {
+                const entry = row.original;
+                return (
+                    <div className="flex items-center justify-center">
+                        <Avatar size="sm" className="shrink-0">
+                            {entry.image && <AvatarImage src={entry.image} alt={entry.title} />}
+                            <AvatarFallback>{ownerInitials(entry.title)}</AvatarFallback>
+                        </Avatar>
+                    </div>
+                );
+            },
+        });
+    }
 
     cols.push(
         {
             accessorKey: "title",
-            header: "Title",
+            header: options?.headerName ?? "Title",
+            size: 400,
             cell: ({ row }) => (
                 <TitleCell
                     entry={row.original}
@@ -208,18 +247,35 @@ export function createColumns(
                 />
             ),
         },
-        {
+    );
+
+    if (options?.showEmail) {
+        cols.push({
+            accessorKey: "link",
+            header: "Email",
+            size: 200,
+            cell: ({ row }) => (
+                <div className="text-muted-foreground truncate">
+                    {row.original.link}
+                </div>
+            ),
+        });
+    }
+
+    if (!options?.omitOwner) {
+        cols.push({
             accessorKey: "owner",
             header: "Owner",
-            size: 60,
+            size: 100,
             cell: ({ row }) => <OwnerCell owner={row.original.owner} ownerImage={row.original.ownerImage} />,
-        },
-    );
+        });
+    }
 
     if (!options?.omitExpiration) {
         cols.push({
             accessorKey: "expirationDate",
             header: "Expiration",
+            size: 140,
             cell: ({ getValue }) => {
                 const value = getValue();
 
@@ -238,7 +294,8 @@ export function createColumns(
 
     cols.push({
         accessorKey: "badge",
-        header: "Type",
+        header: options?.headerType ?? "Type",
+        size: 120,
         cell: ({ row }) => {
             const badge = row.original.badge;
             if (!badge) return null;
@@ -247,11 +304,13 @@ export function createColumns(
     });
 
     // Tags column
-    cols.push({
-        id: "tags",
-        header: "Tags",
-        cell: ({ row }) => <TagsCell entry={row.original} />,
-    });
+    if (!options?.omitTags) {
+        cols.push({
+            id: "tags",
+            header: "Tags",
+            cell: ({ row }) => <TagsCell entry={row.original} />,
+        });
+    }
 
     // Favorite icon column
     if (options?.isFavorited && options?.onToggleFavorite) {

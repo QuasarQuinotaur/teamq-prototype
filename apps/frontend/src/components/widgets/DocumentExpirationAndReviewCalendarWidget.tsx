@@ -1,10 +1,11 @@
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-import { CardHeader, CardTitle } from "@/components/cards/Card.tsx";
+import { CardTitle } from "@/components/cards/Card.tsx";
+import { Loader2 } from "lucide-react";
 
 const localizer = momentLocalizer(moment);
 
@@ -25,6 +26,7 @@ type Props = {
         filename: string;
         title: string;
     }) => void;
+    onInitialLoadComplete?: () => void;
 };
 
 function CalendarEvent({ event }: any) {
@@ -95,7 +97,7 @@ function CustomToolbar({ label, onNavigate }: any) {
     );
 }
 
-export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
+export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoadComplete }: Props) {
     // separate state for expirations and reviews
     const [expEvents, setExpEvents] = useState<any[]>([]);
     const [reviewEvents, setReviewEvents] = useState<any[]>([]);
@@ -108,6 +110,11 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
 
     const [showMoreEvents, setShowMoreEvents] = useState<any[]>([]);
     const [showMoreDate, setShowMoreDate] = useState<Date | null>(null);
+
+    const [calendarLoading, setCalendarLoading] = useState(true);
+    const initialCompleteReported = useRef(false);
+    const onInitialLoadCompleteRef = useRef(onInitialLoadComplete);
+    onInitialLoadCompleteRef.current = onInitialLoadComplete;
 
     useEffect(() => {
         async function loadData() {
@@ -172,6 +179,12 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
 
             } catch (err) {
                 console.error("Calendar failed:", err);
+            } finally {
+                setCalendarLoading(false);
+                if (!initialCompleteReported.current) {
+                    initialCompleteReported.current = true;
+                    onInitialLoadCompleteRef.current?.();
+                }
             }
         }
 
@@ -195,6 +208,23 @@ export default function ExpirationCalendarWidget({ onOpenDocument }: Props) {
             : filter === "exp"
                 ? expEvents
                 : reviewEvents;
+
+    if (calendarLoading) {
+        return (
+            <>
+                <CardTitle className="pl-0 pt-5">
+                    Content Expirations & Reviews Calendar
+                </CardTitle>
+                <div
+                    className="mt-4 flex h-[700px] items-center justify-center rounded-lg border border-border/60 bg-muted/20"
+                    aria-busy="true"
+                    aria-label="Loading"
+                >
+                    <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+                </div>
+            </>
+        );
+    }
 
     return (
         <>

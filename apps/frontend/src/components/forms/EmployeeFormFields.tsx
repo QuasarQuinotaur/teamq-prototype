@@ -23,6 +23,7 @@ type EmployeeFormFieldsProps = {
 export default function EmployeeFormFields({
                                                fields,
                                                setKey,
+                                               hideAdminOptions,
                                                dateStrings
 }: EmployeeFormFieldsProps) {
     return (
@@ -90,20 +91,22 @@ export default function EmployeeFormFields({
                     />
                 )}
             />
-            <FieldInput
-                id={"employee-form-job-position"}
-                label={"Job Position"}
-                required
-                createElement={(id) => (
-                    <JobPositionInput
-                        id={id}
-                        jobPosition={fields.jobPosition}
-                        setJobPosition={(position) => {
-                            setKey("jobPosition", position)
-                        }}
-                    />
-                )}
-            />
+            {!hideAdminOptions && (
+                <FieldInput
+                    id={"employee-form-job-position"}
+                    label={"Job Position"}
+                    required
+                    createElement={(id) => (
+                        <JobPositionInput
+                            id={id}
+                            jobPosition={fields.jobPosition}
+                            setJobPosition={(position) => {
+                                setKey("jobPosition", position)
+                            }}
+                        />
+                    )}
+                />
+            )}
         </div>
     )
 }
