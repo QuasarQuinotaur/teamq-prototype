@@ -137,7 +137,16 @@ export default function EmployeeEntryPage() {
             gridSkeletonCell={() => <EmployeeCardSkeleton />}
             gridSkeletonAriaLabel="Loading employees"
             createOptionsElement={createOptionsElement}
-            listColumnOptions={{ omitExpiration: true }}
+            listColumnOptions={{
+                omitExpiration: true,
+                omitTypeIcon: true,
+                omitOwner: true,
+                omitTags: true,
+                headerName: "Name",
+                headerType: "Role",
+                showImage: true,
+                showEmail: true
+            }}
             listEntriesPerPage={28}
             cardGridProps={{
                 renderCard: ((state) => (

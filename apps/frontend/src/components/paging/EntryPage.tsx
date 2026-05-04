@@ -175,6 +175,12 @@ export default function EntryPage<T extends object>({
     // Pagination (list view)
     const [entriesPerPage, setEntriesPerPage] =
         useState(listEntriesPerPage ?? (omitToolbar ? 9 : 10));
+    const [inputValue, setInputValue] = useState(String(entriesPerPage));
+
+    useEffect(() => {
+        setInputValue(String(entriesPerPage));
+    }, [entriesPerPage]);
+
     const [pageEntries, setPageEntries] = useState<CardEntry[]>()
     const [pageNum, setPageNum] = useState<number>(1);
     const [displayedPage, setDisplayedPage] = useState<number>(1);
@@ -200,16 +206,21 @@ export default function EntryPage<T extends object>({
         setPageEntries(entries.slice(first, last));
     }, [entries, entriesPerPage, slotsPage1])
 
-    function newNumEntries(numPerPage: ChangeEvent<HTMLInputElement, HTMLInputElement>) {
-        setEntriesPerPage(+numPerPage.target.value)
+    function newNumEntries(e: ChangeEvent<HTMLInputElement>) {
+        const value = e.target.value;
+        setInputValue(value);
 
+        const num = parseInt(value, 10);
+        if (!isNaN(num) && num > 0) {
+            setEntriesPerPage(num);
+        }
     }
 
     const numEntriesInput = (
         <>
             <Input
                 className="w-5 border-0 border-b rounded-none p-0 h-auto text-center text-muted-foreground"
-                placeholder={String(entriesPerPage)}
+                value={inputValue}
                 onChange={newNumEntries}
             />
         </>
