@@ -16,7 +16,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "According to all known laws of aviation, there is no way a bee should be able to fly." },
     { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "" },
-    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "" },
+    { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "Stay focused and secure the bag -DJ Khaled" },
     { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "" },
     { name: "Rashi Roselin",    position: "Documentation Lead", image: "/team/rashiroselin.png", quote: "That's baseball, Suzyn." },
     { name: "Kylie Welcher",    position: "Project Manager", image: "/team/kyliewelcher.png", quote: "We are not always what we seem, and hardly ever what we dream." },
