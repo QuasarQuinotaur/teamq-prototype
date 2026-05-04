@@ -12,7 +12,7 @@ type TeamMember = {
 
 /** Hover or keyboard-focus on the avatar to swap photo ↔ quote (omit `quote` or blank = photo only). */
 const TEAM_MEMBERS: TeamMember[] = [
-    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "" },
+    { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "Happy Star Wars Day" },
     { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "" },
     { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "" },
