@@ -14,7 +14,7 @@ type TeamMember = {
 const TEAM_MEMBERS: TeamMember[] = [
     { name: "Ben Santana",      position: "Lead Software Engineer", image: "/team/bensantana.png", quote: "Happy Star Wars Day" },
     { name: "Daniel Gomes",     position: "Assistant Lead (Backend)", image: "/team/danielgomes.png", quote: "According to all known laws of aviation, there is no way a bee should be able to fly." },
-    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "" },
+    { name: "Ben Reinherz",     position: "Assistant Lead (Frontend)", image: "/team/benreinherz.png", quote: "Turtles" },
     { name: "Theron Boozer",    position: "Full-Time SWE (Frontend)", image: "/team/theronboozer.png", quote: "If a picture is worth a thousand words, then a gif of a duck shaking its ass is worth a million." },
     { name: "Norah Anderson",   position: "Full-Time SWE (Frontend)", image: "/team/norahanderson.png", quote: "Stay focused and secure the bag -DJ Khaled" },
     { name: "Ali Tariq",        position: "Full-Time SWE (Backend)", image: "/team/alitariq.jpg", quote: "What's meant to be will be." },
