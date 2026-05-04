@@ -40,29 +40,29 @@ model Employee {
 }
 
 model Content {
-  id       Int     @id @default(autoincrement())
-  title    String
-  filePath String? // path in Supabase bucket
+  id                          Int                 @id @default(autoincrement())
+  title                       String
+  filePath                    String? // path in Supabase bucket
   /** Client-generated preview image path in Storage (same bucket conventions as filePath). */
-  thumbnailPath      String?
-  fileSize           Int?
-  jobPositions       String[]
-  contentType        String
-  dateAdded          DateTime        @default(now())
-  dateUpdated        DateTime        @updatedAt
-  reviews            ContentReview[]
-  expirationDate     DateTime
-  employeesFavorited Employee[]      @relation("Favorites") // one content can have many favorites from dif people
+  thumbnailPath               String?
+  fileSize                    Int?
+  jobPositions                String[]
+  contentType                 String
+  dateAdded                   DateTime            @default(now())
+  dateUpdated                 DateTime            @updatedAt
+  reviews                     ContentReview[]
+  expirationDate              DateTime
+  employeesFavorited          Employee[]            @relation("Favorites") // one content can have many favorites from dif people
 
-  ownerId              Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
-  owner                Employee              @relation("ownedContents", fields: [ownerId], references: [id])
-  serviceRequestStages ServiceRequestStage[] @relation("StageContents")
-  notifications        Notification[]        @relation("NotificationContents")
+  ownerId                     Int // TODO be able to update owner (only owner + admin) in front end too :( - Kylie still needs to do this
+  owner                       Employee              @relation("ownedContents", fields: [ownerId], references: [id])
+  serviceRequestStages        ServiceRequestStage[] @relation("StageContents")
+  notifications               Notification[]        @relation("NotificationContents")
 
-  isCheckedOut   Boolean   @default(false)
-  checkedOutOn   DateTime?
-  checkedOutById Int?
-  checkedOutBy   Employee? @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
+  isCheckedOut                Boolean             @default(false)
+  checkedOutOn                DateTime?
+  checkedOutById              Int?
+  checkedOutBy                Employee?           @relation("CheckedOutContent", fields: [checkedOutById], references: [id])
 
   tags                        ContentTag[]
   aiSummary                   String?      @db.Text

@@ -71,7 +71,7 @@ function DateSelectInput({
                         </InputGroupButton>
                     </PopoverTrigger>
                     <PopoverContent
-                        className="z-50 w-auto overflow-hidden p-0"
+                        className="z-[100] w-auto overflow-hidden p-0"
                         align="start"
                     >
                         <Calendar

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 
 type Content = {
     id: number;
@@ -41,8 +41,6 @@ export default function ContentCurrencyWidget({ onInitialLoadComplete }: Props) 
 
         fetchDocs();
     }, []);
-
-    // helper
     const now = new Date();
     const getDaysSince = (date: string) =>
         (now.getTime() - new Date(date).getTime()) /
@@ -51,9 +49,6 @@ export default function ContentCurrencyWidget({ onInitialLoadComplete }: Props) 
     let current = 0;
     let review = 0;
     let outdated = 0;
-
-    console.log("Docs:")
-    console.log(docs);
 
     docs.forEach((doc) => {
         const days = getDaysSince(doc.dateUpdated || doc.dateAdded);
@@ -69,16 +64,20 @@ export default function ContentCurrencyWidget({ onInitialLoadComplete }: Props) 
     // loading
     if (loading) {
         return (
-            <div className="p-4 space-y-4">
-                <div className="h-5 w-40 bg-muted rounded animate-pulse" />
+            <div
+                className="p-4 space-y-4"
+                aria-busy="true"
+                aria-label="Loading"
+            >
+                <div className="h-5 w-40 animate-pulse rounded bg-muted" />
 
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="space-y-1">
                         <div className="flex justify-between">
-                            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-                            <div className="h-4 w-10 bg-muted rounded animate-pulse" />
+                            <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                            <div className="h-4 w-10 animate-pulse rounded bg-muted" />
                         </div>
-                        <div className="h-1.5 w-full bg-muted rounded animate-pulse" />
+                        <div className="h-1.5 w-full animate-pulse rounded bg-muted" />
                     </div>
                 ))}
             </div>

@@ -29,8 +29,6 @@ const chartConfig = {
     },
 } satisfies ChartConfig;
 
-const LINE = "var(--primary-foreground)";
-
 function xAxisInterval(pointCount: number): number {
     if (pointCount <= 8) return 0;
     if (pointCount <= 16) return 2;

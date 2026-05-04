@@ -370,8 +370,9 @@ export default function ContentCard({
             </div>
 
             {selectMode && selected ? (
+                /* Below Radix menus/popovers (z-[100]); above checkout dimmer (z-40). */
                 <div
-                    className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center rounded-xl bg-primary/45"
+                    className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center rounded-xl bg-primary/45"
                     aria-hidden
                 >
                     <Check

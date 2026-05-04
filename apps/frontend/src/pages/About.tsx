@@ -156,7 +156,7 @@ function MemberCard({ member }: { member: TeamMember }) {
 
 export default function About() {
     return (
-        <div className="overflow-y-auto h-full">
+        <div className="h-full min-h-0 w-full overflow-y-auto">
             <LandingHomeLogoLink />
             <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
 
