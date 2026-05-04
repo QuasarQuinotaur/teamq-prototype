@@ -127,6 +127,17 @@ function mergeTagOntoContentListRow(row: ContentListRow, tag: Tag): ContentListR
     };
 }
 
+function stripTagFromContentListRow(row: ContentListRow, tagId: number): ContentListRow {
+    const existing = row.tags ?? [];
+    if (!existing.some((ct) => ct.tag.id === tagId)) {
+        return row;
+    }
+    return {
+        ...row,
+        tags: existing.filter((ct) => ct.tag.id !== tagId),
+    };
+}
+
 const CATALOG_INITIAL_LIMIT = 30;
 const CATALOG_PAGE_LIMIT = 20;
 
@@ -503,8 +514,45 @@ export default function ContentEntryPage({
                         entry.item.id === contentId ? mapEntry : entry,
                     );
                 });
+                setFavoritedList((prev) => {
+                    if (!prev.some((f) => f.id === contentId)) return prev;
+                    return prev.map((f) =>
+                        f.id === contentId ? content : f,
+                    );
+                });
             });
     }, []);
+
+    /** Instant UI for tag toggles; server sync runs in background in {@link TagsOption}. */
+    const applyTagToContentLocally = useCallback(
+        (contentId: number, tagId: number, apply: boolean) => {
+            const tagMeta = tagList.find((t) => t.id === tagId);
+            if (!tagMeta) return;
+            setEntries((prev) =>
+                prev.map((e) => {
+                    if (e.item.id !== contentId) return e;
+                    const row = e.item as ContentListRow;
+                    const nextRow = apply
+                        ? mergeTagOntoContentListRow(row, tagMeta)
+                        : stripTagFromContentListRow(row, tagId);
+                    return getContentEntryFromRow(
+                        nextRow,
+                        employeeRef.current,
+                        employeeMapRef.current,
+                    );
+                }),
+            );
+            setFavoritedList((prev) =>
+                prev.map((f) => {
+                    if (f.id !== contentId) return f;
+                    return apply
+                        ? mergeTagOntoContentListRow(f, tagMeta)
+                        : stripTagFromContentListRow(f, tagId);
+                }),
+            );
+        },
+        [tagList],
+    );
 
     const defaultSortFields: SortFields = onlyRecents ? DEFAULT_SORT_FIELDS_RECENT : DEFAULT_SORT_FIELDS
     const [sortFields, setSortFields] = useState(defaultSortFields)
@@ -735,20 +783,26 @@ export default function ContentEntryPage({
         if (selectedIds.size === 0) return;
         setBulkActionLoading(true);
         try {
-            const base = import.meta.env.VITE_BACKEND_URL;
-            for (const id of selectedIds) {
-                if (favoritedList.some((f) => f.id === id)) continue;
-                await fetch(`${base}/api/favorites/${id}`, {
-                    method: "POST",
-                    credentials: "include",
-                });
+            const res = await fetch(`${apiBase}/api/content/bulk-actions`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "favorite",
+                    contentIds: [...selectedIds],
+                }),
+            });
+            if (res.ok) {
+                const data = (await res.json()) as { favorites?: ContentListRow[] };
+                if (data.favorites) setFavoritedList(data.favorites);
+            } else {
+                await fetchFavorites();
             }
-            await fetchFavorites();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [selectedIds, favoritedList, fetchFavorites, exitSelectMode]);
+    }, [selectedIds, fetchFavorites, exitSelectMode]);
 
     const { getEmployeeIsAdmin } = useGetEmployeeIsAdmin();
 
@@ -756,53 +810,43 @@ export default function ContentEntryPage({
         if (selectedIds.size === 0 || !employee) return;
         setBulkActionLoading(true);
         try {
-            let anyOk = false;
-            for (const id of selectedIds) {
-                const raw = entries.find((e) => e.item.id === id);
-                const item = (raw?.item ??
-                    favoritedList.find((f) => f.id === id)) as
-                    | ContentWithCheckout
-                    | undefined;
-                if (!item) continue;
-                const canModify =
-                    item.jobPositions.includes(employee.jobPosition) ||
-                    getEmployeeIsAdmin(employee);
-                if (!canModify) continue;
-                //TODO pull from tutorial repository when isTutorial flag is true
-                const res = await fetch(`${apiBase}/api/content/checkout/${id}`, {
-                    method: "POST",
-                    credentials: "include",
-                });
-                if (res.ok) anyOk = true;
+            const res = await fetch(`${apiBase}/api/content/bulk-actions`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "checkout",
+                    contentIds: [...selectedIds],
+                }),
+            });
+            if (res.ok) {
+                const data = (await res.json()) as { checkedOutIds?: number[] };
+                if (data.checkedOutIds?.length) notifyContentCheckoutSync();
             }
-            if (anyOk) notifyContentCheckoutSync();
             fetchContentRef.current();
         } finally {
             setBulkActionLoading(false);
             exitSelectMode();
         }
-    }, [
-        selectedIds,
-        employee,
-        entries,
-        favoritedList,
-        exitSelectMode,
-        getEmployeeIsAdmin,
-    ]);
+    }, [selectedIds, employee, exitSelectMode]);
 
     const bulkCheckinSelected = useCallback(async () => {
         if (selectedIds.size === 0 || !employee) return;
         setBulkActionLoading(true);
         try {
-            let anyOk = false;
-            for (const id of selectedIds) {
-                const res = await fetch(`${apiBase}/api/content/checkin/${id}`, {
-                    method: "POST",
-                    credentials: "include",
-                });
-                if (res.ok) anyOk = true;
+            const res = await fetch(`${apiBase}/api/content/bulk-actions`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "checkin",
+                    contentIds: [...selectedIds],
+                }),
+            });
+            if (res.ok) {
+                const data = (await res.json()) as { checkedInIds?: number[] };
+                if (data.checkedInIds?.length) notifyContentCheckoutSync();
             }
-            if (anyOk) notifyContentCheckoutSync();
             fetchContentRef.current();
         } finally {
             setBulkActionLoading(false);
@@ -811,60 +855,54 @@ export default function ContentEntryPage({
     }, [selectedIds, employee, exitSelectMode]);
 
     const bulkAddTagToSelected = useCallback(
-        async (tagId: number) => {
+        (tagId: number) => {
             if (selectedIds.size === 0) return;
             const tagMeta = tagList.find((t) => t.id === tagId);
             if (!tagMeta) {
                 console.warn("[bulk tag] tag not in library", tagId);
                 return;
             }
-            setBulkActionLoading(true);
-            try {
-                const succeededIds = new Set<number>();
-                for (const cid of selectedIds) {
-                    const res = await fetch(
-                        `${apiBase}/api/content/${cid}/tags/${tagId}`,
-                        { method: "POST", credentials: "include" },
+            const ids = [...selectedIds];
+            setEntries((prev) =>
+                prev.map((e) => {
+                    if (!ids.includes(e.item.id)) return e;
+                    const nextContent = mergeTagOntoContentListRow(
+                        e.item as ContentListRow,
+                        tagMeta,
                     );
-                    if (res.ok || res.status === 409) {
-                        succeededIds.add(cid);
-                    } else {
-                        console.warn(
-                            "[bulk tag] failed",
-                            cid,
-                            tagId,
-                            res.status,
-                        );
-                    }
-                }
-                if (succeededIds.size > 0) {
-                    setEntries((prev) =>
-                        prev.map((e) => {
-                            if (!succeededIds.has(e.item.id)) return e;
-                            const nextContent = mergeTagOntoContentListRow(
-                                e.item as ContentListRow,
-                                tagMeta,
-                            );
-                            return getContentEntryFromRow(
-                                nextContent,
-                                employeeRef.current,
-                                employeeMapRef.current,
-                            );
-                        }),
+                    return getContentEntryFromRow(
+                        nextContent,
+                        employeeRef.current,
+                        employeeMapRef.current,
                     );
-                    setFavoritedList((prev) =>
-                        prev.map((f) => {
-                            if (!succeededIds.has(f.id)) return f;
-                            return mergeTagOntoContentListRow(f, tagMeta);
-                        }),
-                    );
-                }
-            } finally {
-                setBulkActionLoading(false);
-                exitSelectMode();
-            }
+                }),
+            );
+            setFavoritedList((prev) =>
+                prev.map((f) => {
+                    if (!ids.includes(f.id)) return f;
+                    return mergeTagOntoContentListRow(f, tagMeta);
+                }),
+            );
+            exitSelectMode();
+
+            void (async () => {
+                const res = await fetch(`${apiBase}/api/content/bulk-actions`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "addTag",
+                        contentIds: ids,
+                        tagId,
+                    }),
+                });
+                if (res.ok) return;
+                console.warn("[bulk tag] failed", tagId, res.status);
+                void fetchContentRef.current();
+                void fetchFavorites();
+            })();
         },
-        [selectedIds, exitSelectMode, tagList],
+        [selectedIds, exitSelectMode, tagList, fetchFavorites],
     );
 
     const selectAllFiltered = useCallback(() => {
@@ -1291,6 +1329,9 @@ export default function ContentEntryPage({
                     tagIds={entry.tags ? entry.tags.map((tag: Tag) => tag.id) : []}
                     tagList={tagList}
                     isAdmin={employee?.jobPosition === "admin"}
+                    onOptimisticTagChange={(tagId, apply) => {
+                        applyTagToContentLocally(item.id, tagId, apply);
+                    }}
                     contentTagsUpdated={() => {
                         void fetchContentById(item.id) // only this content got changed
                     }}

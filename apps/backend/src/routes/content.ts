@@ -918,6 +918,219 @@ router.post("/batch-signed-urls", requiresAuth(), async (req, res) => {
     }
 });
 
+const BULK_ACTIONS_MAX_IDS = 100;
+const BULK_ACTION_NAMES = new Set([
+    "favorite",
+    "checkout",
+    "checkin",
+    "addTag",
+]);
+
+function parseBulkActionContentIds(raw: unknown): number[] | null {
+    if (!Array.isArray(raw)) return null;
+    if (raw.length > BULK_ACTIONS_MAX_IDS) return null;
+    const out: number[] = [];
+    for (const x of raw) {
+        const n = typeof x === "number" ? x : Number(x);
+        if (!Number.isInteger(n) || n <= 0) return null;
+        out.push(n);
+    }
+    return [...new Set(out)];
+}
+
+const favoritesListInclude = {
+    where: {
+        isTutorial: false,
+    },
+    include: {
+        owner: true,
+        checkedOutBy: { include: { userPhoto: true } },
+        tags: { include: { tag: true } },
+    },
+    orderBy: { dateAdded: "desc" as const },
+} satisfies Prisma.EmployeeInclude["contentsFavorited"];
+
+router.post("/bulk-actions", requiresAuth(), async (req, res) => {
+    try {
+        const employee = await getEmployeeFromRequest(req);
+        if (!employee) {
+            res.status(404).json({ error: "No linked employee account found" });
+            return;
+        }
+
+        const action = req.body?.action;
+        if (typeof action !== "string" || !BULK_ACTION_NAMES.has(action)) {
+            res.status(400).json({ error: "Invalid action" });
+            return;
+        }
+
+        const contentIds = parseBulkActionContentIds(req.body?.contentIds);
+        if (contentIds === null) {
+            res.status(400).json({
+                error: `contentIds must be an array of up to ${BULK_ACTIONS_MAX_IDS} positive integers`,
+            });
+            return;
+        }
+
+        if (contentIds.length === 0) {
+            res.status(400).json({ error: "No content selected" });
+            return;
+        }
+
+        if (action === "favorite") {
+            const rows = await contentRepo.getByIdsForBulkActions(
+                contentIds,
+                employee.id,
+            );
+            const connectIds = rows.map((r) => ({ id: r.id }));
+            const updated =
+                connectIds.length === 0
+                    ? await prisma.employee.findUnique({
+                          where: { id: employee.id },
+                          include: { contentsFavorited: favoritesListInclude },
+                      })
+                    : await prisma.employee.update({
+                          where: { id: employee.id },
+                          data: {
+                              contentsFavorited: { connect: connectIds },
+                          },
+                          include: { contentsFavorited: favoritesListInclude },
+                      });
+            res.json({
+                success: true,
+                favorites: updated?.contentsFavorited ?? [],
+            });
+            return;
+        }
+
+        if (action === "addTag") {
+            const tagId = Number(req.body?.tagId);
+            if (!Number.isInteger(tagId) || tagId <= 0) {
+                res.status(400).json({ error: "Invalid tagId" });
+                return;
+            }
+            const tag = await prisma.tag.findFirst({
+                where: {
+                    id: tagId,
+                    OR: [{ ownerId: employee.id }, { isGlobal: true }],
+                },
+            });
+            if (!tag) {
+                res.status(404).json({ error: "Tag not found" });
+                return;
+            }
+            const rows = await contentRepo.getByIdsForBulkActions(
+                contentIds,
+                employee.id,
+            );
+            const allowed = rows.filter(
+                (c) => !(c.isTutorial && c.ownerId !== employee.id),
+            );
+            if (allowed.length === 0) {
+                res.json({ success: true, attached: 0 });
+                return;
+            }
+            const { count } = await prisma.contentTag.createMany({
+                data: allowed.map((c) => ({ contentId: c.id, tagId })),
+                skipDuplicates: true,
+            });
+            res.json({ success: true, attached: count });
+            return;
+        }
+
+        const rows = await contentRepo.getByIdsForBulkActions(
+            contentIds,
+            employee.id,
+        );
+        const isAdmin = await getEmployeeIsAdmin(employee);
+
+        if (action === "checkout") {
+            const allowed = rows.filter((row) => {
+                const isJobPosition = row.jobPositions.includes(
+                    employee.jobPosition,
+                );
+                const isTutorialOwner =
+                    row.isTutorial && row.ownerId === employee.id;
+                if (!isTutorialOwner && !isJobPosition && !isAdmin) {
+                    return false;
+                }
+                if (row.isCheckedOut && row.checkedOutById !== employee.id) {
+                    return false;
+                }
+                return true;
+            });
+            const ids = allowed.map((r) => r.id);
+            if (ids.length === 0) {
+                res.json({ success: true, checkedOutIds: [] });
+                return;
+            }
+            await prisma.content.updateMany({
+                where: { id: { in: ids } },
+                data: {
+                    isCheckedOut: true,
+                    checkedOutById: employee.id,
+                    checkedOutOn: new Date(),
+                },
+            });
+            await prisma.activityLog.createMany({
+                data: ids.map((contentId) => ({
+                    employeeId: employee.id,
+                    contentId,
+                    type: "Checked Out",
+                })),
+            });
+            for (const row of allowed) {
+                void notifyOwnerOnDocumentAccess(row).catch((err) =>
+                    console.error("notifyOwnerOnDocumentAccess", err),
+                );
+            }
+            res.json({ success: true, checkedOutIds: ids });
+            return;
+        }
+
+        if (action === "checkin") {
+            const allowed = rows.filter((row) => {
+                const isJobPosition = row.jobPositions.includes(
+                    employee.jobPosition,
+                );
+                const isTutorialOwner =
+                    row.isTutorial && row.ownerId === employee.id;
+                return isTutorialOwner || isJobPosition || isAdmin;
+            });
+            const ids = allowed.map((r) => r.id);
+            if (ids.length === 0) {
+                res.json({ success: true, checkedInIds: [] });
+                return;
+            }
+            await prisma.content.updateMany({
+                where: { id: { in: ids } },
+                data: {
+                    isCheckedOut: false,
+                    checkedOutById: null,
+                    checkedOutOn: null,
+                },
+            });
+            await prisma.activityLog.createMany({
+                data: ids.map((contentId) => ({
+                    employeeId: employee.id,
+                    contentId,
+                    type: "Checked In",
+                })),
+            });
+            res.json({ success: true, checkedInIds: ids });
+            return;
+        }
+
+        res.status(400).json({ error: "Invalid action" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error:
+                err instanceof Error ? err.message : "Bulk action failed",
+        });
+    }
+});
+
 router.get("/:id", requiresAuth(), async (req, res) => {
     const id = Number(req.params.id);
     const employee = await getEmployeeFromRequest(req);

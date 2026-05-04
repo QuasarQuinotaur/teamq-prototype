@@ -38,6 +38,11 @@ export type TagsOptionProps = {
     tagIds: number[];
     tagList: Tag[];
     isAdmin: boolean;
+    /**
+     * Apply tag add/remove to local list state immediately (before the API returns).
+     * When omitted, successful toggles still use {@link contentTagsUpdated} after the request.
+     */
+    onOptimisticTagChange?: (tagId: number, apply: boolean) => void;
     /** Called when this content's tags are updated */
     contentTagsUpdated?: () => void;
     /** Called when the list of all tags is modified (added/removed/changed tags) */
@@ -49,6 +54,7 @@ export default function TagsOption({
                                        tagIds,
                                        tagList,
                                        isAdmin,
+                                       onOptimisticTagChange,
                                        contentTagsUpdated,
                                        tagsModified
 }: TagsOptionProps) {
@@ -85,15 +91,26 @@ export default function TagsOption({
     }
 
     async function toggleTagId(tagId: number, applyTag: boolean) {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/tags/${tagId}`, {
-            method: applyTag ? "POST" : "DELETE",
-            credentials: "include",
-        })
-            .finally(() => {
-                if (contentTagsUpdated) {
-                    contentTagsUpdated()
-                }
-            });
+        onOptimisticTagChange?.(tagId, applyTag);
+        try {
+            const res = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/content/${contentId}/tags/${tagId}`,
+                {
+                    method: applyTag ? "POST" : "DELETE",
+                    credentials: "include",
+                },
+            );
+            const ok = res.ok || (applyTag && res.status === 409);
+            if (!ok) {
+                contentTagsUpdated?.();
+                return;
+            }
+            if (!onOptimisticTagChange) {
+                contentTagsUpdated?.();
+            }
+        } catch {
+            contentTagsUpdated?.();
+        }
     }
 
     async function deleteByTagId(tagId: number) {
@@ -193,6 +210,9 @@ export default function TagsOption({
             return
         }
         setSelectAllAiLoading(true)
+        for (const tagId of toAdd) {
+            onOptimisticTagChange?.(tagId, true)
+        }
         try {
             const results = await Promise.all(
                 toAdd.map((tagId) =>
@@ -210,11 +230,15 @@ export default function TagsOption({
                 openSuggestError(
                     `Could not add all tags (${failed.status}). Try again.`,
                 )
+                contentTagsUpdated?.()
                 return
             }
-            contentTagsUpdated?.()
+            if (!onOptimisticTagChange) {
+                contentTagsUpdated?.()
+            }
         } catch {
             openSuggestError("Failed to add tags. Try again.")
+            contentTagsUpdated?.()
         } finally {
             setSelectAllAiLoading(false)
         }

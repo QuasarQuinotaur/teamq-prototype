@@ -179,6 +179,38 @@ class ContentRepository {
         });
     }
 
+    /**
+     * Rows visible to the employee (same rules as {@link getById}) with fields needed for
+     * content route bulk checkout / check-in / tagging.
+     */
+    async getByIdsForBulkActions(ids: number[], employeeId: number) {
+        const unique = [...new Set(ids)].filter(
+            (id) => Number.isInteger(id) && id > 0,
+        );
+        if (unique.length === 0) return [];
+        return prisma.content.findMany({
+            where: {
+                id: { in: unique },
+                OR: [
+                    { isTutorial: false },
+                    { isTutorial: true, ownerId: employeeId },
+                ],
+            },
+            select: {
+                id: true,
+                title: true,
+                expirationDate: true,
+                ownerId: true,
+                hasBeenNotifiedExpiringSoon: true,
+                hasBeenNotifiedOfExpiration: true,
+                jobPositions: true,
+                isTutorial: true,
+                isCheckedOut: true,
+                checkedOutById: true,
+            },
+        });
+    }
+
     async getByOwner(ownerId: number) {
         return prisma.content.findMany({
             where: {
