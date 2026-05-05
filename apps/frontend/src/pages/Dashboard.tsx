@@ -41,6 +41,7 @@ import {
 import ActivityChartWidget from "@/components/widgets/ActivityChartWidget.tsx";
 import ActivityFeedWidget from "@/components/widgets/ActivityFeedWidget.tsx";
 import { cn } from "@/lib/utils.ts";
+import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 
 type Widget = {
     id: string;
@@ -436,7 +437,9 @@ export default function Dashboard() {
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="grid shrink-0 grid-cols-3 items-center px-6 py-4">
-                <div />
+                <div className="flex items-center">
+                    <SidebarTrigger className="-ml-1 shrink-0" />
+                </div>
                 <div className="flex items-center justify-center gap-2 min-w-0">
                     {showDashboardContent ? (
                         <h1 className="text-2xl font-heading text-center truncate">

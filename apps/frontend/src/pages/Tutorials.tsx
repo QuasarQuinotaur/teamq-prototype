@@ -1,6 +1,7 @@
 import { setInboxTutorialSession } from "@/components/tutorial/inboxTutorialStorage.ts";
 import { setServiceRequestTutorialSession } from "@/components/tutorial/serviceRequestTutorialStorage.ts";
 import { HelpHint } from "@/elements/help-hint.tsx";
+import { SidebarTrigger } from "@/elements/sidebar-elements.tsx";
 import { cn } from "@/lib/utils.ts";
 import {
   ArrowRightIcon,
@@ -58,8 +59,11 @@ function TutorialCardLink({
 
 export default function Tutorials() {
   return (
-    <div className="bg-muted/50 flex min-h-0 flex-1 flex-col overflow-auto rounded-xl p-8 sm:p-10">
-      <div className="mx-auto w-full max-w-4xl space-y-10">
+    <div className="bg-muted/50 flex min-h-0 flex-1 flex-col overflow-auto rounded-xl">
+      <header className="flex h-16 shrink-0 items-center px-4">
+        <SidebarTrigger className="-ml-1 shrink-0" />
+      </header>
+      <div className="mx-auto w-full max-w-4xl space-y-10 p-8 sm:p-10">
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-heading text-2xl font-semibold tracking-tight">Tutorials</h1>
