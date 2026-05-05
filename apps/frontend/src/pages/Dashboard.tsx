@@ -540,7 +540,7 @@ export default function Dashboard() {
                                         : "min-h-[300px]"
                                 } ${
                                     activeWidget.size === 3
-                                        ? "w-full"
+                                        ? "w-[calc(100%-1rem)]"
                                         : activeWidget.size === 2
                                             ? "w-[calc(66.666%-1rem)]"
                                             : "w-[calc(33.333%-1rem)]"
@@ -817,7 +817,7 @@ function SortableItem({
 
     const widthClass =
         size === 3
-            ? "w-full"
+            ? "w-[calc(100%-1rem)]"
             : size === 2
                 ? "w-[calc(66.666%-1rem)]"
                 : "w-[calc(33.333%-1rem)]";
