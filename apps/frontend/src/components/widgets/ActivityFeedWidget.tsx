@@ -214,7 +214,7 @@ export default function ActivityFeedWidget({ onInitialLoadComplete }: ActivityFe
                             const iconBox = cn(
                                 "flex size-8 shrink-0 items-center justify-center rounded-lg",
                                 TYPE_ICON_BG[event.type] ??
-                                "bg-gray-500/10 text-gray-700 dark:text-gray-400"
+                                "bg-muted text-muted-foreground"
                             );
                             const { action, doc } = formatEventLine(event);
                             return (

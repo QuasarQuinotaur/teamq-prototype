@@ -1,6 +1,6 @@
 import type {Employee} from "db";
 import {stringToAccentBgClass} from "@/lib/card-accent.ts";
-import {CardContainer, CardDescription, CardTitle} from "@/components/cards/Card.tsx";
+import {CardDescription, CardTitle} from "@/components/cards/Card.tsx";
 import {cn} from "@/lib/utils.ts";
 import BadgeList from "@/elements/badge-list.tsx";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/dialog/Dialog.tsx";
@@ -36,13 +36,13 @@ export default function EmployeeProfileCard({
     ] : [];
 
     const initials = `${employee.firstName[0]}${employee.lastName[0]}`;
-    const buttonClass = "px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-hanover-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    const buttonClass = "px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 
     const [formOpen, setFormOpen] = useState(false);
 
     return (
         <div className="p-6">
-            <div className="px-10 py-10 bg-gray-50 rounded-2xl">
+            <div className="rounded-2xl border border-border bg-card px-10 py-10">
                 <div className="flex items-center gap-6">
                     <div className="flex flex-col items-center gap-3">
                         {/* Avatar */}
@@ -50,13 +50,13 @@ export default function EmployeeProfileCard({
                             <img
                                 src={(employee as any).image}
                                 alt={employee.firstName}
-                                className="h-48 w-48 rounded-full border-4 border-white shadow-md object-cover"
+                                className="h-48 w-48 rounded-full border-4 border-border bg-muted shadow-md object-cover"
                             />
                         ) : (
                             <div
                                 className={cn(
-                                    "flex items-center justify-center text-6xl font-semibold text-white",
-                                    "h-48 w-48 rounded-full border-4 border-white shadow-md",
+                                    "flex items-center justify-center text-6xl font-semibold text-foreground",
+                                    "h-48 w-48 rounded-full border-4 border-border shadow-md",
                                     accentClass,
                                 )}
                             >

@@ -30,10 +30,6 @@ type Props = {
 };
 
 function CalendarEvent({ event }: any) {
-    const ownerName = event.owner
-        ? `${event.owner.firstName || ""} ${event.owner.lastName || ""}`.trim() || "Unknown owner"
-        : "No owner";
-
     return (
         <div className="relative group flex items-center justify-between gap-2 w-full">
             <span className="truncate">{event.title}</span>
@@ -50,10 +46,6 @@ function CalendarEvent({ event }: any) {
 }
 
 function EventWrapper({ event, children }: any) {
-    const ownerName = event?.owner
-        ? `${event.owner.firstName || ""} ${event.owner.lastName || ""}`.trim() || "Unknown owner"
-        : "No owner";
-
     return (
         <div title="">
             {children}
@@ -76,19 +68,19 @@ function CustomToolbar({ label, onNavigate }: any) {
             <div className="flex gap-2">
                 <button
                     onClick={() => onNavigate("TODAY")}
-                    className="px-3 py-1 rounded-md text-sm border bg-white"
+                    className="rounded-md border bg-card px-3 py-1 text-sm text-foreground hover:bg-muted"
                 >
                     Today
                 </button>
                 <button
                     onClick={() => onNavigate("PREV")}
-                    className="px-3 py-1 rounded-md text-sm border bg-white"
+                    className="rounded-md border bg-card px-3 py-1 text-sm text-foreground hover:bg-muted"
                 >
                     Back
                 </button>
                 <button
                     onClick={() => onNavigate("NEXT")}
-                    className="px-3 py-1 rounded-md text-sm border bg-white"
+                    className="rounded-md border bg-card px-3 py-1 text-sm text-foreground hover:bg-muted"
                 >
                     Next
                 </button>
@@ -303,9 +295,9 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                         return {
                             title: "",
                             style: {
-                                backgroundColor: "white",
+                                backgroundColor: "var(--card)",
                                 color: "var(--foreground)",
-                                border: "1px solid #E5E7EB",
+                                border: "1px solid var(--border)",
                                 borderLeft: `4px solid ${borderColor}`,
                                 borderRadius: "8px",
                                 padding: "2px 8px",
@@ -343,7 +335,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
 
             {showMoreDate && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                    <div className="bg-white rounded-lg shadow-lg w-[400px] max-h-[500px] overflow-hidden">
+                    <div className="w-[400px] max-h-[500px] overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-lg">
 
                         {/* header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -352,7 +344,7 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                             </div>
                             <button
                                 onClick={() => setShowMoreDate(null)}
-                                className="text-sm px-2 py-1 border rounded"
+                                className="rounded border border-border px-2 py-1 text-sm hover:bg-muted"
                             >
                                 Close
                             </button>
@@ -363,9 +355,8 @@ export default function ExpirationCalendarWidget({ onOpenDocument, onInitialLoad
                             {showMoreEvents.map((event) => (
                                 <div
                                     key={event.id}
-                                    className="flex items-center justify-between rounded px-3 py-2 text-sm border bg-white hover:bg-gray-50 cursor-pointer"
+                                    className="flex cursor-pointer items-center justify-between rounded border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
                                     style={{
-                                        border: "1px solid #E5E7EB",
                                         borderLeft: `4px solid ${
                                             event.type === "review" ? "var(--warning)" : "var(--danger)"
                                         }`,

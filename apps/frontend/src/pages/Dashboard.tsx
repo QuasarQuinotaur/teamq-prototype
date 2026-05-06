@@ -636,7 +636,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add GIF (Small)
                                                 </button>
@@ -647,7 +647,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add Calculator (Small)
                                                 </button>
@@ -658,7 +658,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add Clock/Stopwatch (Small)
                                                 </button>
@@ -669,7 +669,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add Note Pad (Small)
                                                 </button>
@@ -680,7 +680,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
@@ -691,7 +691,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add {w.label} (Large)
                                                 </button>
@@ -705,7 +705,7 @@ export default function Dashboard() {
                                                         setShowAddModal(false);
                                                         setOpenPreview(null);
                                                     }}
-                                                    className="w-full bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                    className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                 >
                                                     Add {w.label} (Small)
                                                 </button>
@@ -718,7 +718,7 @@ export default function Dashboard() {
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
-                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                        className="flex-1 rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                     >
                                                         Add {w.label} (Medium)
                                                     </button>
@@ -729,7 +729,7 @@ export default function Dashboard() {
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
-                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                        className="flex-1 rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                     >
                                                         Add {w.label} (Large)
                                                     </button>
@@ -742,7 +742,7 @@ export default function Dashboard() {
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
-                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                        className="flex-1 rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                     >
                                                         Add {w.label} (Medium)
                                                     </button>
@@ -753,7 +753,7 @@ export default function Dashboard() {
                                                             setShowAddModal(false);
                                                             setOpenPreview(null);
                                                         }}
-                                                        className="flex-1 bg-primary text-white rounded-md py-2 hover:opacity-90 transition"
+                                                        className="flex-1 rounded-md bg-primary py-2 text-primary-foreground transition hover:opacity-90"
                                                     >
                                                         Add {w.label} (Large)
                                                     </button>
@@ -967,7 +967,7 @@ function WidgetRenderer({
     }
 
     return (
-        <div className="h-full p-4 bg-white rounded-2xl shadow-sm">
+        <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-sm">
             {inner}
         </div>
     );

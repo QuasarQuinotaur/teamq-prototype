@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils.ts"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = {
-  light: "",
-  dark: ':root[data-theme="dark"]',
+  light: ':root, :root[data-theme]',
+  dark: ':root.dark, :root[data-theme="dark"]',
 } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const

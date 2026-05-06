@@ -91,7 +91,7 @@ export default function TopDocumentActivityWidget({ limit = 5, onInitialLoadComp
                     <div
                         key={doc.id}
                         className={`flex justify-between items-center p-2 rounded-lg ${
-                            index === 0 ? "bg-gray-100 font-medium" : ""
+                            index === 0 ? "bg-muted font-medium" : ""
                         }`}
                     >
                         {/* Left side */}

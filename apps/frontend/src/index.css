@@ -373,9 +373,9 @@ html[data-text-size="Large"] { font-size: 18px; }
 
 /* Buttons */
 .rbc-toolbar button {
-  border: 1px solid #e5e7eb; /* your border color */
-  background: white;
-  color: #374151;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
   border-radius: 8px;
   padding: 4px 10px;
   font-size: 13px;
@@ -384,21 +384,22 @@ html[data-text-size="Large"] { font-size: 18px; }
 
 /* Hover */
 .rbc-toolbar button:hover {
-  background: #f9fafb;
+  background: var(--muted);
 }
 
 /* Active (Month button) */
 .rbc-toolbar button.rbc-active {
-  background: #111827;
-  color: white;
-  border-color: #111827;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
 }
 
 /* Outer calendar */
 .rbc-month-view {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  background: var(--card);
 }
 
 /* Fix squished day names */
@@ -416,16 +417,17 @@ html[data-text-size="Large"] { font-size: 18px; }
 
 /* Day cells */
 .rbc-day-bg {
-  background: white;
+  background: var(--card);
 }
 
 /* Today highlight */
 .rbc-today {
-  background: #f3f4f6;
+  background: color-mix(in oklab, var(--muted) 65%, var(--card));
 }
 
 .rbc-event {
-  background: #2563eb; /* match your blue */
+  background: var(--primary);
+  color: var(--primary-foreground);
   border-radius: 6px;
   padding: 2px 6px;
   font-size: 12px;
@@ -447,7 +449,7 @@ html[data-text-size="Large"] { font-size: 18px; }
 
 .rbc-toolbar button:focus {
   outline: none;
-  ring: 2px solid #e5e7eb;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 50%, transparent);
 }
 
 .rbc-show-more {
