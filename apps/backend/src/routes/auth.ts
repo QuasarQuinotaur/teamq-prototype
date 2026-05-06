@@ -32,15 +32,20 @@ router.get("/me", async (req, res) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
     const sub = req.oidc.user!.sub;
-    const email = req.oidc.user!.email;
+    const email = String(req.oidc.user!.email ?? "").trim();
+    if (!email) {
+        return res.status(400).json({ error: "Authenticated user has no email" });
+    }
 
-    const existing = await prisma.employee.findUnique({ where: { email } });
+    const existing = await prisma.employee.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+    });
     if (!existing) {
         return res.status(404).json({ error: 'Employee not registered' });
     }
 
     const employee = await prisma.employee.update({
-        where: { email },
+        where: { id: existing.id },
         data: { auth0Id: sub },
     });
     res.json(employee);
@@ -51,11 +56,21 @@ router.post("/me/document-tutorial-shown", async (req, res) => {
     if (!req.oidc.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
     }
-    const email = req.oidc.user!.email as string;
+    const email = String(req.oidc.user!.email ?? "").trim();
+    if (!email) {
+        return res.status(400).json({ error: "Authenticated user has no email" });
+    }
 
     try {
+        const employeeRow = await prisma.employee.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+            select: { id: true },
+        });
+        if (!employeeRow) {
+            return res.status(404).json({ error: "Employee not registered" });
+        }
         const employee = await prisma.employee.update({
-            where: { email },
+            where: { id: employeeRow.id },
             data: { documentTutorialShown: true },
         });
         res.json(employee);
@@ -67,7 +82,10 @@ router.post("/me/document-tutorial-shown", async (req, res) => {
 // POST /api/me/link
 router.post("/me/link", requiresAuth(), async (req, res) => {
     const sub = req.oidc.user!.sub as string;
-    const email = req.oidc.user!.email as string;
+    const email = String(req.oidc.user!.email ?? "").trim();
+    if (!email) {
+        return res.status(400).json({ error: "Authenticated user has no email" });
+    }
     const employee = await employeeRepo.linkAuth0(email, sub);
     res.json(employee);
 });

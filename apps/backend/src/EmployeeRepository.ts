@@ -21,7 +21,9 @@ class EmployeeRepository {
     }
 
     async getByEmail(email: string) {
-        return prisma.employee.findUnique({ where: { email } });
+        return prisma.employee.findFirst({
+            where: { email: { equals: email.trim(), mode: "insensitive" } },
+        });
     }
 
     async getByAuth0Id(auth0Id: string) {
@@ -62,9 +64,15 @@ class EmployeeRepository {
     }
 
     async linkAuth0(email: string, auth0Id: string) {
+        const employee = await prisma.employee.findFirst({
+            where: { email: { equals: email.trim(), mode: "insensitive" } },
+        });
+        if (!employee) {
+            throw new Error("Employee not found for provided email");
+        }
         return prisma.employee.update({
-            where: { email },
-            data: { auth0Id }
+            where: { id: employee.id },
+            data: { auth0Id },
         });
     }
 
