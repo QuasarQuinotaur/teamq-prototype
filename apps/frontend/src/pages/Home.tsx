@@ -3,6 +3,8 @@ import Hero from '../components/Hero';
 import { cn } from '@/lib/utils';
 import { WarningIcon } from '@phosphor-icons/react';
 
+const FIXED_HOME_THEME = "hanover blue";
+
 function DisclaimerBadge() {
     const [expanded, setExpanded] = useState(true);
 
@@ -105,6 +107,19 @@ function FeatureSection({
 }
 
 function Home() {
+    useEffect(() => {
+        const previousTheme = document.documentElement.getAttribute("data-theme");
+        document.documentElement.setAttribute("data-theme", FIXED_HOME_THEME);
+
+        return () => {
+            if (previousTheme) {
+                document.documentElement.setAttribute("data-theme", previousTheme);
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+            }
+        };
+    }, []);
+
     return (
         <div className="min-w-full bg-white text-lg">
             <DisclaimerBadge />
